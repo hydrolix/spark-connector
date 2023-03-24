@@ -1,0 +1,21 @@
+{
+    "uuid": "133d7621-3cbb-41e5-9be0-56919a52ab88",
+    "email": "alex@hydrolix.io",
+    "orgs": [
+        {
+            "uuid": "3287e312-482e-49e1-83fa-11edaa0a66c1",
+            "name": "Hydrolix",
+            "type": "singletenant",
+            "cloud": "gcp",
+            "kubernetes": true
+        }
+    ],
+    "groups": [
+        "org.3287e312-482e-49e1-83fa-11edaa0a66c1.Hydrolix.admin"
+    ],
+    "auth_token": {
+        "access_token": "[REDACTED]",
+        "expires_in": 86400,
+        "token_type": "Bearer"
+    }
+}

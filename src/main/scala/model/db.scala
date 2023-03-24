@@ -1,0 +1,33 @@
+package io.hydrolix.spark
+package model
+
+import org.apache.spark.sql.types.DataType
+
+import java.net.URI
+import java.time.Instant
+import java.util.UUID
+
+case class HdxConnectionInfo(orgId: UUID,
+                             jdbcUrl: String,
+                             user: String,
+                             password: String,
+                             apiUrl: URI)
+
+case class HdxColumnInfo(name: String,
+                      colType: Int,
+                     typeName: String,
+                     nullable: Boolean,
+                    sparkType: DataType)
+
+case class HdxPartition(partition: String,
+                     minTimestamp: Instant,
+                     maxTimestamp: Instant,
+                     manifestSize: Long,
+                         dataSize: Long,
+                        indexSize: Long,
+                             rows: Long,
+                          memSize: Long,
+                         rootPath: String,
+                         shardKey: String,
+                           active: Boolean)
+

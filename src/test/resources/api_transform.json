@@ -1,0 +1,574 @@
+[
+    {
+        "name": "logs_logs",
+        "description": "",
+        "uuid": "7317cd4b-1058-42d7-b564-66225064c12a",
+        "created": "2023-03-10T01:59:58.832344Z",
+        "modified": "2023-03-10T01:59:58.832359Z",
+        "settings": {
+            "is_default": true,
+            "sql_transform": "SELECT attributes_string_value[indexOf(attributes_string_key, 'log_file_path')] AS log_file_path, * FROM {STREAM}",
+            "null_values": [],
+            "sample_data": [
+                {
+                    "id": "2MkX6cS34SAAwBsEAOaTAQZ9PUP",
+                    "body": "2023-03-09T01:46:09.319Z\tINFO\troute/client.go:54\tFinding route\t{\"service\": \"frontend\", \"component\": \"route_client\", \"trace_id\": \"06006b4cc968285a\", \"span_id\": \"06006b4cc968285a\", \"pickup\": \"14,851\", \"dropoff\": \"211,653\"}\n",
+                    "span_id": "",
+                    "trace_id": "",
+                    "timestamp": "1678326369327523582",
+                    "trace_flags": 0,
+                    "severity_text": "",
+                    "severity_number": 0,
+                    "observed_timestamp": "1678326369477963149",
+                    "attributes_int64_key": [],
+                    "resources_string_key": [],
+                    "attributes_string_key": [
+                        "log_file_path",
+                        "stream",
+                        "container_id"
+                    ],
+                    "attributes_float64_key": [],
+                    "attributes_int64_value": [],
+                    "resources_string_value": [],
+                    "attributes_string_value": [
+                        "/var/lib/docker/containers/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631-json.log",
+                        "stderr",
+                        "c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631"
+                    ],
+                    "attributes_float64_value": []
+                },
+                {
+                    "id": "2MkX6cS34SAAwBsEAOaTAQZ9PUQ",
+                    "body": "2023-03-09T01:46:09.320Z\tINFO\troute/server.go:71\tHTTP request received\t{\"service\": \"route\", \"trace_id\": \"06006b4cc968285a\", \"span_id\": \"5281f6dd55c7afb2\", \"method\": \"GET\", \"url\": \"/route?dropoff=211%2C653&pickup=14%2C851\"}\n",
+                    "span_id": "",
+                    "trace_id": "",
+                    "timestamp": "1678326369327567033",
+                    "trace_flags": 0,
+                    "severity_text": "",
+                    "severity_number": 0,
+                    "observed_timestamp": "1678326369477979065",
+                    "attributes_int64_key": [],
+                    "resources_string_key": [],
+                    "attributes_string_key": [
+                        "stream",
+                        "container_id",
+                        "log_file_path"
+                    ],
+                    "attributes_float64_key": [],
+                    "attributes_int64_value": [],
+                    "resources_string_value": [],
+                    "attributes_string_value": [
+                        "stderr",
+                        "c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631",
+                        "/var/lib/docker/containers/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631-json.log"
+                    ],
+                    "attributes_float64_value": []
+                },
+                {
+                    "id": "2MkX6cS34SAAwBsEAOaTAQZ9PUR",
+                    "body": "2023-03-09T01:46:09.346Z\tINFO\troute/client.go:54\tFinding route\t{\"service\": \"frontend\", \"component\": \"route_client\", \"trace_id\": \"06006b4cc968285a\", \"span_id\": \"06006b4cc968285a\", \"pickup\": \"492,325\", \"dropoff\": \"211,653\"}\n",
+                    "span_id": "",
+                    "trace_id": "",
+                    "timestamp": "1678326369359410098",
+                    "trace_flags": 0,
+                    "severity_text": "",
+                    "severity_number": 0,
+                    "observed_timestamp": "1678326369477994576",
+                    "attributes_int64_key": [],
+                    "resources_string_key": [],
+                    "attributes_string_key": [
+                        "container_id",
+                        "log_file_path",
+                        "stream"
+                    ],
+                    "attributes_float64_key": [],
+                    "attributes_int64_value": [],
+                    "resources_string_value": [],
+                    "attributes_string_value": [
+                        "c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631",
+                        "/var/lib/docker/containers/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631-json.log",
+                        "stderr"
+                    ],
+                    "attributes_float64_value": []
+                },
+                {
+                    "id": "2MkX6cS34SAAwBsEAOaTAQZ9PUS",
+                    "body": "2023-03-09T01:46:09.346Z\tINFO\troute/server.go:71\tHTTP request received\t{\"service\": \"route\", \"trace_id\": \"06006b4cc968285a\", \"span_id\": \"6263a8242ef05256\", \"method\": \"GET\", \"url\": \"/route?dropoff=211%2C653&pickup=492%2C325\"}\n",
+                    "span_id": "",
+                    "trace_id": "",
+                    "timestamp": "1678326369359450963",
+                    "trace_flags": 0,
+                    "severity_text": "",
+                    "severity_number": 0,
+                    "observed_timestamp": "1678326369478009908",
+                    "attributes_int64_key": [],
+                    "resources_string_key": [],
+                    "attributes_string_key": [
+                        "stream",
+                        "container_id",
+                        "log_file_path"
+                    ],
+                    "attributes_float64_key": [],
+                    "attributes_int64_value": [],
+                    "resources_string_value": [],
+                    "attributes_string_value": [
+                        "stderr",
+                        "c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631",
+                        "/var/lib/docker/containers/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631-json.log"
+                    ],
+                    "attributes_float64_value": []
+                },
+                {
+                    "id": "2MkX6cS34SAAwBsEAOaTAQZ9PUT",
+                    "body": "2023-03-09T01:46:09.404Z\tINFO\tfrontend/best_eta.go:90\tFound routes\t{\"service\": \"frontend\", \"trace_id\": \"06006b4cc968285a\", \"span_id\": \"06006b4cc968285a\", \"routes\": [{},{},{},{},{},{},{},{},{},{}]}\n",
+                    "span_id": "",
+                    "trace_id": "",
+                    "timestamp": "1678326369405006188",
+                    "trace_flags": 0,
+                    "severity_text": "",
+                    "severity_number": 0,
+                    "observed_timestamp": "1678326369478025648",
+                    "attributes_int64_key": [],
+                    "resources_string_key": [],
+                    "attributes_string_key": [
+                        "log_file_path",
+                        "stream",
+                        "container_id"
+                    ],
+                    "attributes_float64_key": [],
+                    "attributes_int64_value": [],
+                    "resources_string_value": [],
+                    "attributes_string_value": [
+                        "/var/lib/docker/containers/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631-json.log",
+                        "stderr",
+                        "c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631"
+                    ],
+                    "attributes_float64_value": []
+                },
+                {
+                    "id": "2MkX6cS34SAAwBsEAOaTAQZ9PUU",
+                    "body": "2023-03-09T01:46:09.404Z\tINFO\tfrontend/best_eta.go:106\tDispatch successful\t{\"service\": \"frontend\", \"trace_id\": \"06006b4cc968285a\", \"span_id\": \"06006b4cc968285a\", \"driver\": \"T781882C\", \"eta\": \"2m0s\"}\n",
+                    "span_id": "",
+                    "trace_id": "",
+                    "timestamp": "1678326369405040877",
+                    "trace_flags": 0,
+                    "severity_text": "",
+                    "severity_number": 0,
+                    "observed_timestamp": "1678326369478042344",
+                    "attributes_int64_key": [],
+                    "resources_string_key": [],
+                    "attributes_string_key": [
+                        "container_id",
+                        "log_file_path",
+                        "stream"
+                    ],
+                    "attributes_float64_key": [],
+                    "attributes_int64_value": [],
+                    "resources_string_value": [],
+                    "attributes_string_value": [
+                        "c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631",
+                        "/var/lib/docker/containers/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631-json.log",
+                        "stderr"
+                    ],
+                    "attributes_float64_value": []
+                },
+                {
+                    "id": "2MkX6cS34SAAwBsEAOaTAQZ9PUV",
+                    "body": "2023.03.09 01:46:09.675452 [ \u001b[38;2;60;157;152m50\u001b[0m ] {\u001b[38;2;0;222;0m4633ab4b-0bcd-4daa-9f76-a01a6c4bc13f\u001b[0m} <\u001b[1mInformation\u001b[0m> \u001b[38;2;57;146;214mexecuteQuery\u001b[0m: Read 743 rows, 5.80 KiB in 0.005245049 sec., 141657 rows/sec., 1.08 MiB/sec.\r\n",
+                    "span_id": "",
+                    "trace_id": "",
+                    "timestamp": "1678326369675791143",
+                    "trace_flags": 0,
+                    "severity_text": "",
+                    "severity_number": 0,
+                    "observed_timestamp": "1678326369678543119",
+                    "attributes_int64_key": [],
+                    "resources_string_key": [],
+                    "attributes_string_key": [
+                        "stream",
+                        "container_id",
+                        "log_file_path"
+                    ],
+                    "attributes_float64_key": [],
+                    "attributes_int64_value": [],
+                    "resources_string_value": [],
+                    "attributes_string_value": [
+                        "stdout",
+                        "7b7ef6fe3c3d179609b5f50651ed5ed2b17de919cb6fcc225f22bfb1f8feb2ef",
+                        "/var/lib/docker/containers/7b7ef6fe3c3d179609b5f50651ed5ed2b17de919cb6fcc225f22bfb1f8feb2ef/7b7ef6fe3c3d179609b5f50651ed5ed2b17de919cb6fcc225f22bfb1f8feb2ef-json.log"
+                    ],
+                    "attributes_float64_value": []
+                },
+                {
+                    "id": "2MkX6cS34SAAwBsEAOaTAQZ9PUW",
+                    "body": "2023-03-09T01:46:09.906Z\tINFO\tfrontend/server.go:96\tHTTP request received\t{\"service\": \"frontend\", \"trace_id\": \"0fad8f697113d41f\", \"span_id\": \"0fad8f697113d41f\", \"method\": \"GET\", \"url\": \"/dispatch?customer=123&nonse=0.6308392664170006\"}\n",
+                    "span_id": "",
+                    "trace_id": "",
+                    "timestamp": "1678326369907159470",
+                    "trace_flags": 0,
+                    "severity_text": "",
+                    "severity_number": 0,
+                    "observed_timestamp": "1678326370078118185",
+                    "attributes_int64_key": [],
+                    "resources_string_key": [],
+                    "attributes_string_key": [
+                        "stream",
+                        "container_id",
+                        "log_file_path"
+                    ],
+                    "attributes_float64_key": [],
+                    "attributes_int64_value": [],
+                    "resources_string_value": [],
+                    "attributes_string_value": [
+                        "stderr",
+                        "c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631",
+                        "/var/lib/docker/containers/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631-json.log"
+                    ],
+                    "attributes_float64_value": []
+                },
+                {
+                    "id": "2MkX6cS34SAAwBsEAOaTAQZ9PUY",
+                    "body": "http://0.0.0.0:8081/customer?customer=123\n",
+                    "span_id": "",
+                    "trace_id": "",
+                    "timestamp": "1678326369907161276",
+                    "trace_flags": 0,
+                    "severity_text": "",
+                    "severity_number": 0,
+                    "observed_timestamp": "1678326370078187279",
+                    "attributes_int64_key": [],
+                    "resources_string_key": [],
+                    "attributes_string_key": [
+                        "log_file_path",
+                        "stream",
+                        "container_id"
+                    ],
+                    "attributes_float64_key": [],
+                    "attributes_int64_value": [],
+                    "resources_string_value": [],
+                    "attributes_string_value": [
+                        "/var/lib/docker/containers/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631-json.log",
+                        "stdout",
+                        "c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631"
+                    ],
+                    "attributes_float64_value": []
+                },
+                {
+                    "id": "2MkX6cS34SAAwBsEAOaTAQZ9PUX",
+                    "body": "2023-03-09T01:46:09.906Z\tINFO\tcustomer/client.go:54\tGetting customer\t{\"service\": \"frontend\", \"component\": \"customer_client\", \"trace_id\": \"0fad8f697113d41f\", \"span_id\": \"0fad8f697113d41f\", \"customer_id\": \"123\"}\n",
+                    "span_id": "",
+                    "trace_id": "",
+                    "timestamp": "1678326369907199634",
+                    "trace_flags": 0,
+                    "severity_text": "",
+                    "severity_number": 0,
+                    "observed_timestamp": "1678326370078165704",
+                    "attributes_int64_key": [],
+                    "resources_string_key": [],
+                    "attributes_string_key": [
+                        "log_file_path",
+                        "stream",
+                        "container_id"
+                    ],
+                    "attributes_float64_key": [],
+                    "attributes_int64_value": [],
+                    "resources_string_value": [],
+                    "attributes_string_value": [
+                        "/var/lib/docker/containers/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631/c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631-json.log",
+                        "stderr",
+                        "c8263e0dd932da2df9d069ef64ce8427730b68f70dd5809e44cc83b8493ac631"
+                    ],
+                    "attributes_float64_value": []
+                }
+            ],
+            "output_columns": [
+                {
+                    "name": "timestamp",
+                    "datatype": {
+                        "type": "epoch",
+                        "index": false,
+                        "primary": true,
+                        "source": null,
+                        "format": "ns",
+                        "resolution": "ms",
+                        "default": null,
+                        "script": null
+                    }
+                },
+                {
+                    "name": "observed_timestamp",
+                    "datatype": {
+                        "type": "epoch",
+                        "index": false,
+                        "primary": false,
+                        "source": null,
+                        "format": "ns",
+                        "resolution": "ms",
+                        "default": null,
+                        "script": null
+                    }
+                },
+                {
+                    "name": "id",
+                    "datatype": {
+                        "type": "string",
+                        "index": true,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null
+                    }
+                },
+                {
+                    "name": "trace_id",
+                    "datatype": {
+                        "type": "string",
+                        "index": true,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null
+                    }
+                },
+                {
+                    "name": "span_id",
+                    "datatype": {
+                        "type": "string",
+                        "index": true,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null
+                    }
+                },
+                {
+                    "name": "trace_flags",
+                    "datatype": {
+                        "type": "uint32",
+                        "index": true,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null
+                    }
+                },
+                {
+                    "name": "severity_text",
+                    "datatype": {
+                        "type": "string",
+                        "index": true,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null
+                    }
+                },
+                {
+                    "name": "severity_number",
+                    "datatype": {
+                        "type": "uint8",
+                        "index": true,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null
+                    }
+                },
+                {
+                    "name": "body",
+                    "datatype": {
+                        "type": "string",
+                        "index": false,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null
+                    }
+                },
+                {
+                    "name": "resources_string_key",
+                    "datatype": {
+                        "type": "array",
+                        "index": false,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null,
+                        "elements": [
+                            {
+                                "type": "string",
+                                "index": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "resources_string_value",
+                    "datatype": {
+                        "type": "array",
+                        "index": false,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null,
+                        "elements": [
+                            {
+                                "type": "string",
+                                "index": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "attributes_string_key",
+                    "datatype": {
+                        "type": "array",
+                        "index": false,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null,
+                        "elements": [
+                            {
+                                "type": "string",
+                                "index": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "attributes_string_value",
+                    "datatype": {
+                        "type": "array",
+                        "index": false,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null,
+                        "elements": [
+                            {
+                                "type": "string",
+                                "index": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "attributes_int64_key",
+                    "datatype": {
+                        "type": "array",
+                        "index": false,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null,
+                        "elements": [
+                            {
+                                "type": "string",
+                                "index": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "attributes_int64_value",
+                    "datatype": {
+                        "type": "array",
+                        "index": false,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null,
+                        "elements": [
+                            {
+                                "type": "int64",
+                                "index": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "attributes_float64_key",
+                    "datatype": {
+                        "type": "array",
+                        "index": false,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null,
+                        "elements": [
+                            {
+                                "type": "string",
+                                "index": true
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "attributes_float64_value",
+                    "datatype": {
+                        "type": "array",
+                        "index": false,
+                        "source": null,
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null,
+                        "elements": [
+                            {
+                                "type": "double",
+                                "index": false
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "log_file_path",
+                    "datatype": {
+                        "type": "string",
+                        "index": true,
+                        "source": {
+                            "from_input_field": "sql_transform"
+                        },
+                        "format": null,
+                        "resolution": "seconds",
+                        "default": null,
+                        "script": null
+                    }
+                }
+            ],
+            "compression": "",
+            "format_details": {
+                "flattening": {
+                    "depth": null,
+                    "active": false,
+                    "map_flattening_strategy": {
+                        "left": "",
+                        "right": ""
+                    },
+                    "slice_flattening_strategy": {
+                        "left": "",
+                        "right": ""
+                    }
+                }
+            }
+        },
+        "url": "https://gcp-prod-test.hydrolix.net/config/v1/orgs/3287e312-482e-49e1-83fa-11edaa0a66c1/projects/e487a67f-339c-4d0c-ac9c-dc44959a7980/tables/27a9b5ed-9a07-407d-a279-46dce23b25b2/transforms/7317cd4b-1058-42d7-b564-66225064c12a",
+        "type": "json",
+        "table": "27a9b5ed-9a07-407d-a279-46dce23b25b2"
+    }
+]

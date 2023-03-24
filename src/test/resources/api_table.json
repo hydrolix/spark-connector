@@ -1,0 +1,50 @@
+{
+    "project": "e487a67f-339c-4d0c-ac9c-dc44959a7980",
+    "name": "logs_logs",
+    "description": null,
+    "uuid": "27a9b5ed-9a07-407d-a279-46dce23b25b2",
+    "created": "2023-03-10T01:57:48.524847Z",
+    "modified": "2023-03-10T01:57:48.524869Z",
+    "settings": {
+        "stream": {
+            "token_list": [],
+            "hot_data_max_age_minutes": 60,
+            "hot_data_max_active_partitions": 12,
+            "hot_data_max_rows_per_partition": 1048576,
+            "hot_data_max_minutes_per_partition": 5,
+            "hot_data_max_open_seconds": 10,
+            "hot_data_max_idle_seconds": 5,
+            "cold_data_max_age_days": 365,
+            "cold_data_max_active_partitions": 24,
+            "cold_data_max_rows_per_partition": 1048576,
+            "cold_data_max_minutes_per_partition": 60,
+            "cold_data_max_open_seconds": 10,
+            "cold_data_max_idle_seconds": 10
+        },
+        "age": {
+            "max_age_days": 0
+        },
+        "reaper": {
+            "max_age_days": 1
+        },
+        "merge": {
+            "enabled": true
+        },
+        "autoingest": [
+            {
+                "enabled": false,
+                "source": "",
+                "pattern": "",
+                "max_rows_per_partition": 12288000,
+                "max_minutes_per_partition": 60,
+                "max_active_partitions": 50,
+                "dry_run": false
+            }
+        ],
+        "sort_keys": [],
+        "shard_key": null,
+        "max_future_days": 0
+    },
+    "url": "https://gcp-prod-test.hydrolix.net/config/v1/orgs/3287e312-482e-49e1-83fa-11edaa0a66c1/projects/e487a67f-339c-4d0c-ac9c-dc44959a7980/tables/27a9b5ed-9a07-407d-a279-46dce23b25b2",
+    "type": "turbine"
+}
