@@ -1,6 +1,6 @@
 package io.hydrolix.spark
 
-import model.{HdxConnectionInfo, HdxLoginRequest, HdxLoginRespAuthToken, HdxLoginResponse, HdxProject, HdxTable, HdxView}
+import model.{HdxConnectionInfo, HdxLoginRequest, HdxLoginRespAuthToken, HdxLoginResponse, HdxOutputColumn, HdxProject, HdxTable, HdxView}
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine, Expiry, LoadingCache}
 import org.apache.spark.sql.catalyst.analysis.{NoSuchDatabaseException, NoSuchTableException}
@@ -18,7 +18,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
   }
 
   def databases(): List[HdxProject] = {
-    allProjectsCache.asMap().get(())
+    allProjectsCache.get(())
   }
 
   def database(db: String): Option[HdxProject] = {
@@ -33,6 +33,21 @@ class HdxApiSession(info: HdxConnectionInfo) {
   def views(db: String, table: String): List[HdxView] = {
     val tbl = this.table(db, table).getOrElse(throw NoSuchTableException(table))
     allViewsByTableCache.get(tbl.project -> tbl.uuid)
+  }
+
+  def pk(db: String, table: String): HdxOutputColumn = {
+    val vs = views(db, table)
+    val pkCandidates = vs.filter(_.settings.isDefault).flatMap { view =>
+      view.settings.outputColumns.find { col =>
+        col.datatype.primary && (col.datatype.`type` == "datetime" || col.datatype.`type` == "datetime64")
+      }
+    }
+
+    pkCandidates match {
+      case List(one) => one
+      case Nil => sys.error(s"Couldn't find a primary key for $db.$table")
+      case other => sys.error(s"Found multiple candidate primary keys for $db.$table")
+    }
   }
 
   private val client = HttpClient.newHttpClient()
@@ -62,7 +77,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
       .build[Unit, HdxLoginRespAuthToken](new CacheLoader[Unit, HdxLoginRespAuthToken]() {
         override def load(key: Unit): HdxLoginRespAuthToken = {
           val loginPost = HttpRequest
-            .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/login"))
+            .newBuilder(info.apiUrl.resolve("login"))
             .headers("Content-Type", "application/json")
             .POST(BodyPublishers.ofString(JSON.objectMapper.writeValueAsString(HdxLoginRequest(info.user, info.password))))
             .build()
@@ -101,10 +116,10 @@ class HdxApiSession(info: HdxConnectionInfo) {
       .expireAfterWrite(Duration.ofHours(1))
       .build[UUID, List[HdxTable]](new CacheLoader[UUID, List[HdxTable]]() {
         override def load(key: UUID): List[HdxTable] = {
-          val projectId = allProjectsCache.get(()).find(_.uuid == key).getOrElse(NoSuchDatabaseException(key.toString))
+          val project = allProjectsCache.get(()).find(_.uuid == key).getOrElse(throw NoSuchDatabaseException(key.toString))
 
           val tablesGet = HttpRequest
-            .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/$projectId/tables/"))
+            .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/${project.uuid}/tables/"))
             .headers("Authorization", s"Bearer ${tokenCache.get(()).accessToken}")
             .GET()
             .build()

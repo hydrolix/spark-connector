@@ -1,6 +1,7 @@
 package io.hydrolix.spark
 package model
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 
@@ -11,6 +12,7 @@ import java.util.UUID
 case class HdxLoginRequest(username: String,
                            password: String)
 
+@JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxLoginRespAuthToken(accessToken: String,
                                  expiresIn: Long,
                                  tokenType: String)
@@ -21,6 +23,7 @@ case class HdxLoginRespOrg(uuid: UUID,
                            cloud: String,
                            kubernetes: Boolean)
 
+@JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxLoginResponse(uuid: UUID,
                             email: String,
                             orgs: List[HdxLoginRespOrg],
@@ -32,6 +35,7 @@ case class HdxTableStreamSettings(tokenList: List[String],
                                   hotDataMaxAgeMinutes: Int,
                                   hotDataMaxActivePartitions: Int,
                                   hotDataMaxRowsPerPartition: Long,
+                                  hotDataMaxMinutesPerPartition: Long,
                                   hotDataMaxOpenSeconds: Long,
                                   hotDataMaxIdleSeconds: Long,
                                   coldDataMaxAgeDays: Int,
@@ -50,7 +54,7 @@ case class HdxTableSettings(stream: HdxTableStreamSettings,
                                age: HdxTableSettingsAge,
                             reaper: HdxTableSettingsAge,
                              merge: HdxTableSettingsMerge,
-                        autoIngest: HdxTableSettingsAutoIngest,
+                        autoingest: List[HdxTableSettingsAutoIngest],
                           sortKeys: List[String],
                           shardKey: Option[String],
                      maxFutureDays: Int)
@@ -83,7 +87,7 @@ case class HdxProject(uuid: UUID,
                   modified: Instant,
                   settings: HdxProjectSettings)
 
-case class HdxProjectSettings(blob: Option[String])
+case class HdxProjectSettings(blob: Option[JsonNode])
 
 case class HdxView(uuid: UUID,
                    name: String,
@@ -104,8 +108,9 @@ case class HdxOutputColumn(name: String,
 case class HdxColumnDatatype(`type`: String,
                               index: Boolean,
                             primary: Boolean,
-                             source: Option[String],
+                             source: Option[JsonNode],
                              format: Option[String],
                          resolution: Option[String],
                             default: Option[String],
-                             script: Option[String])
+                             script: Option[String],
+                           elements: Option[JsonNode])

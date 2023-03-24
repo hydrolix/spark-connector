@@ -9,12 +9,33 @@ import org.apache.spark.sql.catalyst.catalog.CatalogTypes.TablePartitionSpec
 import org.apache.spark.sql.catalyst.catalog._
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.util.StringUtils
-import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
+import org.apache.spark.sql.types.{StructField, StructType}
+import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-import java.net.http.HttpClient
+import java.net.URI
+import java.util.UUID
 
-class HdxCatalog(val info: HdxConnectionInfo) extends ReadOnlyExternalCatalog with Logging {
-  private val client = HttpClient.newHttpClient()
+object HdxCatalog {
+  def main(args: Array[String]): Unit = {
+    val info = HdxConnectionInfo(
+      orgId = UUID.fromString(args(0)),
+      jdbcUrl = args(1),
+      user = args(2),
+      password = args(3),
+      apiUrl = new URI(args(4))
+    )
+
+    val cat = new HdxCatalog(info)
+    val db = cat.getDatabase("alex_signoz")
+    println(db)
+
+    val table = cat.getTable("alex_signoz", "logs_logs")
+
+    println(table)
+  }
+}
+
+final class HdxCatalog(val info: HdxConnectionInfo) extends ReadOnlyExternalCatalog with Logging {
   private val jdbc = new HdxJdbcSession(info)
   private val api = new HdxApiSession(info)
 
@@ -54,22 +75,10 @@ class HdxCatalog(val info: HdxConnectionInfo) extends ReadOnlyExternalCatalog wi
     _table(db, table)
   }
 
-  private def _table(db: String, table: String) = {
+  private def _table(db: String, table: String): CatalogTable = {
     val ht = api.table(db, table).getOrElse(throw NoSuchTableException(s"$db.$table"))
-    val views = api.views(db, table)
     val cols = jdbc.collectColumns(db, table)
-
-    val pkCandidates = views.filter(_.settings.isDefault).flatMap { view =>
-      view.settings.outputColumns.find { col =>
-        col.datatype.primary && (col.datatype.`type` == "datetime" || col.datatype.`type` == "datetime64")
-      }
-    }
-
-    val pk = pkCandidates match {
-      case List(one) => one
-      case Nil => sys.error(s"Couldn't find a primary key for $db.$table")
-      case other => sys.error(s"Found multiple candidate primary keys for $db.$table")
-    }
+    val pk = api.pk(db, table)
 
     CatalogTable(
       identifier = TableIdentifier(table, Some(db)),

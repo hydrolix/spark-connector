@@ -4,6 +4,7 @@ import model.{HdxColumnInfo, HdxConnectionInfo, HdxPartition}
 
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.spark.sql.types.{DataType, DataTypes}
+import ru.yandex.clickhouse.ClickHouseDataSource
 
 import java.util.Properties
 import scala.collection.mutable.ListBuffer
@@ -15,8 +16,23 @@ import scala.util.Using
  */
 class HdxJdbcSession(info: HdxConnectionInfo) {
   private lazy val pool = {
+    val ds = {
+      val props = new Properties()
+      props.put("web_context", "/query")
+      props.put("path", "/query")
+      props.put("user", info.user)
+      props.put("password", info.password)
+      props.put("compress", "false")
+      props.put("ssl", "true")
+
+      new ClickHouseDataSource(info.jdbcUrl, props)
+    }
+
     val props = new Properties()
-    props.putAll(Map("jdbcUrl" -> info.jdbcUrl).asJava)
+    props.putAll(Map(
+      "jdbcUrl" -> info.jdbcUrl,
+      "dataSource" -> ds
+    ).asJava)
     new HikariDataSource(new HikariConfig(props))
   }
 
