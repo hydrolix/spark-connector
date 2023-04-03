@@ -1,6 +1,6 @@
 package io.hydrolix.spark
 
-import model.{HdxConnectionInfo, HdxLoginRequest, HdxLoginRespAuthToken, HdxLoginResponse, HdxOutputColumn, HdxProject, HdxTable, HdxView}
+import model.{HdxConnectionInfo, HdxLoginRequest, HdxLoginRespAuthToken, HdxLoginResponse, HdxOutputColumn, HdxProject, HdxApiTable, HdxView}
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine, Expiry, LoadingCache}
 import org.apache.spark.sql.catalyst.analysis.{NoSuchDatabaseException, NoSuchTableException}
@@ -12,7 +12,7 @@ import java.time.Duration
 import java.util.UUID
 
 class HdxApiSession(info: HdxConnectionInfo) {
-  def tables(db: String): List[HdxTable] = {
+  def tables(db: String): List[HdxApiTable] = {
     val project = database(db).getOrElse(throw NoSuchDatabaseException(db))
     allTablesCache.get(project.uuid)
   }
@@ -25,7 +25,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
     databases().findSingle(_.name == db)
   }
 
-  def table(db: String, table: String): Option[HdxTable] = {
+  def table(db: String, table: String): Option[HdxApiTable] = {
     val project = database(db).getOrElse(throw NoSuchDatabaseException(db))
     allTablesCache.get(project.uuid).findSingle(_.name == table)
   }
@@ -111,11 +111,11 @@ class HdxApiSession(info: HdxConnectionInfo) {
       })
   }
 
-  private val allTablesCache: LoadingCache[UUID, List[HdxTable]] = {
+  private val allTablesCache: LoadingCache[UUID, List[HdxApiTable]] = {
     Caffeine.newBuilder()
       .expireAfterWrite(Duration.ofHours(1))
-      .build[UUID, List[HdxTable]](new CacheLoader[UUID, List[HdxTable]]() {
-        override def load(key: UUID): List[HdxTable] = {
+      .build[UUID, List[HdxApiTable]](new CacheLoader[UUID, List[HdxApiTable]]() {
+        override def load(key: UUID): List[HdxApiTable] = {
           val project = allProjectsCache.get(()).find(_.uuid == key).getOrElse(throw NoSuchDatabaseException(key.toString))
 
           val tablesGet = HttpRequest
@@ -127,7 +127,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
           val tablesResp = client.send(tablesGet, BodyHandlers.ofString())
           if (tablesResp.statusCode() != 200) sys.error(s"GET /orgs/:org_id/projects/:project_id/tables/ response code was ${tablesResp.statusCode()}")
 
-          JSON.objectMapper.readValue[List[HdxTable]](tablesResp.body())
+          JSON.objectMapper.readValue[List[HdxApiTable]](tablesResp.body())
         }
       })
   }

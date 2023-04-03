@@ -11,7 +11,11 @@ case class HdxConnectionInfo(orgId: UUID,
                              jdbcUrl: String,
                              user: String,
                              password: String,
-                             apiUrl: URI)
+                             apiUrl: URI,
+                             bucketPrefix: String,
+                             cloud: String,
+                             cloudCred1: String,
+                             cloudCred2: String)
 
 case class HdxColumnInfo(name: String,
                       colType: Int,
@@ -19,15 +23,15 @@ case class HdxColumnInfo(name: String,
                      nullable: Boolean,
                     sparkType: DataType)
 
-case class HdxPartition(partition: String,
-                     minTimestamp: Instant,
-                     maxTimestamp: Instant,
-                     manifestSize: Long,
-                         dataSize: Long,
-                        indexSize: Long,
-                             rows: Long,
+case class HdxDbPartition(partition: String,
+                          minTimestamp: Instant,
+                          maxTimestamp: Instant,
+                          manifestSize: Long,
+                          dataSize: Long,
+                          indexSize: Long,
+                          rows: Long,
                           memSize: Long,
-                         rootPath: String,
-                         shardKey: String,
-                           active: Boolean)
+                          rootPath: String,
+                          shardKey: String,
+                          active: Boolean)
 

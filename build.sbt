@@ -19,4 +19,7 @@ libraryDependencies ++= List(
   "com.github.ben-manes.caffeine" % "caffeine" % "3.1.5",
   "com.zaxxer" % "HikariCP" % "5.0.1",
   "com.breinify" % "brein-time-utilities" % "1.8.0",
+  "com.google.cloud" % "google-cloud-storage" % "2.20.2",
+  "ch.qos.logback" % "logback-classic" % "1.4.6",
+  "org.typelevel" %% "spire" % "0.18.0",
 )

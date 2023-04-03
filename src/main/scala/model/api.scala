@@ -68,15 +68,15 @@ case class HdxTableSettingsAutoIngest(enabled: Boolean,
                           maxActivePartitions: Int,
                                        dryRun: Boolean)
 
-case class HdxTable(project: UUID,
-                       name: String,
-                description: Option[String],
-                       uuid: UUID,
-                    created: Instant,
-                   modified: Instant,
-                   settings: HdxTableSettings,
-                        url: URL,
-                     `type`: String)
+case class HdxApiTable(project: UUID,
+                          name: String,
+                   description: Option[String],
+                          uuid: UUID,
+                       created: Instant,
+                      modified: Instant,
+                      settings: HdxTableSettings,
+                           url: URL,
+                        `type`: String)
 
 case class HdxProject(uuid: UUID,
                       name: String,

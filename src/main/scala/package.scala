@@ -1,6 +1,8 @@
 package io.hydrolix
 
 package object spark {
+  def nope() = throw new UnsupportedOperationException("Hydrolix connector is read-only")
+
   implicit class SeqStuff[A](underlying: Seq[A]) {
     def findSingle(f: A => Boolean): Option[A] = {
       underlying.filter(f) match {

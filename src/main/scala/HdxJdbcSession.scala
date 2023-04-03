@@ -1,6 +1,6 @@
 package io.hydrolix.spark
 
-import model.{HdxColumnInfo, HdxConnectionInfo, HdxPartition}
+import model.{HdxColumnInfo, HdxConnectionInfo, HdxDbPartition}
 
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.spark.sql.types.{DataType, DataTypes}
@@ -95,16 +95,16 @@ class HdxJdbcSession(info: HdxConnectionInfo) {
     }
   }
 
-  def collectPartitions(db: String, table: String): List[HdxPartition] = {
+  def collectPartitions(db: String, table: String): List[HdxDbPartition] = {
     Using.Manager { use =>
       val conn = use(pool.getConnection)
       val stmt = use(conn.createStatement())
       val rs = use(stmt.executeQuery(s"SELECT * FROM `$db`.`$table#.catalog`"))
 
-      val partitions = ListBuffer[HdxPartition]()
+      val partitions = ListBuffer[HdxDbPartition]()
 
       while (rs.next()) {
-        partitions += HdxPartition(
+        partitions += HdxDbPartition(
           rs.getString("partition"),
           rs.getTimestamp("min_timestamp").toInstant,
           rs.getTimestamp("max_timestamp").toInstant,
