@@ -4,6 +4,7 @@ package model
 import org.apache.spark.sql.types.DataType
 
 import java.net.URI
+import java.nio.file.Path
 import java.time.Instant
 import java.util.UUID
 
@@ -12,6 +13,8 @@ case class HdxConnectionInfo(orgId: UUID,
                              user: String,
                              password: String,
                              apiUrl: URI,
+                             turbineIniPath: Path,
+                             turbineCmdPath: Path,
                              bucketPrefix: String,
                              cloud: String,
                              cloudCred1: String,

@@ -13,6 +13,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
 import java.net.URI
+import java.nio.file.Path
 import java.util
 import java.util.{Properties, UUID}
 import scala.collection.mutable
@@ -26,6 +27,8 @@ object HdxDataSource {
   private val OPT_USERNAME = "io.hydrolix.spark.username"
   private val OPT_PASSWORD = "io.hydrolix.spark.password"
   private val OPT_API_URL = "io.hydrolix.spark.api_url"
+  private val OPT_TURBINE_INI_PATH = "io.hydrolix.spark.turbine_ini_path"
+  private val OPT_TURBINE_CMD_PATH = "io.hydrolix.spark.turbine_cmd_path"
   private val OPT_CLOUD = "io.hydrolix.spark.cloud"
   private val OPT_BUCKET_PREFIX = "io.hydrolix.spark.bucket_prefix"
   private val OPT_CLOUD_CRED1 = "io.hydrolix.spark.cloud_credential_1"
@@ -40,10 +43,12 @@ object HdxDataSource {
       OPT_USERNAME -> args(4),
       OPT_PASSWORD -> args(5),
       OPT_API_URL -> args(6),
-      OPT_CLOUD -> args(7),
-      OPT_BUCKET_PREFIX -> args(8),
-      OPT_CLOUD_CRED1 -> args(9),
-      OPT_CLOUD_CRED2 -> args(10)
+      OPT_TURBINE_INI_PATH -> args(7),
+      OPT_TURBINE_CMD_PATH -> args(8),
+      OPT_CLOUD -> args(9),
+      OPT_BUCKET_PREFIX -> args(10),
+      OPT_CLOUD_CRED1 -> args(11),
+      OPT_CLOUD_CRED2 -> args(12)
     ).asJava)
 
     val info = connectionInfo(opts)
@@ -68,12 +73,14 @@ object HdxDataSource {
     val user = options.get(OPT_USERNAME)
     val pass = options.get(OPT_PASSWORD)
     val apiUrl = new URI(options.get(OPT_API_URL))
+    val turbineIni = Path.of(options.get(OPT_TURBINE_INI_PATH))
+    val turbineCmd = Path.of(options.get(OPT_TURBINE_CMD_PATH))
     val bucketPrefix = options.get(OPT_BUCKET_PREFIX)
     val cloud = options.get(OPT_CLOUD)
     val cred1 = options.get(OPT_CLOUD_CRED1)
     val cred2 = options.get(OPT_CLOUD_CRED2)
 
-    HdxConnectionInfo(orgId, url, user, pass, apiUrl, bucketPrefix, cloud, cred1, cred2)
+    HdxConnectionInfo(orgId, url, user, pass, apiUrl, turbineIni, turbineCmd, bucketPrefix, cloud, cred1, cred2)
   }
 }
 
@@ -242,7 +249,7 @@ class HdxScanBuilder(info: HdxConnectionInfo,
      with Logging
 {
   override def build(): Scan = {
-    new HdxScan(info, api, jdbc, table, Set())
+    new HdxScan(info, api, jdbc, table, table.schema.fields.map(_.name).toList)
   }
 }
 
@@ -250,7 +257,7 @@ class HdxScan(info: HdxConnectionInfo,
                api: HdxApiSession,
               jdbc: HdxJdbcSession,
              table: HdxTable,
-              cols: Set[String])
+              cols: List[String])
   extends Scan
 {
   override def toBatch: Batch = {
@@ -270,7 +277,7 @@ class HdxBatch(info: HdxConnectionInfo,
                 api: HdxApiSession,
                jdbc: HdxJdbcSession,
               table: HdxTable,
-               cols: Set[String])
+               cols: List[String])
   extends Batch
 {
   override def planInputPartitions(): Array[InputPartition] = {

@@ -11,35 +11,6 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.util.StringUtils
 import org.apache.spark.sql.types.{StructField, StructType}
 
-import java.net.URI
-import java.util.UUID
-
-object HdxCatalog {
-  def main(args: Array[String]): Unit = {
-    val info = HdxConnectionInfo(
-      orgId = UUID.fromString(args(0)),
-      jdbcUrl = args(1),
-      user = args(2),
-      password = args(3),
-      apiUrl = new URI(args(4)),
-      bucketPrefix = args(5),
-      cloud = args(6),
-      cloudCred1 = args(7),
-      cloudCred2 = args(8)
-    )
-    val dbName = args(5)
-    val tableName = args(6)
-
-    val cat = new HdxCatalog(info)
-    val db = cat.getDatabase(dbName)
-    println(db)
-
-    val table = cat.getTable(dbName, tableName)
-
-    println(table)
-  }
-}
-
 final class HdxCatalog(val info: HdxConnectionInfo) extends ReadOnlyExternalCatalog with Logging {
   private val jdbc = new HdxJdbcSession(info)
   private val api = new HdxApiSession(info)
