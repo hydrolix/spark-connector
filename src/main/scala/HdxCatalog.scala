@@ -52,7 +52,7 @@ final class HdxCatalog(val info: HdxConnectionInfo) extends ReadOnlyExternalCata
   }
 
   private def _table(db: String, table: String): CatalogTable = {
-    val ht = api.table(db, table).getOrElse(throw NoSuchTableException(s"$db.$table"))
+    val ht = api.table(db, table).getOrElse(throw new NoSuchTableException(s"$db.$table"))
     val cols = jdbc.collectColumns(db, table)
     val pk = api.pk(db, table)
 

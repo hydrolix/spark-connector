@@ -1,39 +1,21 @@
 package io.hydrolix.spark
 
+import model.HdxConnectionInfo._
 import model._
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
 import org.apache.spark.sql.connector.catalog._
 import org.apache.spark.sql.connector.catalog.index.{SupportsIndex, TableIndex}
 import org.apache.spark.sql.connector.expressions.{Expressions, NamedReference, Transform}
 import org.apache.spark.sql.connector.read._
-import org.apache.spark.sql.sources.DataSourceRegister
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-import java.net.URI
-import java.nio.file.Path
-import java.util
-import java.util.{Properties, UUID}
-import scala.collection.mutable
+import java.util.Properties
+import java.{util => ju}
 import scala.jdk.CollectionConverters._
 
-object HdxDataSource {
-  private val OPT_ORG_ID = "io.hydrolix.spark.org_id"
-  private val OPT_PROJECT_NAME = "io.hydrolix.spark.project_name"
-  private val OPT_TABLE_NAME = "io.hydrolix.spark.table_name"
-  private val OPT_JDBC_URL = "io.hydrolix.spark.jdbc_url"
-  private val OPT_USERNAME = "io.hydrolix.spark.username"
-  private val OPT_PASSWORD = "io.hydrolix.spark.password"
-  private val OPT_API_URL = "io.hydrolix.spark.api_url"
-  private val OPT_TURBINE_INI_PATH = "io.hydrolix.spark.turbine_ini_path"
-  private val OPT_TURBINE_CMD_PATH = "io.hydrolix.spark.turbine_cmd_path"
-  private val OPT_CLOUD = "io.hydrolix.spark.cloud"
-  private val OPT_BUCKET_PREFIX = "io.hydrolix.spark.bucket_prefix"
-  private val OPT_CLOUD_CRED1 = "io.hydrolix.spark.cloud_credential_1"
-  private val OPT_CLOUD_CRED2 = "io.hydrolix.spark.cloud_credential_2"
-
+object HdxDataSource extends Logging {
   def main(args: Array[String]): Unit = {
     val opts = new CaseInsensitiveStringMap(Map(
       OPT_ORG_ID -> args(0),
@@ -51,8 +33,10 @@ object HdxDataSource {
       OPT_CLOUD_CRED2 -> args(12)
     ).asJava)
 
-    val info = connectionInfo(opts)
-    val ds = new HdxDataSource(info)
+    val info = fromOpts(opts, log)
+    val ds = new HdxTableCatalog()
+    ds.initialize("hydrolix", opts)
+
 
     val schema = ds.inferSchema(opts)
     val txs = ds.inferPartitioning(opts)
@@ -62,131 +46,35 @@ object HdxDataSource {
     val batch = scan.toBatch
     val prf = batch.createReaderFactory()
     val parts = batch.planInputPartitions()
-    val reader = prf.createReader(parts.head)
-    val row = reader.get()
-    println(row)
-  }
-
-  private def connectionInfo(options: CaseInsensitiveStringMap) = {
-    val orgId = UUID.fromString(options.get(OPT_ORG_ID))
-    val url = options.get(OPT_JDBC_URL)
-    val user = options.get(OPT_USERNAME)
-    val pass = options.get(OPT_PASSWORD)
-    val apiUrl = new URI(options.get(OPT_API_URL))
-    val turbineIni = Path.of(options.get(OPT_TURBINE_INI_PATH))
-    val turbineCmd = Path.of(options.get(OPT_TURBINE_CMD_PATH))
-    val bucketPrefix = options.get(OPT_BUCKET_PREFIX)
-    val cloud = options.get(OPT_CLOUD)
-    val cred1 = options.get(OPT_CLOUD_CRED1)
-    val cred2 = options.get(OPT_CLOUD_CRED2)
-
-    HdxConnectionInfo(orgId, url, user, pass, apiUrl, turbineIni, turbineCmd, bucketPrefix, cloud, cred1, cred2)
+    for (part <- parts) {
+      val reader = prf.createReader(part)
+      while (reader.next()) {
+        log.info(reader.get().toString)
+      }
+      reader.close()
+    }
   }
 }
 
-class HdxDataSource(info: HdxConnectionInfo)
-  extends DataSourceRegister
-     with SupportsCatalogOptions
-     with TableCatalog
-     with Logging
-{
-  import HdxDataSource._
-
-  private val api = new HdxApiSession(info)
-  private val jdbc = new HdxJdbcSession(info)
-
-  override def shortName(): String = "hydrolix"
-
-  private val columnsCache = mutable.HashMap[(String, String), List[HdxColumnInfo]]()
-
-  override def initialize(name: String, options: CaseInsensitiveStringMap): Unit = {
+class HdxTableCatalog extends Util with TableCatalog with SupportsNamespaces with Logging {
+  override def listNamespaces(): Array[Array[String]] = {
+    (for {
+      db <- api.databases()
+      table <- api.tables(db.name)
+    } yield List(db.name, table.name).toArray).toArray
   }
 
-  override def name(): String = shortName()
+  override def listNamespaces(namespace: Array[String]): Array[Array[String]] = ???
 
-  private def columns(db: String, table: String): List[HdxColumnInfo] = {
-    columnsCache.getOrElseUpdate((db, table), {
-      jdbc.collectColumns(db, table)
-    })
-  }
+  override def loadNamespaceMetadata(namespace: Array[String]): ju.Map[String, String] = ju.Map.of()
 
-  override def inferSchema(options: CaseInsensitiveStringMap): StructType = {
-    val db = options.get(OPT_PROJECT_NAME)
-    val table = options.get(OPT_TABLE_NAME)
-
-    val cols = columns(db, table)
-
-    StructType(cols.map(col => StructField(col.name, col.sparkType, col.nullable)))
-  }
-
-  override def inferPartitioning(options: CaseInsensitiveStringMap): Array[Transform] = {
-    val db = options.get(OPT_PROJECT_NAME)
-    val table = options.get(OPT_TABLE_NAME)
-
-    val hdxTable = api.table(db, table).getOrElse(throw NoSuchTableException(s"$db.$table"))
-    val shardKey = hdxTable.settings.shardKey
-
-    shardKey.map(sk => Expressions.apply(s"shard_key_$sk", Expressions.column(sk))).toArray
-  }
-
-  override def getTable(schema: StructType,
-                  partitioning: Array[Transform],
-                    properties: util.Map[String, String])
-                              : Table =
-  {
-    val db = properties.get(OPT_PROJECT_NAME)
-    val table = properties.get(OPT_TABLE_NAME)
-
-    val apiTable = api.table(db, table).getOrElse(throw NoSuchTableException(s"$db.$table"))
-    val primaryKey = api.pk(db, table)
-
-    HdxTable(
-      info,
-      api,
-      jdbc,
-      Identifier.of(Array(db), table),
-      schema,
-      CaseInsensitiveStringMap.empty(),
-      primaryKey.name,
-      apiTable.settings.shardKey,
-      apiTable.settings.sortKeys
-    )
-  }
-
-  override def extractIdentifier(options: CaseInsensitiveStringMap): Identifier = {
-    val db = options.get(OPT_PROJECT_NAME)
-    val table = options.get(OPT_TABLE_NAME)
-
-    Identifier.of(Array(db), table)
-  }
-
-  override def listTables(namespace: Array[String]): Array[Identifier] = {
-    assert(namespace.length == 1, "Namespace paths must have exactly one element (DB name)")
-    api.tables(namespace.head).map { ht =>
-      Identifier.of(namespace, ht.name)
-    }.toArray
-  }
-
-  override def loadTable(ident: Identifier): Table = {
-    assert(ident.namespace().length == 1, "Namespace paths must have exactly one element (DB name)")
-
-    val map = CaseInsensitiveStringMap.empty()
-    map.put(OPT_PROJECT_NAME, ident.namespace().head)
-    map.put(OPT_TABLE_NAME, ident.name())
-    val schema = inferSchema(map)
-
-    getTable(
-      schema,
-      Array(),
-      map
-    )
-  }
-
-  override def createTable(ident: Identifier, schema: StructType, partitions: Array[Transform], properties: util.Map[String, String]): Table = nope()
+  override def createNamespace(namespace: Array[String], metadata: ju.Map[String, String]): Unit = nope()
+  override def alterNamespace(namespace: Array[String], changes: NamespaceChange*): Unit = nope()
+  override def dropNamespace(namespace: Array[String], cascade: Boolean): Boolean = nope()
+  override def createTable(ident: Identifier, schema: StructType, partitions: Array[Transform], properties: ju.Map[String, String]): Table = nope()
   override def alterTable(ident: Identifier, changes: TableChange*): Table = nope()
   override def dropTable(ident: Identifier): Boolean = nope()
   override def renameTable(oldIdent: Identifier, newIdent: Identifier): Unit = nope()
-
 }
 
 case class HdxTable(info: HdxConnectionInfo,
@@ -208,7 +96,7 @@ case class HdxTable(info: HdxConnectionInfo,
 
   override def name(): String = ident.toString
 
-  override def capabilities(): util.Set[TableCapability] = util.EnumSet.of(TableCapability.BATCH_READ)
+  override def capabilities(): ju.Set[TableCapability] = ju.EnumSet.of(TableCapability.BATCH_READ)
 
   override def newScanBuilder(options: CaseInsensitiveStringMap): ScanBuilder = {
     new HdxScanBuilder(info, api, jdbc, this)
@@ -216,8 +104,8 @@ case class HdxTable(info: HdxConnectionInfo,
 
   override def createIndex(indexName: String,
                              columns: Array[NamedReference],
-                   columnsProperties: util.Map[NamedReference, util.Map[String, String]],
-                          properties: util.Map[String, String])
+                   columnsProperties: ju.Map[NamedReference, ju.Map[String, String]],
+                          properties: ju.Map[String, String])
                                     : Unit = nope()
 
   override def dropIndex(indexName: String): Unit = nope()
@@ -234,7 +122,7 @@ case class HdxTable(info: HdxConnectionInfo,
         idxName,
         idxType,
         Array(Expressions.column(fieldName)),
-        util.Map.of(),
+        ju.Map.of(),
         new Properties()
       )
     }
@@ -249,7 +137,7 @@ class HdxScanBuilder(info: HdxConnectionInfo,
      with Logging
 {
   override def build(): Scan = {
-    new HdxScan(info, api, jdbc, table, table.schema.fields.map(_.name).toList)
+    new HdxScan(info, api, jdbc, table, table.schema)
   }
 }
 
@@ -257,11 +145,11 @@ class HdxScan(info: HdxConnectionInfo,
                api: HdxApiSession,
               jdbc: HdxJdbcSession,
              table: HdxTable,
-              cols: List[String])
+              cols: StructType)
   extends Scan
 {
   override def toBatch: Batch = {
-    new HdxBatch(info, api, jdbc, table, cols)
+    new HdxBatch(info, api, jdbc, table)
   }
 
   override def description(): String = super.description()
@@ -276,8 +164,7 @@ class HdxScan(info: HdxConnectionInfo,
 class HdxBatch(info: HdxConnectionInfo,
                 api: HdxApiSession,
                jdbc: HdxJdbcSession,
-              table: HdxTable,
-               cols: List[String])
+              table: HdxTable)
   extends Batch
 {
   override def planInputPartitions(): Array[InputPartition] = {
@@ -288,7 +175,7 @@ class HdxBatch(info: HdxConnectionInfo,
     val parts = jdbc.collectPartitions(db, t)
 
     parts.map { hp =>
-      HdxPartition(db, t, hp.partition, pk.name, cols)
+      HdxPartition(db, t, hp.partition, pk.name, table.schema)
     }.toArray
   }
 

@@ -8,9 +8,20 @@ lazy val root = (project in file("."))
     idePackagePrefix := Some("io.hydrolix.spark")
   )
 
+ThisBuild / assemblyMergeStrategy := {
+  case PathList(pl @ _*) if pl.last == "module-info.class"                      => MergeStrategy.discard
+  case PathList("com", "clickhouse", "client", "data", "JsonStreamUtils.class") => MergeStrategy.first
+  case PathList("META-INF", "io.netty.versions.properties")                     => MergeStrategy.first
+  case PathList("META-INF", "native", _*)                                       => MergeStrategy.first
+  case "application.conf"                                                       => MergeStrategy.concat
+  case x =>
+    val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
+    oldStrategy(x)
+}
+
 //libraryDependencies += "org.apache.spark" %% "spark-core" % "3.3.2"
 libraryDependencies ++= List(
-  "org.apache.spark" %% "spark-sql" % "3.3.2",
+  "org.apache.spark" %% "spark-sql" % "3.4.0" % "provided",
   "com.clickhouse" % "clickhouse-jdbc" % "0.3.2-patch11",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.14.2",
   "com.fasterxml.jackson.module" % "jackson-module-parameter-names" % "2.14.2",

@@ -31,7 +31,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
   }
 
   def views(db: String, table: String): List[HdxView] = {
-    val tbl = this.table(db, table).getOrElse(throw NoSuchTableException(table))
+    val tbl = this.table(db, table).getOrElse(throw new NoSuchTableException(table))
     allViewsByTableCache.get(tbl.project -> tbl.uuid)
   }
 

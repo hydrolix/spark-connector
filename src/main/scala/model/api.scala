@@ -47,7 +47,9 @@ case class HdxTableStreamSettings(tokenList: List[String],
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxTableSettingsAge(maxAgeDays: Int)
-case class HdxTableSettingsMerge(enabled: Boolean)
+case class HdxTableSettingsMerge(enabled: Boolean,
+                                   pools: Map[String, String] = Map(),
+                                     sql: Option[String])
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxTableSettings(stream: HdxTableStreamSettings,
@@ -57,7 +59,15 @@ case class HdxTableSettings(stream: HdxTableStreamSettings,
                         autoingest: List[HdxTableSettingsAutoIngest],
                           sortKeys: List[String],
                           shardKey: Option[String],
-                     maxFutureDays: Int)
+                     maxFutureDays: Int,
+                           summary: Option[HdxTableSettingsSummary],
+                            scale: Option[HdxTableSettingsScale])
+
+@JsonNaming(classOf[SnakeCaseStrategy])
+case class HdxTableSettingsSummary(sql: String, enabled: Boolean)
+
+@JsonNaming(classOf[SnakeCaseStrategy])
+case class HdxTableSettingsScale(expectedTbPerDay: Long)
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxTableSettingsAutoIngest(enabled: Boolean,
@@ -66,7 +76,8 @@ case class HdxTableSettingsAutoIngest(enabled: Boolean,
                           maxRowsPerPartition: Long,
                        maxMinutesPerPartition: Long,
                           maxActivePartitions: Int,
-                                       dryRun: Boolean)
+                                       dryRun: Boolean,
+                                    transform: Option[UUID])
 
 case class HdxApiTable(project: UUID,
                           name: String,
