@@ -5,12 +5,11 @@ import model.{HdxColumnInfo, HdxConnectionInfo}
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
-import org.apache.spark.sql.catalyst.catalog.CatalogUtils
 import org.apache.spark.sql.connector.catalog.{Identifier, Table, TableChange}
 import org.apache.spark.sql.connector.expressions.{Expressions, Transform}
+import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Implicits._
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Implicits._
 
 import java.{util => ju}
 import scala.collection.mutable

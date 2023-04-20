@@ -2,18 +2,11 @@ package io.hydrolix.spark
 
 import model.HdxConnectionInfo
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node._
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
 import org.apache.spark.sql.connector.read.PartitionReader
-import org.apache.spark.sql.types.{ArrayType, DataType, DataTypes, MapType}
-import org.apache.spark.unsafe.types.UTF8String
 
 import java.util.concurrent.ArrayBlockingQueue
-import scala.jdk.CollectionConverters._
-import scala.sys.error
 import scala.sys.process.{Process, ProcessLogger}
 
 // TODO make a ColumnarBatch version too
@@ -25,13 +18,18 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   extends PartitionReader[InternalRow]
     with Logging
 {
-  log.info(s"Requested partition ${partition.path}")
+  private val doneSignal = "DONE"
+  private val q = new ArrayBlockingQueue[String](1024)
+  @volatile private var exitCode: Option[Int] = None
 
-  private val processBuilder = Process(
-    info.turbineCmdPath.toString,
+  // The contract says get() should always return the same record if called multiple times per next()
+  private var rec: InternalRow = _
+
+  private val hdxReaderProcessBuilder = Process(
+    info.turbineCmdPath,
     List(
       "hdx_reader",
-      "--config", info.turbineIniPath.toString,
+      "--config", info.turbineIniPath,
       "--output_format", "json",
       "--fs_root", "/db/hdx",
       "--hdx_partition", partition.path,
@@ -39,82 +37,61 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     )
   )
 
-  private val doneSignal = "DONE"
-  private val q = new ArrayBlockingQueue[String](1024)
-  @volatile private var exitCode: Option[Int] = None
-
-  private val proc = processBuilder.run(ProcessLogger(
-    { q.put }, // TODO this relies on the stdout being split into strings; that won't be the case once we get gzip working!
+  // TODO this relies on the stdout being split into strings; that won't be the case once we get gzip working!
+  private val hdxReaderProcess = hdxReaderProcessBuilder.run(ProcessLogger(
+    { line =>
+      try {
+        q.put(line)
+      } catch {
+        case _: InterruptedException =>
+          // If we got killed early (e.g. because of a LIMIT) let's be quiet about it
+          Thread.currentThread().interrupt()
+      }
+    },
     { log.warn("hdx_reader stderr: {}", _) }
   ))
+
+  // A dumb thread to wait for the child to exit so we can send doneSignal on the queue, and capture the exit code
   new Thread(() => {
-    exitCode = Some(proc.exitValue()) // Blocks until exit
+    try {
+      exitCode = Some(hdxReaderProcess.exitValue()) // Blocks until exit
+    } catch {
+      case _: InterruptedException =>
+        Thread.currentThread().interrupt()
+    }
     q.put(doneSignal)
   }).start()
 
-  // The contract says get() should always return the same record if called multiple times per next()
-  private var rec: InternalRow = _
   override def next(): Boolean = {
-    // It's OK to block here, there will always be at least doneSignal
-    val s = q.take() // TODO maybe set a time limit instead of potentially blocking infinitely
-    if (s eq doneSignal) {
+    val line = try {
+      q.take() // It's OK to block here, we'll always have doneSignal...
+    } catch {
+      case _: InterruptedException =>
+        // ...But if we got killed while waiting, don't be noisy about it
+        Thread.currentThread().interrupt()
+        return false
+    }
+
+    if (line eq doneSignal) {
       false
     } else {
-      rec = row(s)
+      rec = Json2Row.row(partition.schema, line)
       true
     }
   }
 
   override def get(): InternalRow = rec
 
-  private def row(s: String) = {
-    val obj = JSON.objectMapper.readValue[ObjectNode](s)
-
-    val values = partition.schema.map { col =>
-      val node = obj.get(col.name) // TODO can we be sure the names match?
-      node2Any(node, col.name, col.dataType)
-    }
-
-    InternalRow.fromSeq(values)
-  }
-
-  private def node2Any(node: JsonNode, name: String, dt: DataType): Any = {
-    node match {
-      case n if n.isNull => null
-      case s: TextNode => UTF8String.fromString(s.textValue())
-      case l: LongNode => l.longValue()
-      case i: IntNode => i.intValue()
-      case d: DoubleNode => d.doubleValue()
-      case b: BooleanNode => b.booleanValue()
-      case bd: DecimalNode => bd.decimalValue()
-      case a: ArrayNode =>
-        dt match {
-          case ArrayType(elementType, _) =>
-            val values = a.asScala.map(node2Any(_, name, elementType)).toList
-            new GenericArrayData(values)
-
-          case other => error(s"TODO JSON array field $name needs conversion from $other to $dt")
-        }
-      case obj: ObjectNode =>
-        dt match {
-          case MapType(keyType, valueType, _) =>
-            if (keyType != DataTypes.StringType) error(s"TODO JSON map field $name keys are $keyType, not strings")
-            val keys = obj.fieldNames().asScala.map(UTF8String.fromString).toArray
-            val values = obj.fields().asScala.map(entry => node2Any(entry.getValue, name, valueType)).toArray
-            new ArrayBasedMapData(new GenericArrayData(keys), new GenericArrayData(values))
-
-          case other => error(s"TODO JSON map field $name needs conversion from $other to $dt")
-        }
-    }
-  }
-
   override def close(): Unit = {
-    if (proc.isAlive()) {
-      log.info("Killing child process")
-      proc.destroy()
-    }
-    if (proc.exitValue() != 0) {
-      log.warn(s"Child process exited with value ${proc.exitValue()}")
+    if (hdxReaderProcess.isAlive()) {
+      log.debug(s"Killing child process for partition ${partition.path} early")
+      hdxReaderProcess.destroy()
+    } else {
+      exitCode match {
+        case None => log.error("Sanity violation: process exited but we have no exit code!")
+        case Some(i) if i != 0 => log.warn(s"Process exited with status $i")
+        case Some(_) => // OK
+      }
     }
   }
 }
