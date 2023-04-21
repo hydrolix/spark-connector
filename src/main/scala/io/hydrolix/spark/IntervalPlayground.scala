@@ -11,7 +11,9 @@ import scala.jdk.CollectionConverters._
 object IntervalPlayground {
   private type IDI = IdInterval[String, jLong]
   private object IDI {
-    def apply(s: String, lo: Long, hi: Long): IDI = new IdInterval[String, jLong](s, lo, hi)
+    def apply(s: String, lo: Long, hi: Long, openStart: Boolean = false, openEnd: Boolean = false): IDI = {
+      new IdInterval[String, jLong](s, new LongInterval(lo, hi, openStart, openEnd))
+    }
   }
 
   def main(args: Array[String]): Unit = {

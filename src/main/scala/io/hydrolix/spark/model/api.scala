@@ -9,41 +9,48 @@ import java.net.{URI, URL}
 import java.time.Instant
 import java.util.UUID
 
+/*
+ * These are Scala representations of the JSON schema returned by the Hydrolix API.
+ *
+ * TODO At the moment they're quite fragile, they break when fields are added or removed.
+ *  We should fix that before this ships.
+ */
+
 case class HdxLoginRequest(username: String,
                            password: String)
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxLoginRespAuthToken(accessToken: String,
-                                 expiresIn: Long,
-                                 tokenType: String)
+                                   expiresIn: Long,
+                                   tokenType: String)
 
 case class HdxLoginRespOrg(uuid: UUID,
                            name: String,
-                           `type`: String,
-                           cloud: String,
-                           kubernetes: Boolean)
+                         `type`: String,
+                          cloud: String,
+                     kubernetes: Boolean)
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxLoginResponse(uuid: UUID,
-                            email: String,
+                           email: String,
                             orgs: List[HdxLoginRespOrg],
-                            groups: List[String],
-                            authToken: HdxLoginRespAuthToken)
+                          groups: List[String],
+                       authToken: HdxLoginRespAuthToken)
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxTableStreamSettings(tokenList: List[String],
-                                  hotDataMaxAgeMinutes: Int,
-                                  hotDataMaxActivePartitions: Int,
-                                  hotDataMaxRowsPerPartition: Long,
-                                  hotDataMaxMinutesPerPartition: Long,
-                                  hotDataMaxOpenSeconds: Long,
-                                  hotDataMaxIdleSeconds: Long,
-                                  coldDataMaxAgeDays: Int,
-                                  coldDataMaxActivePartitions: Int,
-                                  coldDataMaxRowsPerPartition: Long,
-                                  coldDataMaxMinutesPerPartition: Int,
-                                  coldDataMaxOpenSeconds: Int,
-                                  coldDataMaxIdleSeconds: Int)
+                       hotDataMaxAgeMinutes: Int,
+                 hotDataMaxActivePartitions: Int,
+                 hotDataMaxRowsPerPartition: Long,
+              hotDataMaxMinutesPerPartition: Long,
+                      hotDataMaxOpenSeconds: Long,
+                      hotDataMaxIdleSeconds: Long,
+                         coldDataMaxAgeDays: Int,
+                coldDataMaxActivePartitions: Int,
+                coldDataMaxRowsPerPartition: Long,
+             coldDataMaxMinutesPerPartition: Int,
+                      coldDataMaxOpenSeconds: Int,
+                      coldDataMaxIdleSeconds: Int)
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxTableSettingsAge(maxAgeDays: Int)
@@ -61,7 +68,7 @@ case class HdxTableSettings(stream: HdxTableStreamSettings,
                           shardKey: Option[String],
                      maxFutureDays: Int,
                            summary: Option[HdxTableSettingsSummary],
-                            scale: Option[HdxTableSettingsScale])
+                             scale: Option[HdxTableSettingsScale])
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxTableSettingsSummary(sql: String, enabled: Boolean)

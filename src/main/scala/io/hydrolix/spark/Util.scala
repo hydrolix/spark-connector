@@ -1,7 +1,7 @@
 package io.hydrolix.spark
 
-import model.HdxConnectionInfo.{OPT_PROJECT_NAME, OPT_TABLE_NAME}
-import model.{HdxColumnInfo, HdxConnectionInfo}
+import HdxConnectionInfo._
+import model.HdxColumnInfo
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
@@ -103,10 +103,7 @@ abstract class Util extends Logging {
   }
 
   def createTable(ident: Identifier, schema: StructType, partitions: Array[Transform], properties: ju.Map[String, String]): Table = nope()
-
   def alterTable(ident: Identifier, changes: TableChange*): Table = nope()
-
   def dropTable(ident: Identifier): Boolean = nope()
-
   def renameTable(oldIdent: Identifier, newIdent: Identifier): Unit = nope()
 }

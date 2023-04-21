@@ -1,11 +1,11 @@
 package io.hydrolix.spark
 
-import model.HdxConnectionInfo._
-import model._
-
+import io.hydrolix.spark.HdxConnectionInfo._
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.HdxPredicatePushdown
 import org.apache.spark.sql.connector.catalog._
 import org.apache.spark.sql.connector.catalog.index.{SupportsIndex, TableIndex}
+import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.expressions.{Expressions, NamedReference, Transform}
 import org.apache.spark.sql.connector.read._
 import org.apache.spark.sql.types._
@@ -27,13 +27,8 @@ object HdxDataSource extends Logging {
       OPT_API_URL -> args(6),
       OPT_TURBINE_INI_PATH -> args(7),
       OPT_TURBINE_CMD_PATH -> args(8),
-      OPT_CLOUD -> args(9),
-      OPT_BUCKET_PREFIX -> args(10),
-      OPT_CLOUD_CRED1 -> args(11),
-      OPT_CLOUD_CRED2 -> args(12)
     ).asJava)
 
-    val info = fromOpts(opts, log)
     val ds = new HdxTableCatalog()
     ds.initialize("hydrolix", opts)
 
@@ -134,8 +129,17 @@ class HdxScanBuilder(info: HdxConnectionInfo,
                      jdbc: HdxJdbcSession,
                     table: HdxTable)
   extends ScanBuilder
+     with SupportsPushDownV2Filters
      with Logging
 {
+  override def pushPredicates(predicates: Array[Predicate]): Array[Predicate] = {
+    val pushable = predicates.filter(HdxPredicatePushdown.pushable(table.primaryKeyField, table.shardKeyField, _))
+    log.warn("These predicates may be pushable: {}", pushable.mkString("Array(", ", ", ")"))
+    Array()
+  }
+
+  override def pushedPredicates(): Array[Predicate] = Array()
+
   override def build(): Scan = {
     new HdxScan(info, api, jdbc, table, table.schema)
   }

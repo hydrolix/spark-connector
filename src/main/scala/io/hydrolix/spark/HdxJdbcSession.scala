@@ -1,6 +1,6 @@
 package io.hydrolix.spark
 
-import model.{HdxColumnInfo, HdxConnectionInfo, HdxDbPartition}
+import model.{HdxColumnInfo, HdxDbPartition}
 
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.apache.spark.sql.types.{DataType, DataTypes}

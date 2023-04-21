@@ -1,6 +1,6 @@
 package io.hydrolix.spark
 
-import model.{HdxConnectionInfo, HdxLoginRequest, HdxLoginRespAuthToken, HdxLoginResponse, HdxOutputColumn, HdxProject, HdxApiTable, HdxView}
+import model.{HdxLoginRequest, HdxLoginRespAuthToken, HdxLoginResponse, HdxOutputColumn, HdxProject, HdxApiTable, HdxView}
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine, Expiry, LoadingCache}
 import org.apache.spark.sql.catalyst.analysis.{NoSuchDatabaseException, NoSuchTableException}
