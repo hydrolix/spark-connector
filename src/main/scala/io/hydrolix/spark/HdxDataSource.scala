@@ -135,7 +135,7 @@ class HdxScanBuilder(info: HdxConnectionInfo,
   override def pushPredicates(predicates: Array[Predicate]): Array[Predicate] = {
     val pushable = predicates.filter(HdxPredicatePushdown.pushable(table.primaryKeyField, table.shardKeyField, _))
     log.warn("These predicates may be pushable: {}", pushable.mkString("Array(", ", ", ")"))
-    Array()
+    predicates
   }
 
   override def pushedPredicates(): Array[Predicate] = Array()
