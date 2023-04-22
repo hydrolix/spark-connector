@@ -1,20 +1,24 @@
 package io.hydrolix.spark
 
-import HdxConnectionInfo._
-import model.HdxColumnInfo
-
+import io.hydrolix.spark.HdxConnectionInfo.{OPT_PROJECT_NAME, OPT_TABLE_NAME}
+import io.hydrolix.spark.model.HdxColumnInfo
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
-import org.apache.spark.sql.connector.catalog.{Identifier, Table, TableChange}
-import org.apache.spark.sql.connector.expressions.{Expressions, Transform}
-import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Implicits._
+import org.apache.spark.sql.connector.catalog._
+import org.apache.spark.sql.connector.expressions.Transform
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
+import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Implicits.OptionsHelper
 
 import java.{util => ju}
+import scala.annotation.unused
 import scala.collection.mutable
 
-abstract class Util extends Logging {
+@unused("This is referenced as a classname on the Spark command line (`-c spark.sql.catalog.hydrolix=io.hydrolix.spark.HdxTableCatalog`)")
+class HdxTableCatalog extends TableCatalog
+                         with SupportsNamespaces
+                         with Logging
+{
   var name: String = _
   protected var info: HdxConnectionInfo = _
   protected var api: HdxApiSession = _
@@ -22,7 +26,7 @@ abstract class Util extends Logging {
 
   private val columnsCache = mutable.HashMap[(String, String), List[HdxColumnInfo]]()
 
-  protected def columns(db: String, table: String): List[HdxColumnInfo] = {
+  private def columns(db: String, table: String): List[HdxColumnInfo] = {
     columnsCache.getOrElseUpdate((db, table), {
       jdbc.collectColumns(db, table)
     })
@@ -35,7 +39,7 @@ abstract class Util extends Logging {
     this.jdbc = new HdxJdbcSession(info)
   }
 
-  def inferSchema(options: CaseInsensitiveStringMap): StructType = {
+  private def inferSchema(options: CaseInsensitiveStringMap): StructType = {
     initialize("hydrolix", options)
 
     val db = options.get(OPT_PROJECT_NAME)
@@ -46,17 +50,7 @@ abstract class Util extends Logging {
     StructType(cols.map(col => StructField(col.name, col.sparkType, col.nullable)))
   }
 
-  def inferPartitioning(options: CaseInsensitiveStringMap): Array[Transform] = {
-    val db = options.get(OPT_PROJECT_NAME)
-    val table = options.get(OPT_TABLE_NAME)
-
-    val hdxTable = api.table(db, table).getOrElse(throw new NoSuchTableException(s"$db.$table"))
-    val shardKey = hdxTable.settings.shardKey
-
-    shardKey.map(sk => Expressions.apply(s"shard_key_$sk", Expressions.column(sk))).toArray
-  }
-
-  def getTable(schema: StructType, partitioning: Array[Transform], properties: ju.Map[String, String]): Table = {
+  private def getTable(schema: StructType, properties: ju.Map[String, String]): Table = {
     val db = properties.get(OPT_PROJECT_NAME)
     val table = properties.get(OPT_TABLE_NAME)
 
@@ -94,7 +88,6 @@ abstract class Util extends Logging {
 
     getTable(
       schema,
-      Array(),
       Map(
         OPT_PROJECT_NAME -> ident.namespace().head,
         OPT_TABLE_NAME -> ident.name()
@@ -102,8 +95,25 @@ abstract class Util extends Logging {
     )
   }
 
-  def createTable(ident: Identifier, schema: StructType, partitions: Array[Transform], properties: ju.Map[String, String]): Table = nope()
-  def alterTable(ident: Identifier, changes: TableChange*): Table = nope()
-  def dropTable(ident: Identifier): Boolean = nope()
-  def renameTable(oldIdent: Identifier, newIdent: Identifier): Unit = nope()
+  override def listNamespaces(): Array[Array[String]] = {
+    (for {
+      db <- api.databases()
+      table <- api.tables(db.name)
+    } yield List(db.name, table.name).toArray).toArray
+  }
+
+  // TODO implement if needed
+  override def listNamespaces(namespace: Array[String]): Array[Array[String]] = ???
+
+  // TODO implement if needed
+  override def loadNamespaceMetadata(namespace: Array[String]): ju.Map[String, String] = ju.Map.of()
+
+  //noinspection ScalaDeprecation
+  override def createTable(ident: Identifier, schema: StructType, partitions: Array[Transform], properties: ju.Map[String, String]): Table = nope()
+  override def alterTable(ident: Identifier, changes: TableChange*): Table = nope()
+  override def dropTable(ident: Identifier): Boolean = nope()
+  override def renameTable(oldIdent: Identifier, newIdent: Identifier): Unit = nope()
+  override def createNamespace(namespace: Array[String], metadata: ju.Map[String, String]): Unit = nope()
+  override def alterNamespace(namespace: Array[String], changes: NamespaceChange*): Unit = nope()
+  override def dropNamespace(namespace: Array[String], cascade: Boolean): Boolean = nope()
 }

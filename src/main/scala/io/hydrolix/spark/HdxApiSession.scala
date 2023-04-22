@@ -21,7 +21,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
     allProjectsCache.get(())
   }
 
-  def database(db: String): Option[HdxProject] = {
+  private def database(db: String): Option[HdxProject] = {
     databases().findSingle(_.name == db)
   }
 
@@ -30,7 +30,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
     allTablesCache.get(project.uuid).findSingle(_.name == table)
   }
 
-  def views(db: String, table: String): List[HdxView] = {
+  private def views(db: String, table: String): List[HdxView] = {
     val tbl = this.table(db, table).getOrElse(throw new NoSuchTableException(table))
     allViewsByTableCache.get(tbl.project -> tbl.uuid)
   }
@@ -62,13 +62,13 @@ class HdxApiSession(info: HdxConnectionInfo) {
 
         override def expireAfterCreate(key: Unit,
                                      value: HdxLoginRespAuthToken,
-                               currentTime: Long) =
+                               currentTime: Long): Long =
           when(value)
 
         override def expireAfterUpdate(key: Unit,
                                      value: HdxLoginRespAuthToken,
                                currentTime: Long,
-                           currentDuration: Long) =
+                           currentDuration: Long): Long =
           when(value)
 
         override def expireAfterRead(key: Unit, value: HdxLoginRespAuthToken, currentTime: Long, currentDuration: Long): Long =
@@ -140,7 +140,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
           val (projectId, tableId) = key
 
           val viewsGet = HttpRequest
-            .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/${projectId}/tables/${tableId}/views/"))
+            .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/$projectId/tables/$tableId/views/"))
             .headers("Authorization", s"Bearer ${tokenCache.get(()).accessToken}")
             .GET()
             .build()

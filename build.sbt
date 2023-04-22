@@ -32,4 +32,5 @@ libraryDependencies ++= List(
   "com.google.cloud" % "google-cloud-storage" % "2.20.2",
   "ch.qos.logback" % "logback-classic" % "1.4.6",
   "org.typelevel" %% "spire" % "0.18.0",
+  "net.openhft" % "zero-allocation-hashing" % "0.16"
 )
