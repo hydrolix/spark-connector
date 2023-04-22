@@ -36,7 +36,7 @@ object HdxPredicatePushdown extends Logging {
   /**
    * Tests whether a given predicate should be pushable for the given timestamp and shard key field names. Note that we
    * have no concept of a unique key, so we can never return 1 here. However, `prunePartition` should be able to
-   * authoritatively prune particular partitions.
+   * authoritatively prune particular partitions, since it will have their specific min/max timestamps and shard keys.
    *
    * @param timeField      name of the timestamp ("primary key") field for this table
    * @param mShardKeyField name of the shard key field for this table
@@ -179,8 +179,11 @@ object HdxPredicatePushdown extends Logging {
 
 
   /**
-   * Looks at an expression and, if it's a binary comparison operator like `l op r` where op is found in [[timeOps]],
-   * returns a tuple of (l, op, r).
+   * Looks at an expression and, if it's a binary comparison operator of the form `<left> <op> <right>`
+   * where `op` is one of [[timeOps]], returns a tuple of (`left`, `op`, `right`).
+   *
+   * Note that this is also used to match shard key comparisons, but the caller needs to check that `op` is in
+   * [[shardOps]].
    */
   private object Comparison {
     def apply(l: Expression, op: String, r: Expression) = new GeneralScalarExpression(op, Array(l, r))
@@ -196,7 +199,10 @@ object HdxPredicatePushdown extends Logging {
   }
 
   /**
-   * Looks at an expression and, if it's an `l IN(rs)`, returns a tuple of (l, rs)
+   * Looks at an expression and, if it's of the form `<left> IN (<rights>)` where `rights` has at least one value,
+   * returns a tuple of (`left`, `rights`).
+   *
+   * Note that this assumes `foo IN ()` would have already been optimized away as tautological.
    */
   private object In {
     def unapply(expr: Expression): Option[(Expression, List[Expression])] = {
@@ -210,8 +216,13 @@ object HdxPredicatePushdown extends Logging {
   }
 
   /**
-   * Looks at a list of expressions, and if they're ALL literals of type `typ`, returns them as a list of
-   * LiteralValue[_]. If any value is not a literal, or not of the desired type, nothing is returned.
+   * Looks at a list of expressions, and if it's not empty, and EVERY value is a literals of type `typ`,
+   * returns them as a list of [[LiteralValue]].
+   *
+   * Returns nothing if:
+   *  - the list is empty
+   *  - ANY value is not a literal
+   *  - ANY value is a literal, but not of the `desired` type
    *
    * @param desired the type to search for
    */
@@ -226,8 +237,8 @@ object HdxPredicatePushdown extends Logging {
   }
 
   /**
-   * Looks at an expression, and if it's a FieldReference(Seq(s)) (where ss is a single string), returns that string,
-   * otherwise returns nothing.
+   * Looks at an expression, and if it's a `FieldReference(<ss>)` (where `ss` is a single string),
+   * returns that string, otherwise returns nothing.
    */
   private object GetField {
     def unapply(expr: Expression): Option[String] = {
