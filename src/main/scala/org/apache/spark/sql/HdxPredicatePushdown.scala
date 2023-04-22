@@ -55,7 +55,9 @@ object HdxPredicatePushdown extends Logging {
         // timeField IN (timestamp literals)
         2
       case Comparison(GetField(field), op, LiteralValue(_: String, DataTypes.StringType)) if mShardKeyField.contains(field) && shardOps.contains(op) =>
-        // shardKeyField == string
+        // shardKeyField == string or shardKeyField <> string
+        // Note: this is a 2 even when shardKeyField == string because in the rare case of a hash collision we still
+        // need to compare the raw strings.
         2
       case In(GetField(field), allStrings(_)) if mShardKeyField.contains(field) =>
         // shardKeyField IN (string literals)
