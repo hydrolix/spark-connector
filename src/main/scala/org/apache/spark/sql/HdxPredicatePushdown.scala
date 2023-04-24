@@ -113,13 +113,13 @@ object HdxPredicatePushdown extends Logging {
             case NE => // prune if timestamp IS INSIDE partition min/max
               timestamp.compareTo(partitionMin) >= 0 && timestamp.compareTo(partitionMax) <= 0
 
-            case GE | GT => // prune if timestamp IS BEFORE partition min
+            case GE | GT => // prune if timestamp IS AFTER partition max
               // TODO seriously consider whether > and >= should be treated the same given mismatched time grain
-              timestamp.compareTo(partitionMax) <= 0
+              timestamp.compareTo(partitionMax) >= 0
 
-            case LE | LT => // prune if timestamp IS AFTER partition max
+            case LE | LT => // prune if timestamp IS BEFORE partition min
               // TODO seriously consider whether < and <= should be treated the same given mismatched time grain
-              timestamp.compareTo(partitionMin) >= 0
+              timestamp.compareTo(partitionMin) <= 0
 
             case _ =>
               // Shouldn't happen because the pattern guard already checked in timeOps
@@ -162,6 +162,7 @@ object HdxPredicatePushdown extends Logging {
           val pruneRight = prunePartition(timeField, mShardKeyField, and.left(), partitionMin, partitionMax, partitionShardKey)
 
           pruneLeft || pruneRight // TODO!!
+
         case or: Or =>
           val pruneLeft = prunePartition(timeField, mShardKeyField, or.left(), partitionMin, partitionMax, partitionShardKey)
           val pruneRight = prunePartition(timeField, mShardKeyField, or.left(), partitionMin, partitionMax, partitionShardKey)
@@ -178,7 +179,6 @@ object HdxPredicatePushdown extends Logging {
           false
       }
   }
-
 
   /**
    * Looks at an expression and, if it's a binary comparison operator of the form `<left> <op> <right>`
