@@ -82,8 +82,8 @@ class HdxScanBuilder(info: HdxConnectionInfo,
     val type2 = pushable.getOrElse(2, Nil)
     val type3 = pushable.getOrElse(3, Nil)
 
-    log.warn("These predicates are pushable: 1:[{}], 2:[{}]", type1, type2)
-    log.warn("These predicates are NOT pushable: 3:[{}]", type3)
+    if (type1.nonEmpty || type2.nonEmpty) log.warn("These predicates are pushable: 1:[{}], 2:[{}]", type1, type2)
+    if (type3.nonEmpty) log.warn("These predicates are NOT pushable: 3:[{}]", type3)
 
     // Types 1 & 2 will be pushed
     pushed = type1 ++ type2
