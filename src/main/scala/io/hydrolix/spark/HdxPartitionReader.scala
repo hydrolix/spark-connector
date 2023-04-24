@@ -20,20 +20,20 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   private val q = new ArrayBlockingQueue[String](1024)
   @volatile private var exitCode: Option[Int] = None
 
-  // The contract says get() should always return the same record if called multiple times per next()
+  // Cache because PartitionReader says get() should always return the same record if called multiple times per next()
   private var rec: InternalRow = _
 
-  private val hdxReaderProcessBuilder = Process(
-    info.turbineCmdPath,
-    List(
-      "hdx_reader",
-      "--config", info.turbineIniPath,
-      "--output_format", "json",
-      "--fs_root", "/db/hdx",
-      "--hdx_partition", partition.path,
-      "--output_path", "-"
-    )
-  )
+  // TODO does anything need to be quoted here?
+  private val turbineCmdArgs = List(
+    "hdx_reader",
+    "--config", info.turbineIniPath,
+    "--output_format", "json",
+    "--fs_root", "/db/hdx",
+    "--hdx_partition", partition.path,
+    "--output_path", "-"
+  ) ++ partition.schema.fields.flatMap(f => List("--col", f.name))
+
+  private val hdxReaderProcessBuilder = Process(info.turbineCmdPath, turbineCmdArgs)
 
   // TODO this relies on the stdout being split into strings; that won't be the case once we get gzip working!
   private val hdxReaderProcess = hdxReaderProcessBuilder.run(ProcessLogger(
@@ -56,8 +56,9 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     } catch {
       case _: InterruptedException =>
         Thread.currentThread().interrupt()
+    } finally {
+      q.put(doneSignal)
     }
-    q.put(doneSignal)
   }).start()
 
   override def next(): Boolean = {

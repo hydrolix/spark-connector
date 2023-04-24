@@ -71,9 +71,11 @@ class HdxScanBuilder(info: HdxConnectionInfo,
                     table: HdxTable)
   extends ScanBuilder
      with SupportsPushDownV2Filters
+     with SupportsPushDownRequiredColumns
      with Logging
 {
   private var pushed: List[Predicate] = List()
+  private var cols: StructType = _
 
   override def pushPredicates(predicates: Array[Predicate]): Array[Predicate] = {
     val pushable = predicates.toList.groupBy(HdxPredicatePushdown.pushable(table.primaryKeyField, table.shardKeyField, _))
@@ -96,8 +98,12 @@ class HdxScanBuilder(info: HdxConnectionInfo,
     pushed.toArray
   }
 
+  override def pruneColumns(requiredSchema: StructType): Unit = {
+    cols = requiredSchema
+  }
+
   override def build(): Scan = {
-    new HdxScan(info, api, jdbc, table, table.schema, pushed)
+    new HdxScan(info, api, jdbc, table, cols, pushed)
   }
 }
 
@@ -110,24 +116,22 @@ class HdxScan(info: HdxConnectionInfo,
   extends Scan
 {
   override def toBatch: Batch = {
-    new HdxBatch(info, api, jdbc, table, pushed)
+    new HdxBatch(info, api, jdbc, table, cols, pushed)
   }
 
   override def description(): String = super.description()
 
-  override def readSchema(): StructType = {
-    table.schema.copy(
-      fields = table.schema.fields.filter(f => cols.contains(f.name))
-    )
-  }
+  override def readSchema(): StructType = cols
 }
 
 class HdxBatch(info: HdxConnectionInfo,
                 api: HdxApiSession,
                jdbc: HdxJdbcSession,
               table: HdxTable,
+               cols: StructType,
              pushed: List[Predicate])
   extends Batch
+     with Logging
 {
   override def planInputPartitions(): Array[InputPartition] = {
     val db = table.ident.namespace().head
@@ -146,7 +150,7 @@ class HdxBatch(info: HdxConnectionInfo,
         None
       } else {
         // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
-        Some(HdxPartition(db, t, hp.partition, pk.name, table.schema))
+        Some(HdxPartition(db, t, hp.partition, pk.name, cols))
       }
     }.toArray
   }
