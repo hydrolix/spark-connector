@@ -40,8 +40,6 @@ class HdxTableCatalog extends TableCatalog
   }
 
   private def inferSchema(options: CaseInsensitiveStringMap): StructType = {
-    initialize("hydrolix", options)
-
     val db = options.get(OPT_PROJECT_NAME)
     val table = options.get(OPT_TABLE_NAME)
 
