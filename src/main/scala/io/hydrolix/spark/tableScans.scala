@@ -14,8 +14,6 @@ import java.util.Properties
 import java.{util => ju}
 
 case class HdxTable(info: HdxConnectionInfo,
-                     api: HdxApiSession,
-                    jdbc: HdxJdbcSession,
                    ident: Identifier,
                   schema: StructType,
                  options: CaseInsensitiveStringMap,
@@ -35,7 +33,7 @@ case class HdxTable(info: HdxConnectionInfo,
   override def capabilities(): ju.Set[TableCapability] = ju.EnumSet.of(TableCapability.BATCH_READ)
 
   override def newScanBuilder(options: CaseInsensitiveStringMap): ScanBuilder = {
-    new HdxScanBuilder(info, api, jdbc, this)
+    new HdxScanBuilder(info, this)
   }
 
   override def createIndex(indexName: String,
@@ -65,10 +63,7 @@ case class HdxTable(info: HdxConnectionInfo,
   }
 }
 
-class HdxScanBuilder(info: HdxConnectionInfo,
-                      api: HdxApiSession,
-                     jdbc: HdxJdbcSession,
-                    table: HdxTable)
+class HdxScanBuilder(info: HdxConnectionInfo, table: HdxTable)
   extends ScanBuilder
      with SupportsPushDownV2Filters
      with SupportsPushDownRequiredColumns
@@ -103,20 +98,18 @@ class HdxScanBuilder(info: HdxConnectionInfo,
   }
 
   override def build(): Scan = {
-    new HdxScan(info, api, jdbc, table, cols, pushed)
+    new HdxScan(info, table, cols, pushed)
   }
 }
 
 class HdxScan(info: HdxConnectionInfo,
-               api: HdxApiSession,
-              jdbc: HdxJdbcSession,
              table: HdxTable,
               cols: StructType,
             pushed: List[Predicate])
   extends Scan
 {
   override def toBatch: Batch = {
-    new HdxBatch(info, api, jdbc, table, cols, pushed)
+    new HdxBatch(info, table, cols, pushed)
   }
 
   override def description(): String = super.description()
@@ -125,19 +118,18 @@ class HdxScan(info: HdxConnectionInfo,
 }
 
 class HdxBatch(info: HdxConnectionInfo,
-                api: HdxApiSession,
-               jdbc: HdxJdbcSession,
               table: HdxTable,
                cols: StructType,
              pushed: List[Predicate])
   extends Batch
      with Logging
 {
+  private val jdbc = HdxJdbcSession(info)
+
   override def planInputPartitions(): Array[InputPartition] = {
     val db = table.ident.namespace().head
     val t = table.ident.name()
 
-    val pk = api.pk(db, t)
     val parts = jdbc.collectPartitions(db, t)
 
     parts.flatMap { hp =>
@@ -150,10 +142,10 @@ class HdxBatch(info: HdxConnectionInfo,
         None
       } else {
         // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
-        Some(HdxPartition(db, t, hp.partition, pk.name, cols))
+        Some(HdxPartitionScan(hp.partition, cols, pushed))
       }
     }.toArray
   }
 
-  override def createReaderFactory(): PartitionReaderFactory = new HdxPartitionReaderFactory(info)
+  override def createReaderFactory(): PartitionReaderFactory = new HdxPartitionReaderFactory(info, table.primaryKeyField)
 }

@@ -36,7 +36,7 @@ class HdxTableCatalog extends TableCatalog
     this.name = name
     this.info = HdxConnectionInfo.fromOpts(opts, log)
     this.api = new HdxApiSession(info)
-    this.jdbc = new HdxJdbcSession(info)
+    this.jdbc = HdxJdbcSession(info)
   }
 
   private def inferSchema(options: CaseInsensitiveStringMap): StructType = {
@@ -57,8 +57,6 @@ class HdxTableCatalog extends TableCatalog
 
     HdxTable(
       info,
-      api,
-      jdbc,
       Identifier.of(Array(db), table),
       schema,
       CaseInsensitiveStringMap.empty(),

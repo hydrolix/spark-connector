@@ -1,5 +1,6 @@
 package io.hydrolix.spark
 
+import io.hydrolix.spark.model.HdxOutputColumn
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.PartitionReader
@@ -12,7 +13,8 @@ import scala.sys.process.{Process, ProcessLogger}
 // TODO make a ColumnarBatch version too
 // TODO make a ColumnarBatch version too
 class HdxPartitionReader(info: HdxConnectionInfo,
-                    partition: HdxPartition)
+               primaryKeyName: String,
+                         scan: HdxPartitionScan)
   extends PartitionReader[InternalRow]
     with Logging
 {
@@ -24,14 +26,17 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   private var rec: InternalRow = _
 
   // TODO does anything need to be quoted here?
+  private val schema = scan.schema.fields.map(fld => HdxOutputColumn(fld.name, Types.sparkToHdx(fld.name, fld.dataType, primaryKeyName)))
+
   private val turbineCmdArgs = List(
     "hdx_reader",
     "--config", info.turbineIniPath,
     "--output_format", "json",
     "--fs_root", "/db/hdx",
-    "--hdx_partition", partition.path,
-    "--output_path", "-"
-  ) ++ partition.schema.fields.flatMap(f => List("--col", f.name))
+    "--hdx_partition", scan.path,
+    "--output_path", "-",
+    "--schema", JSON.objectMapper.writeValueAsString(schema)
+  )
 
   private val hdxReaderProcessBuilder = Process(info.turbineCmdPath, turbineCmdArgs)
 
@@ -74,7 +79,7 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     if (line eq doneSignal) {
       false
     } else {
-      rec = Json2Row.row(partition.schema, line)
+      rec = Json2Row.row(scan.schema, line)
       true
     }
   }
@@ -83,7 +88,7 @@ class HdxPartitionReader(info: HdxConnectionInfo,
 
   override def close(): Unit = {
     if (hdxReaderProcess.isAlive()) {
-      log.debug(s"Killing child process for partition ${partition.path} early")
+      log.debug(s"Killing child process for partition ${scan.path} early")
       hdxReaderProcess.destroy()
     } else {
       exitCode match {
