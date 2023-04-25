@@ -36,14 +36,6 @@ case class HdxTable(info: HdxConnectionInfo,
     new HdxScanBuilder(info, this)
   }
 
-  override def createIndex(indexName: String,
-                             columns: Array[NamedReference],
-                   columnsProperties: ju.Map[NamedReference, ju.Map[String, String]],
-                          properties: ju.Map[String, String])
-                                    : Unit = nope()
-
-  override def dropIndex(indexName: String): Unit = nope()
-
   override def indexExists(indexName: String): Boolean = {
     indices.contains(indexName)
   }
@@ -61,6 +53,14 @@ case class HdxTable(info: HdxConnectionInfo,
       )
     }
   }
+
+  override def createIndex(indexName: String,
+                             columns: Array[NamedReference],
+                   columnsProperties: ju.Map[NamedReference, ju.Map[String, String]],
+                          properties: ju.Map[String, String])
+                                    : Unit = nope()
+
+  override def dropIndex(indexName: String): Unit = nope()
 }
 
 class HdxScanBuilder(info: HdxConnectionInfo, table: HdxTable)
@@ -127,10 +127,7 @@ class HdxBatch(info: HdxConnectionInfo,
   private val jdbc = HdxJdbcSession(info)
 
   override def planInputPartitions(): Array[InputPartition] = {
-    val db = table.ident.namespace().head
-    val t = table.ident.name()
-
-    val parts = jdbc.collectPartitions(db, t)
+    val parts = jdbc.collectPartitions(table.ident.namespace().head, table.ident.name())
 
     parts.flatMap { hp =>
       val max = hp.maxTimestamp
