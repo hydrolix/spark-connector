@@ -60,14 +60,16 @@ object Types {
         HdxColumnDatatype("datetime64", true, name == primaryKeyName, resolution = Some("ms"))
 
       case ArrayType(elementType, _) =>
-        val elt = sparkToHdx(name, elementType, primaryKeyName)
-        HdxColumnDatatype("array", false, false, elements = Some(
-          JSON.objectMapper.convertValue[JsonNode](elt)
-        ))
+        val elt = sparkToHdx(name, elementType, primaryKeyName).copy(index = false)
+
+        val arr = JSON.objectMapper.getNodeFactory.arrayNode()
+        arr.add(JSON.objectMapper.convertValue[JsonNode](elt))
+
+        HdxColumnDatatype("array", false, false, elements = Some(arr))
 
       case MapType(keyType, valueType, _) =>
-        val kt = sparkToHdx(name, keyType, primaryKeyName)
-        val vt = sparkToHdx(name, valueType, primaryKeyName)
+        val kt = sparkToHdx(name, keyType, primaryKeyName).copy(index = false)
+        val vt = sparkToHdx(name, valueType, primaryKeyName).copy(index = false)
 
         val arr = JSON.objectMapper.getNodeFactory.arrayNode()
         arr.add(JSON.objectMapper.convertValue[JsonNode](kt))

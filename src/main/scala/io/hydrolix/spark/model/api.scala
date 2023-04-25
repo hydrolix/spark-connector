@@ -1,6 +1,8 @@
 package io.hydrolix.spark
 package model
 
+import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.annotation.JsonInclude.Include
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy
 import com.fasterxml.jackson.databind.annotation.JsonNaming
@@ -123,12 +125,12 @@ case class HdxViewSettings(isDefault: Boolean,
 case class HdxOutputColumn(name: String,
                        datatype: HdxColumnDatatype)
 
-case class HdxColumnDatatype(`type`: String,
-                              index: Boolean,
-                            primary: Boolean,
-                             source: Option[JsonNode] = None,
-                             format: Option[String] = None,
-                         resolution: Option[String] = None,
-                            default: Option[String] = None,
-                             script: Option[String] = None,
-                           elements: Option[JsonNode] = None)
+case class HdxColumnDatatype(          `type`: String,
+  @JsonInclude(Include.NON_DEFAULT)     index: Boolean,
+  @JsonInclude(Include.NON_DEFAULT)   primary: Boolean,
+  @JsonInclude(Include.NON_ABSENT)     source: Option[JsonNode] = None,
+  @JsonInclude(Include.NON_ABSENT)     format: Option[String] = None,
+  @JsonInclude(Include.NON_ABSENT) resolution: Option[String] = None,
+  @JsonInclude(Include.NON_ABSENT)    default: Option[String] = None,
+  @JsonInclude(Include.NON_ABSENT)     script: Option[String] = None,
+  @JsonInclude(Include.NON_ABSENT)   elements: Option[JsonNode] = None)

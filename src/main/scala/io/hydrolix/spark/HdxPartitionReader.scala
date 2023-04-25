@@ -28,6 +28,8 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   // TODO does anything need to be quoted here?
   private val schema = scan.schema.fields.map(fld => HdxOutputColumn(fld.name, Types.sparkToHdx(fld.name, fld.dataType, primaryKeyName)))
 
+  private val schemaStr = JSON.objectMapper.writeValueAsString(schema)
+
   // Note, this relies on a bunch of changes in hdx_reader that may not have been merged yet!
   private val turbineCmdArgs = List(
     "hdx_reader",
@@ -36,7 +38,7 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     "--fs_root", "/db/hdx",
     "--hdx_partition", scan.path,
     "--output_path", "-",
-    "--schema", JSON.objectMapper.writeValueAsString(schema)
+    "--schema", schemaStr
   )
 
   private val hdxReaderProcessBuilder = Process(info.turbineCmdPath, turbineCmdArgs)
