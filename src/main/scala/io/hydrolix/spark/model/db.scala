@@ -9,11 +9,17 @@ import java.time.Instant
  * These are Scala representations of the metadata visible from a Hydrolix JDBC connection.
  */
 
+/**
+ * @param indexed
+ *                - 0: not indexed in any partition
+ *                - 1: indexed in some partitions
+ *                - 2: indexed in all partitions
+ */
 case class HdxColumnInfo(name: String,
-                      colType: Int,
-                     typeName: String,
+               clickhouseType: String,
                      nullable: Boolean,
-                    sparkType: DataType)
+                    sparkType: DataType,
+                      indexed: Int)
 
 case class HdxDbPartition(partition: String,
                        minTimestamp: Instant,

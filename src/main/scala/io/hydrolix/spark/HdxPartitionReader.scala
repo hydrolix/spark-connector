@@ -2,6 +2,7 @@ package io.hydrolix.spark
 
 import io.hydrolix.spark.model.HdxOutputColumn
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.HdxPredicatePushdown
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.PartitionReader
 
@@ -25,12 +26,26 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   // Cache because PartitionReader says get() should always return the same record if called multiple times per next()
   private var rec: InternalRow = _
 
-  // TODO does anything need to be quoted here?
-  private val schema = scan.schema.fields.map(fld => HdxOutputColumn(fld.name, Types.sparkToHdx(fld.name, fld.dataType, primaryKeyName)))
+  private val cols = HdxJdbcSession(info).collectColumns(scan.db, scan.table).map(col => col.name -> col).toMap
+  private val schema = scan.schema.fields.map { fld =>
+    HdxOutputColumn(fld.name, Types.sparkToHdx(fld.name, fld.dataType, primaryKeyName, cols))
+  }
 
   private val schemaStr = JSON.objectMapper.writeValueAsString(schema)
 
-  // Note, this relies on a bunch of changes in hdx_reader that may not have been merged yet!
+  private val exprArgs = {
+    // TODO Spark seems to inject a `foo IS NOT NULL` alongside a `foo = <lit>`, maybe filter it out before doing this
+
+    val renderedPushed = scan.pushed.map(HdxPredicatePushdown.renderHdxFilterExpr(_, primaryKeyName, cols))
+    // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
+    // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
+    // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
+    if (renderedPushed.isEmpty) Nil else List("--expr", renderedPushed.flatten.mkString("[", " AND ", "]"))
+  }
+
+  // TODO does anything need to be quoted here?
+  //  Note, this relies on a bunch of changes in hdx_reader that may not have been merged to turbine/turbine-core yet,
+  //  see https://hydrolix.atlassian.net/browse/HDX-3779
   private val turbineCmdArgs = List(
     "hdx_reader",
     "--config", info.turbineIniPath,
@@ -39,7 +54,7 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     "--hdx_partition", scan.path,
     "--output_path", "-",
     "--schema", schemaStr
-  )
+  ) ++ exprArgs
 
   private val hdxReaderProcessBuilder = Process(info.turbineCmdPath, turbineCmdArgs)
 

@@ -71,9 +71,13 @@ class HdxScanBuilder(info: HdxConnectionInfo, table: HdxTable)
 {
   private var pushed: List[Predicate] = List()
   private var cols: StructType = _
+  private val hcols = HdxJdbcSession(info)
+    .collectColumns(table.ident.namespace().head, table.ident.name())
+    .map(col => col.name -> col)
+    .toMap
 
   override def pushPredicates(predicates: Array[Predicate]): Array[Predicate] = {
-    val pushable = predicates.toList.groupBy(HdxPredicatePushdown.pushable(table.primaryKeyField, table.shardKeyField, _))
+    val pushable = predicates.toList.groupBy(HdxPredicatePushdown.pushable(table.primaryKeyField, table.shardKeyField, _, hcols))
 
     val type1 = pushable.getOrElse(1, Nil)
     val type2 = pushable.getOrElse(2, Nil)
@@ -139,7 +143,12 @@ class HdxBatch(info: HdxConnectionInfo,
         None
       } else {
         // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
-        Some(HdxPartitionScan(hp.partition, cols, pushed))
+        Some(HdxPartitionScan(
+          table.ident.namespace().head,
+          table.ident.name(),
+          hp.partition,
+          cols,
+          pushed))
       }
     }.toArray
   }

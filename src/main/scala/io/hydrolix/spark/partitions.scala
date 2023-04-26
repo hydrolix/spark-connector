@@ -5,9 +5,11 @@ import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 import org.apache.spark.sql.types.StructType
 
-case class HdxPartitionScan(path: String,
-                          schema: StructType,
-                          pushed: List[Predicate])
+case class HdxPartitionScan(db: String,
+                         table: String,
+                          path: String,
+                        schema: StructType,
+                        pushed: List[Predicate])
   extends InputPartition
 
 class HdxPartitionReaderFactory(info: HdxConnectionInfo, pkName: String)
