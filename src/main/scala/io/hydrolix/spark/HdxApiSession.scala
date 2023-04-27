@@ -18,7 +18,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
   }
 
   def databases(): List[HdxProject] = {
-    allProjectsCache.get(())
+    allProjectsCache.get(0)
   }
 
   private def database(db: String): Option[HdxProject] = {
@@ -53,82 +53,78 @@ class HdxApiSession(info: HdxConnectionInfo) {
   private val client = HttpClient.newHttpClient()
 
   // It's a bit silly to have a one-element cache here, but we want the auto-renewal
-  private val tokenCache = {
+  // TODO this is Integer for stupid Scala 2.12 reasons; it should be Unit. Always pass 0!
+  private val tokenCache: LoadingCache[Integer, HdxLoginRespAuthToken] = {
     Caffeine.newBuilder()
-      .expireAfter(new Expiry[Unit, HdxLoginRespAuthToken]() {
+      .expireAfter(new Expiry[Integer, HdxLoginRespAuthToken]() {
         private def when(value: HdxLoginRespAuthToken): Long = {
           System.currentTimeMillis() + value.expiresIn - 600 // Renew 10 minutes before expiry
         }
 
-        override def expireAfterCreate(key: Unit,
-                                     value: HdxLoginRespAuthToken,
-                               currentTime: Long): Long =
+        override def expireAfterCreate(key: Integer,
+                                       value: HdxLoginRespAuthToken,
+                                       currentTime: Long): Long =
           when(value)
 
-        override def expireAfterUpdate(key: Unit,
-                                     value: HdxLoginRespAuthToken,
-                               currentTime: Long,
-                           currentDuration: Long): Long =
+        override def expireAfterUpdate(key: Integer,
+                                       value: HdxLoginRespAuthToken,
+                                       currentTime: Long,
+                                       currentDuration: Long): Long =
           when(value)
 
-        override def expireAfterRead(key: Unit, value: HdxLoginRespAuthToken, currentTime: Long, currentDuration: Long): Long =
+        override def expireAfterRead(key: Integer, value: HdxLoginRespAuthToken, currentTime: Long, currentDuration: Long): Long =
           Long.MaxValue
       })
-      .build[Unit, HdxLoginRespAuthToken](new CacheLoader[Unit, HdxLoginRespAuthToken]() {
-        override def load(key: Unit): HdxLoginRespAuthToken = {
-          val loginPost = HttpRequest
-            .newBuilder(info.apiUrl.resolve("login"))
-            .headers("Content-Type", "application/json")
-            .POST(BodyPublishers.ofString(JSON.objectMapper.writeValueAsString(HdxLoginRequest(info.user, info.password))))
-            .build()
+      .build[Integer, HdxLoginRespAuthToken]((_: Integer) => {
+        val loginPost = HttpRequest
+          .newBuilder(info.apiUrl.resolve("login"))
+          .headers("Content-Type", "application/json")
+          .POST(BodyPublishers.ofString(JSON.objectMapper.writeValueAsString(HdxLoginRequest(info.user, info.password))))
+          .build()
 
-          val loginResp = client.send(loginPost, BodyHandlers.ofString())
-          if (loginResp.statusCode() != 200) sys.error(s"POST /login response code was ${loginResp.statusCode()}")
+        val loginResp = client.send(loginPost, BodyHandlers.ofString())
+        if (loginResp.statusCode() != 200) sys.error(s"POST /login response code was ${loginResp.statusCode()}")
 
-          val loginRespBody = JSON.objectMapper.readValue[HdxLoginResponse](loginResp.body())
-          loginRespBody.authToken
-        }
+        val loginRespBody = JSON.objectMapper.readValue[HdxLoginResponse](loginResp.body())
+        loginRespBody.authToken
       })
   }
 
   // It's a bit silly to have a one-element cache here, but there's no backend API to find projects by name
-  private val allProjectsCache: LoadingCache[Unit, List[HdxProject]] = {
+  // TODO this is Integer for stupid Scala 2.12 reasons; it should be Unit. Always pass 0!
+  private val allProjectsCache: LoadingCache[Integer, List[HdxProject]] = {
     Caffeine.newBuilder()
       .expireAfterWrite(Duration.ofHours(1))
-      .build[Unit, List[HdxProject]](new CacheLoader[Unit, List[HdxProject]]() {
-        override def load(key: Unit): List[HdxProject] = {
-          val projectGet = HttpRequest
-            .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/"))
-            .headers("Authorization", s"Bearer ${tokenCache.get(()).accessToken}")
-            .GET()
-            .build()
+      .build((_: Integer) => {
+        val projectGet = HttpRequest
+          .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/"))
+          .headers("Authorization", s"Bearer ${tokenCache.get(0).accessToken}")
+          .GET()
+          .build()
 
-          val projectResp = client.send(projectGet, BodyHandlers.ofString())
-          if (projectResp.statusCode() != 200) sys.error(s"GET /orgs/:org_id/projects/:project_id response code was ${projectResp.statusCode()}")
+        val projectResp = client.send(projectGet, BodyHandlers.ofString())
+        if (projectResp.statusCode() != 200) sys.error(s"GET /orgs/:org_id/projects/:project_id response code was ${projectResp.statusCode()}")
 
-          JSON.objectMapper.readValue[List[HdxProject]](projectResp.body())
-        }
+        JSON.objectMapper.readValue[List[HdxProject]](projectResp.body())
       })
   }
 
   private val allTablesCache: LoadingCache[UUID, List[HdxApiTable]] = {
     Caffeine.newBuilder()
       .expireAfterWrite(Duration.ofHours(1))
-      .build[UUID, List[HdxApiTable]](new CacheLoader[UUID, List[HdxApiTable]]() {
-        override def load(key: UUID): List[HdxApiTable] = {
-          val project = allProjectsCache.get(()).find(_.uuid == key).getOrElse(throw NoSuchDatabaseException(key.toString))
+      .build((key: UUID) => {
+        val project = allProjectsCache.get(0).find(_.uuid == key).getOrElse(throw NoSuchDatabaseException(key.toString))
 
-          val tablesGet = HttpRequest
-            .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/${project.uuid}/tables/"))
-            .headers("Authorization", s"Bearer ${tokenCache.get(()).accessToken}")
-            .GET()
-            .build()
+        val tablesGet = HttpRequest
+          .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/${project.uuid}/tables/"))
+          .headers("Authorization", s"Bearer ${tokenCache.get(0).accessToken}")
+          .GET()
+          .build()
 
-          val tablesResp = client.send(tablesGet, BodyHandlers.ofString())
-          if (tablesResp.statusCode() != 200) sys.error(s"GET /orgs/:org_id/projects/:project_id/tables/ response code was ${tablesResp.statusCode()}")
+        val tablesResp = client.send(tablesGet, BodyHandlers.ofString())
+        if (tablesResp.statusCode() != 200) sys.error(s"GET /orgs/:org_id/projects/:project_id/tables/ response code was ${tablesResp.statusCode()}")
 
-          JSON.objectMapper.readValue[List[HdxApiTable]](tablesResp.body())
-        }
+        JSON.objectMapper.readValue[List[HdxApiTable]](tablesResp.body())
       })
   }
 
@@ -141,7 +137,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
 
           val viewsGet = HttpRequest
             .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/$projectId/tables/$tableId/views/"))
-            .headers("Authorization", s"Bearer ${tokenCache.get(()).accessToken}")
+            .headers("Authorization", s"Bearer ${tokenCache.get(0).accessToken}")
             .GET()
             .build()
 

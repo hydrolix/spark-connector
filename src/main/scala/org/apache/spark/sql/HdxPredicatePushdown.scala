@@ -110,9 +110,8 @@ object HdxPredicatePushdown extends Logging {
         // max of childrens' pushability
         pushable(primaryKeyField, mShardKeyField, or.left(), cols) max pushable(primaryKeyField, mShardKeyField, or.right(), cols)
       case _ =>
-        // After HDX-3856 we can eval simple predicates in HDXReader, so push all the things!
-        // TODO this probably needs to be more selective, especially if any function calls sneak through to here
-        2
+        // Something else; it should be logged by the caller as non-pushable
+        3
     }
   }
 
@@ -192,6 +191,7 @@ object HdxPredicatePushdown extends Logging {
           val comparisons = ts.map(Comparison(gf, EQ, _))
           val results = comparisons.map(prunePartition(primaryKeyField, mShardKeyField, _, partitionMin, partitionMax, partitionShardKey))
           // This partition can be pruned if _every_ literal IS NOT this partition's shard key
+          // TODO do we need care about hash collisions here? It might depend on whether op is EQ or NE
           !results.contains(false)
 
         case and: And =>
@@ -325,9 +325,9 @@ object HdxPredicatePushdown extends Logging {
    * @param desired the type to search for
    */
   private class AllLiterals(desired: DataType) {
-    def unapply(expressions: List[Expression]): Option[List[LiteralValue[_]]] = {
+    def unapply(expressions: List[Expression]): Option[List[LiteralValue[Any]]] = {
       val literals = expressions.flatMap {
-        case lit: LiteralValue[_] => if (lit.dataType == desired) Some(lit) else None
+        case lit: LiteralValue[Any] if lit.dataType == desired => Some(lit)
         case _ => None
       }
       if (expressions.nonEmpty && literals.size == expressions.size) Some(literals) else None

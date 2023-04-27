@@ -11,18 +11,17 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Implicits.OptionsHelper
 
 import java.{util => ju}
-import scala.annotation.unused
 import scala.collection.mutable
 
-@unused("This is referenced as a classname on the Spark command line (`-c spark.sql.catalog.hydrolix=io.hydrolix.spark.HdxTableCatalog`)")
+//noinspection ScalaUnusedSymbol: This is referenced as a classname on the Spark command line (`-c spark.sql.catalog.hydrolix=io.hydrolix.spark.HdxTableCatalog`)
 class HdxTableCatalog extends TableCatalog
                          with SupportsNamespaces
                          with Logging
 {
   var name: String = _
   protected var info: HdxConnectionInfo = _
-  protected var api: HdxApiSession = _
-  protected var jdbc: HdxJdbcSession = _
+  private var api: HdxApiSession = _
+  private var jdbc: HdxJdbcSession = _
 
   private val columnsCache = mutable.HashMap[(String, String), List[HdxColumnInfo]]()
 

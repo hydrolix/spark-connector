@@ -6,7 +6,7 @@ import com.brein.time.timeintervals.indexes.IntervalTreeBuilder.IntervalType
 import com.brein.time.timeintervals.intervals.{IdInterval, LongInterval}
 
 import java.lang.{Long => jLong}
-import scala.jdk.CollectionConverters._
+import scala.collection.JavaConverters._
 
 object IntervalPlayground {
   private type IDI = IdInterval[String, jLong]

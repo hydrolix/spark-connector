@@ -24,9 +24,9 @@ case class HdxTable(info: HdxConnectionInfo,
      with SupportsRead
      with SupportsIndex
 {
-  private val indices = Array(s"primary_$primaryKeyField") ++
-    sortKeyFields.map(sk => s"sort_$sk").toArray ++
-    shardKeyField.map(sk => s"shard_$sk").toArray
+  private val indices = List(s"primary_$primaryKeyField") ++
+    sortKeyFields.map(sk => s"sort_$sk") ++
+    shardKeyField.map(sk => s"shard_$sk")
 
   override def name(): String = ident.toString
 
@@ -51,7 +51,7 @@ case class HdxTable(info: HdxConnectionInfo,
         ju.Map.of(),
         new Properties()
       )
-    }
+    }.toArray
   }
 
   override def createIndex(indexName: String,
@@ -83,8 +83,8 @@ class HdxScanBuilder(info: HdxConnectionInfo, table: HdxTable)
     val type2 = pushable.getOrElse(2, Nil)
     val type3 = pushable.getOrElse(3, Nil)
 
-    if (type1.nonEmpty || type2.nonEmpty) log.warn("These predicates are pushable: 1:[{}], 2:[{}]", type1, type2)
-    if (type3.nonEmpty) log.warn("These predicates are NOT pushable: 3:[{}]", type3)
+    if (type1.nonEmpty || type2.nonEmpty) log.warn(s"These predicates are pushable: 1:[$type1], 2:[$type2]")
+    if (type3.nonEmpty) log.warn(s"These predicates are NOT pushable: 3:[$type3]")
 
     // Types 1 & 2 will be pushed
     pushed = type1 ++ type2

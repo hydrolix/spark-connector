@@ -8,7 +8,6 @@ import ru.yandex.clickhouse.ClickHouseDataSource
 import java.util.Properties
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters._
 import scala.util.Using
 
 object HdxJdbcSession {
@@ -43,10 +42,8 @@ class HdxJdbcSession private (info: HdxConnectionInfo)
     }
 
     val props = new Properties()
-    props.putAll(Map(
-      "jdbcUrl" -> info.jdbcUrl,
-      "dataSource" -> ds
-    ).asJava)
+    props.put("jdbcUrl", info.jdbcUrl)
+    props.put("dataSource", ds)
     new HikariDataSource(new HikariConfig(props))
   }
 

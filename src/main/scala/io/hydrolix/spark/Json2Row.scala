@@ -9,7 +9,7 @@ import org.apache.spark.unsafe.types.UTF8String
 
 import java.time.Instant
 import java.time.format.DateTimeFormatter
-import scala.jdk.CollectionConverters._
+import scala.collection.JavaConverters._
 import scala.sys.error
 
 object Json2Row {
