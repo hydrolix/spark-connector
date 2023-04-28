@@ -1,8 +1,9 @@
 package io.hydrolix.spark.connector
 
+import io.hydrolix.spark.model.{HdxColumnDatatype, HdxColumnInfo, JSON}
+
 import com.fasterxml.jackson.databind.JsonNode
-import io.hydrolix.spark.model.{HdxColumnDatatype, HdxColumnInfo}
-import org.apache.spark.sql.types.{ArrayType, DataType, DataTypes, DecimalType, MapType}
+import org.apache.spark.sql.types._
 
 object Types {
   private val arrayR = """array\((.*?)\)""".r

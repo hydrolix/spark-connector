@@ -1,7 +1,5 @@
 libraryDependencies ++= List(
   "org.apache.spark" %% "spark-sql" % "3.4.0" % "provided",
-  "org.apache.hadoop" % "hadoop-common" % "3.3.5" % "provided",
-  "com.google.cloud.bigdataoss" % "gcs-connector" % "hadoop3-2.2.12" % "provided",
 
   "com.github.bigwheel" %% "util-backports" % "2.1",
   "com.clickhouse" % "clickhouse-jdbc" % "0.3.2-patch11",

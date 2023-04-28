@@ -2,6 +2,7 @@
 package org.apache.spark.sql
 
 import io.hydrolix.spark.model.HdxColumnInfo
+
 import net.openhft.hashing.LongHashFunction
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.util.DateTimeUtils.microsToInstant

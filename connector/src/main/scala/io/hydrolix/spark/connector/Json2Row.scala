@@ -1,15 +1,17 @@
 package io.hydrolix.spark.connector
 
+import io.hydrolix.spark.model.JSON
+
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.{ArrayNode, BooleanNode, NumericNode, ObjectNode, TextNode}
+import com.fasterxml.jackson.databind.node._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
-import org.apache.spark.sql.types.{ArrayType, BooleanType, DataType, DataTypes, DecimalType, DoubleType, FloatType, IntegerType, LongType, MapType, ShortType, StringType, StructType}
+import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
-import scala.collection.JavaConverters._
 import java.time.Instant
 import java.time.format.DateTimeFormatter
+import scala.collection.JavaConverters._
 import scala.sys.error
 
 object Json2Row {

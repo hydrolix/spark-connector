@@ -1,4 +1,4 @@
-package io.hydrolix.spark.connector
+package io.hydrolix.spark.model
 
 import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule

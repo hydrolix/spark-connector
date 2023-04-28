@@ -1,9 +1,9 @@
 package io.hydrolix.spark.bench.tpc
 
 import com.google.auth.oauth2.ServiceAccountCredentials
+import com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem
 import com.google.cloud.storage.HttpStorageOptions
 import com.google.cloud.storage.Storage.BlobListOption
-import com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem
 
 import java.io.FileInputStream
 import java.net.URI
