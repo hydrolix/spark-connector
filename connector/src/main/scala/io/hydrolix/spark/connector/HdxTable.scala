@@ -1,5 +1,7 @@
 package io.hydrolix.spark.connector
 
+import io.hydrolix.spark.model.HdxConnectionInfo
+
 import org.apache.spark.sql.connector.catalog.index.{SupportsIndex, TableIndex}
 import org.apache.spark.sql.connector.catalog.{Identifier, SupportsRead, Table, TableCapability}
 import org.apache.spark.sql.connector.expressions.{Expressions, NamedReference}

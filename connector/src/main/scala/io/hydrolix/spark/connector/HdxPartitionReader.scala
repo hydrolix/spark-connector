@@ -1,6 +1,6 @@
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.{HdxOutputColumn, JSON}
+import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession, HdxOutputColumn, JSON, Types}
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPredicatePushdown

@@ -1,8 +1,7 @@
-package io.hydrolix.spark.connector
+package io.hydrolix.spark.model
 
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
-import io.hydrolix.spark.model.{HdxColumnInfo, HdxDbPartition}
-import org.apache.spark.internal.Logging
+import org.slf4j.LoggerFactory
 import ru.yandex.clickhouse.ClickHouseDataSource
 
 import java.util.Properties
@@ -25,9 +24,9 @@ object HdxJdbcSession {
 /**
  * TODO this uses a single connection for metadata about all databases; maybe there should be one of these per DB
  */
-class HdxJdbcSession private (info: HdxConnectionInfo)
-  extends Logging
-{
+class HdxJdbcSession private (info: HdxConnectionInfo) {
+  private val log = LoggerFactory.getLogger(getClass)
+
   private lazy val pool = {
     val ds = {
       val props = new Properties()

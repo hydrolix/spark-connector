@@ -1,5 +1,7 @@
 package io.hydrolix.spark.connector
 
+import io.hydrolix.spark.model.HdxConnectionInfo
+
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Batch, Scan}
 import org.apache.spark.sql.types.StructType

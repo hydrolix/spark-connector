@@ -1,5 +1,7 @@
 package io.hydrolix.spark.connector
 
+import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession}
+
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPredicatePushdown
 import org.apache.spark.sql.connector.expressions.filter.Predicate

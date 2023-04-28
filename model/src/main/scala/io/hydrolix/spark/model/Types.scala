@@ -1,6 +1,4 @@
-package io.hydrolix.spark.connector
-
-import io.hydrolix.spark.model.{HdxColumnDatatype, HdxColumnInfo, JSON}
+package io.hydrolix.spark.model
 
 import com.fasterxml.jackson.databind.JsonNode
 import org.apache.spark.sql.types._

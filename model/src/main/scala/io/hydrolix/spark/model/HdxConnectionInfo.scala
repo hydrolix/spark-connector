@@ -1,4 +1,4 @@
-package io.hydrolix.spark.connector
+package io.hydrolix.spark.model
 
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.slf4j.Logger

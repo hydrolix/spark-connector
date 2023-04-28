@@ -1,7 +1,8 @@
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.connector.HdxConnectionInfo.{OPT_PROJECT_NAME, OPT_TABLE_NAME}
-import io.hydrolix.spark.model.HdxColumnInfo
+import io.hydrolix.spark.model.HdxConnectionInfo.{OPT_PROJECT_NAME, OPT_TABLE_NAME}
+import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxJdbcSession}
+
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
 import org.apache.spark.sql.connector.catalog.{Identifier, NamespaceChange, SupportsNamespaces, Table, TableCatalog, TableChange}
