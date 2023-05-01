@@ -1,0 +1,141 @@
+{
+  "name" : "store_sales",
+  "description" : null,
+  "type" : "json",
+  "table" : "store_sales",
+  "settings" : {
+    "isDefault" : true,
+    "compression" : "gzip",
+    "sqlTransform" : null,
+    "nullValues" : null,
+    "formatDetails" : {
+      "type" : "json",
+      "flattening" : { }
+    },
+    "outputColumns" : [ {
+      "name" : "ss_sold_date_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "ss_sold_time_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "ss_item_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "ss_customer_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "ss_cdemo_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "ss_hdemo_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "ss_addr_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "ss_store_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "ss_promo_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "ss_ticket_number",
+      "datatype" : {
+        "type" : "int64"
+      }
+    }, {
+      "name" : "ss_quantity",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "ss_wholesale_cost",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "ss_list_price",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "ss_sales_price",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "ss_ext_discount_amt",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "ss_ext_sales_price",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "ss_ext_wholesale_cost",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "ss_ext_list_price",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "ss_ext_tax",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "ss_coupon_amt",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "ss_net_paid",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "ss_net_paid_inc_tax",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "ss_net_profit",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "_fake_timestamp",
+      "datatype" : {
+        "type" : "datetime64",
+        "index" : true,
+        "primary" : true,
+        "format" : "2006-01-02T15:04:05.999",
+        "resolution" : "ms"
+      }
+    } ]
+  }
+}

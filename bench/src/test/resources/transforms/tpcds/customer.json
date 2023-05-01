@@ -1,0 +1,116 @@
+{
+  "name" : "customer",
+  "description" : null,
+  "type" : "json",
+  "table" : "customer",
+  "settings" : {
+    "isDefault" : true,
+    "compression" : "gzip",
+    "sqlTransform" : null,
+    "nullValues" : null,
+    "formatDetails" : {
+      "type" : "json",
+      "flattening" : { }
+    },
+    "outputColumns" : [ {
+      "name" : "c_customer_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "c_customer_id",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "c_current_cdemo_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "c_current_hdemo_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "c_current_addr_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "c_first_shipto_date_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "c_first_sales_date_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "c_salutation",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "c_first_name",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "c_last_name",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "c_preferred_cust_flag",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "c_birth_day",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "c_birth_month",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "c_birth_year",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "c_birth_country",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "c_login",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "c_email_address",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "c_last_review_date",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "_fake_timestamp",
+      "datatype" : {
+        "type" : "datetime64",
+        "index" : true,
+        "primary" : true,
+        "format" : "2006-01-02T15:04:05.999",
+        "resolution" : "ms"
+      }
+    } ]
+  }
+}

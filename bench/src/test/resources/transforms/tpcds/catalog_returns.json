@@ -1,0 +1,161 @@
+{
+  "name" : "catalog_returns",
+  "description" : null,
+  "type" : "json",
+  "table" : "catalog_returns",
+  "settings" : {
+    "isDefault" : true,
+    "compression" : "gzip",
+    "sqlTransform" : null,
+    "nullValues" : null,
+    "formatDetails" : {
+      "type" : "json",
+      "flattening" : { }
+    },
+    "outputColumns" : [ {
+      "name" : "cr_returned_date_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_returned_time_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_item_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_refunded_customer_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_refunded_cdemo_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_refunded_hdemo_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_refunded_addr_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_returning_customer_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_returning_cdemo_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_returning_hdemo_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_returning_addr_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_call_center_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_catalog_page_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_ship_mode_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_warehouse_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_reason_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_order_number",
+      "datatype" : {
+        "type" : "int64"
+      }
+    }, {
+      "name" : "cr_return_quantity",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cr_return_amount",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "cr_return_tax",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "cr_return_amt_inc_tax",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "cr_fee",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "cr_return_ship_cost",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "cr_refunded_cash",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "cr_reversed_charge",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "cr_store_credit",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "cr_net_loss",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "_fake_timestamp",
+      "datatype" : {
+        "type" : "datetime64",
+        "index" : true,
+        "primary" : true,
+        "format" : "2006-01-02T15:04:05.999",
+        "resolution" : "ms"
+      }
+    } ]
+  }
+}

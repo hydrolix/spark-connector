@@ -1,0 +1,126 @@
+{
+  "name" : "store_returns",
+  "description" : null,
+  "type" : "json",
+  "table" : "store_returns",
+  "settings" : {
+    "isDefault" : true,
+    "compression" : "gzip",
+    "sqlTransform" : null,
+    "nullValues" : null,
+    "formatDetails" : {
+      "type" : "json",
+      "flattening" : { }
+    },
+    "outputColumns" : [ {
+      "name" : "sr_returned_date_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "sr_return_time_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "sr_item_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "sr_customer_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "sr_cdemo_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "sr_hdemo_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "sr_addr_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "sr_store_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "sr_reason_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "sr_ticket_number",
+      "datatype" : {
+        "type" : "int64"
+      }
+    }, {
+      "name" : "sr_return_quantity",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "sr_return_amt",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "sr_return_tax",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "sr_return_amt_inc_tax",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "sr_fee",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "sr_return_ship_cost",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "sr_refunded_cash",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "sr_reversed_charge",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "sr_store_credit",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "sr_net_loss",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "_fake_timestamp",
+      "datatype" : {
+        "type" : "datetime64",
+        "index" : true,
+        "primary" : true,
+        "format" : "2006-01-02T15:04:05.999",
+        "resolution" : "ms"
+      }
+    } ]
+  }
+}

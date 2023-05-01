@@ -1,0 +1,51 @@
+{
+  "name" : "household_demographics",
+  "description" : null,
+  "type" : "json",
+  "table" : "household_demographics",
+  "settings" : {
+    "isDefault" : true,
+    "compression" : "gzip",
+    "sqlTransform" : null,
+    "nullValues" : null,
+    "formatDetails" : {
+      "type" : "json",
+      "flattening" : { }
+    },
+    "outputColumns" : [ {
+      "name" : "hd_demo_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "hd_income_band_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "hd_buy_potential",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "hd_dep_count",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "hd_vehicle_count",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "_fake_timestamp",
+      "datatype" : {
+        "type" : "datetime64",
+        "index" : true,
+        "primary" : true,
+        "format" : "2006-01-02T15:04:05.999",
+        "resolution" : "ms"
+      }
+    } ]
+  }
+}

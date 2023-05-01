@@ -1,0 +1,91 @@
+{
+  "name" : "customer_address",
+  "description" : null,
+  "type" : "json",
+  "table" : "customer_address",
+  "settings" : {
+    "isDefault" : true,
+    "compression" : "gzip",
+    "sqlTransform" : null,
+    "nullValues" : null,
+    "formatDetails" : {
+      "type" : "json",
+      "flattening" : { }
+    },
+    "outputColumns" : [ {
+      "name" : "ca_address_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "ca_address_id",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "ca_street_number",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "ca_street_name",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "ca_street_type",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "ca_suite_number",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "ca_city",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "ca_county",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "ca_state",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "ca_zip",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "ca_country",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "ca_gmt_offset",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "ca_location_type",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "_fake_timestamp",
+      "datatype" : {
+        "type" : "datetime64",
+        "index" : true,
+        "primary" : true,
+        "format" : "2006-01-02T15:04:05.999",
+        "resolution" : "ms"
+      }
+    } ]
+  }
+}

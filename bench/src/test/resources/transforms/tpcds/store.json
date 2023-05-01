@@ -1,0 +1,173 @@
+{
+  "name" : "store",
+  "description" : null,
+  "type" : "json",
+  "table" : "store",
+  "settings" : {
+    "isDefault" : true,
+    "compression" : "gzip",
+    "sqlTransform" : null,
+    "nullValues" : null,
+    "formatDetails" : {
+      "type" : "json",
+      "flattening" : { }
+    },
+    "outputColumns" : [ {
+      "name" : "s_store_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "s_store_id",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_rec_start_date",
+      "datatype" : {
+        "type" : "datetime",
+        "format" : "2006-01-02"
+      }
+    }, {
+      "name" : "s_rec_end_date",
+      "datatype" : {
+        "type" : "datetime",
+        "format" : "2006-01-02"
+      }
+    }, {
+      "name" : "s_closed_date_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "s_store_name",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_number_employees",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "s_floor_space",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "s_hours",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_manager",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_market_id",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "s_geography_class",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_market_desc",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_market_manager",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_division_id",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "s_division_name",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_company_id",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "s_company_name",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_street_number",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_street_name",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_street_type",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_suite_number",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_city",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_county",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_state",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_zip",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_country",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "s_gmt_offset",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "s_tax_precentage",
+      "datatype" : {
+        "type" : "double"
+      }
+    }, {
+      "name" : "_fake_timestamp",
+      "datatype" : {
+        "type" : "datetime64",
+        "index" : true,
+        "primary" : true,
+        "format" : "2006-01-02T15:04:05.999",
+        "resolution" : "ms"
+      }
+    } ]
+  }
+}

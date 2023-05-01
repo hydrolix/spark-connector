@@ -1,8 +1,8 @@
 package io.hydrolix.spark.model
 
-import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.annotation.{JsonInclude, JsonSubTypes, JsonTypeInfo}
 import com.fasterxml.jackson.annotation.JsonInclude.Include
-import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.{JsonNode, PropertyNamingStrategies}
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 
@@ -124,7 +124,7 @@ case class HdxViewSettings(isDefault: Boolean,
 case class HdxOutputColumn(name: String,
                        datatype: HdxColumnDatatype)
 
-case class HdxColumnDatatype(          `type`: String,
+case class HdxColumnDatatype(          `type`: HdxValueType,
   @JsonInclude(Include.NON_DEFAULT)     index: Boolean,
   @JsonInclude(Include.NON_DEFAULT)   primary: Boolean,
   @JsonInclude(Include.NON_ABSENT)     source: Option[JsonNode] = None,
@@ -133,3 +133,52 @@ case class HdxColumnDatatype(          `type`: String,
   @JsonInclude(Include.NON_ABSENT)    default: Option[String] = None,
   @JsonInclude(Include.NON_ABSENT)     script: Option[String] = None,
   @JsonInclude(Include.NON_ABSENT)   elements: Option[JsonNode] = None)
+
+/**
+ * TODO sync this with the Elastic project somehow:
+ *  https://gitlab.com/hydrolix/interop-kibana/-/blob/main/hydrolix-specific/src/main/kotlin/io/hydrolix/ketchup/model/hdx/Transform.kt
+ */
+case class HdxTransform(name: String,
+                 description: Option[String],
+                      `type`: HdxTransformType,
+                       table: String,
+                    settings: HdxTransformSettings)
+
+
+case class HdxTransformSettings(isDefault: Boolean,
+                              compression: HdxTransformCompression, // TODO layering
+                             sqlTransform: Option[String] = None,
+                               nullValues: Option[List[String]] = None,
+                            formatDetails: HdxTransformFormatDetails,
+                            outputColumns: List[HdxOutputColumn])
+
+
+@JsonSubTypes(value = Array(
+  new JsonSubTypes.Type(name = "csv", value = classOf[CsvFormatDetails]),
+  new JsonSubTypes.Type(name = "json", value = classOf[JsonFormatDetails]),
+))
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type")
+trait HdxTransformFormatDetails {}
+
+@JsonNaming(classOf[PropertyNamingStrategies.SnakeCaseStrategy])
+case class CsvFormatDetails(delimiter: String, // TODO can be a number too?
+                               escape: String, // TODO number
+                             skipHead: Option[Int],
+                                quote: Option[String], // TODO number
+                              comment: Option[String], // TODO number
+                         skipComments: Boolean,
+                        windowsEnding: Boolean)
+  extends HdxTransformFormatDetails
+
+
+case class JsonFormatDetails(flattening: JsonFlattening) extends HdxTransformFormatDetails
+
+@JsonNaming(classOf[PropertyNamingStrategies.SnakeCaseStrategy])
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
+case class JsonFlattening(active: Boolean,
+           mapFlatteningStrategy: Option[FlatteningStrategy],
+         sliceFlatteningStrategy: Option[FlatteningStrategy],
+                           depth: Option[Int])
+
+case class FlatteningStrategy(left: String,
+                             right: String)

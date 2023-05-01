@@ -1,0 +1,167 @@
+{
+  "name" : "date_dim",
+  "description" : null,
+  "type" : "json",
+  "table" : "date_dim",
+  "settings" : {
+    "isDefault" : true,
+    "compression" : "gzip",
+    "sqlTransform" : null,
+    "nullValues" : null,
+    "formatDetails" : {
+      "type" : "json",
+      "flattening" : { }
+    },
+    "outputColumns" : [ {
+      "name" : "d_date_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_date_id",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "d_date",
+      "datatype" : {
+        "type" : "datetime",
+        "format" : "2006-01-02"
+      }
+    }, {
+      "name" : "d_month_seq",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_week_seq",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_quarter_seq",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_year",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_dow",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_moy",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_dom",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_qoy",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_fy_year",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_fy_quarter_seq",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_fy_week_seq",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_day_name",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "d_quarter_name",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "d_holiday",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "d_weekend",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "d_following_holiday",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "d_first_dom",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_last_dom",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_same_day_ly",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_same_day_lq",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "d_current_day",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "d_current_week",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "d_current_month",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "d_current_quarter",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "d_current_year",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "_fake_timestamp",
+      "datatype" : {
+        "type" : "datetime64",
+        "index" : true,
+        "primary" : true,
+        "format" : "2006-01-02T15:04:05.999",
+        "resolution" : "ms"
+      }
+    } ]
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "name" : "catalog_page",
+  "description" : null,
+  "type" : "json",
+  "table" : "catalog_page",
+  "settings" : {
+    "isDefault" : true,
+    "compression" : "gzip",
+    "sqlTransform" : null,
+    "nullValues" : null,
+    "formatDetails" : {
+      "type" : "json",
+      "flattening" : { }
+    },
+    "outputColumns" : [ {
+      "name" : "cp_catalog_page_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cp_catalog_page_id",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "cp_start_date_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cp_end_date_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cp_department",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "cp_catalog_number",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cp_catalog_page_number",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "cp_description",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "cp_type",
+      "datatype" : {
+        "type" : "string"
+      }
+    }, {
+      "name" : "_fake_timestamp",
+      "datatype" : {
+        "type" : "datetime64",
+        "index" : true,
+        "primary" : true,
+        "format" : "2006-01-02T15:04:05.999",
+        "resolution" : "ms"
+      }
+    } ]
+  }
+}

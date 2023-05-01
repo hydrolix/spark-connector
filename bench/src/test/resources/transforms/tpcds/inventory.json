@@ -1,0 +1,46 @@
+{
+  "name" : "inventory",
+  "description" : null,
+  "type" : "json",
+  "table" : "inventory",
+  "settings" : {
+    "isDefault" : true,
+    "compression" : "gzip",
+    "sqlTransform" : null,
+    "nullValues" : null,
+    "formatDetails" : {
+      "type" : "json",
+      "flattening" : { }
+    },
+    "outputColumns" : [ {
+      "name" : "inv_date_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "inv_item_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "inv_warehouse_sk",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "inv_quantity_on_hand",
+      "datatype" : {
+        "type" : "int32"
+      }
+    }, {
+      "name" : "_fake_timestamp",
+      "datatype" : {
+        "type" : "datetime64",
+        "index" : true,
+        "primary" : true,
+        "format" : "2006-01-02T15:04:05.999",
+        "resolution" : "ms"
+      }
+    } ]
+  }
+}

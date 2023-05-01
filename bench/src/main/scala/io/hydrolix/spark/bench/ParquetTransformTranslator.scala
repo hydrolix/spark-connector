@@ -1,6 +1,6 @@
 package io.hydrolix.spark.bench
 
-import io.hydrolix.spark.model.{HdxColumnDatatype, HdxOutputColumn, JSON}
+import io.hydrolix.spark.model._
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem
@@ -14,17 +14,31 @@ import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName
 import org.apache.parquet.schema.{LogicalTypeAnnotation, PrimitiveType, Type}
 import org.slf4j.LoggerFactory
 
+import java.io.{FileOutputStream, OutputStreamWriter}
 import java.net.URI
+import java.nio.file.{Path => jPath}
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 /**
+ * TODO:
+ *  - other clouds
+ *  - figure out some of the ambiguous/wrong stuff
+ *
  * args:
- *  1. gs:// URL
- *  1. path to service account key file
+ *  1. `gs://` URL, e.g. `gs://beam-tpcds/datasets/parquet/nonpartitioned/1GB/`
+ *  1. Local filesystem path to service account key file
+ *  1. Local filesystem path to output transform JSON files. Must be a writable directory; will be created if possible.
  */
 object ParquetTransformTranslator extends App {
   private val googleUrlR = """gs://(.*?)/(.*?)$""".r
   private val log = LoggerFactory.getLogger(getClass)
+
+  private val outPath = jPath.of(args(2)).toFile
+  outPath.mkdirs()
+  if (!outPath.canWrite || !outPath.isDirectory) {
+    sys.error(s"${outPath.getAbsolutePath} doesn't exist and/or isn't writable")
+  }
 
   args(0) match {
     case googleUrlR(_, _) =>
@@ -34,37 +48,47 @@ object ParquetTransformTranslator extends App {
       conf.set("google.cloud.auth.type", "SERVICE_ACCOUNT_JSON_KEYFILE")
       conf.set("google.cloud.auth.service.account.json.keyfile", args(1))
 
+      val tableTransforms = mutable.Map[String, HdxTransform]()
+
       val fs = new GoogleHadoopFileSystem()
-      val uri = new URI(args(0))
-      fs.initialize(uri, conf)
-      val it = fs.listFiles(new Path(uri), true)
+      val rootUri = new URI(args(0))
+      val rootUriS = rootUri.toString.reverse.dropWhile(_ == '/').reverse
+      fs.initialize(rootUri, conf)
+
+      val it = fs.listFiles(new Path(rootUri), true)
       while (it.hasNext) {
         val file = it.next()
         val path = file.getPath
 
         if (path.getName.endsWith(".parquet")) {
+          // Try to guess the table name by finding a path component between the prefix and filename
+
+          val pathUriS = path.toUri.toString
+          val maybeTableName = if (pathUriS.startsWith(rootUriS)) {
+            val rel = pathUriS.substring(rootUriS.length + 1)
+            rel.dropRight(path.getName.length + 1)
+          } else {
+            path.getName
+          }
+
           val f = HadoopInputFile.fromPath(path, conf)
           val reader = new ParquetFileReader(f, ParquetReadOptions.builder().build())
           val schema = reader.getFileMetaData.getSchema
-
-          println(path)
-          println(schema)
-          println()
 
           val outCols = for ((fieldType, i) <- schema.getFields.asScala.toList.zipWithIndex) yield {
             val name = schema.getFieldName(i)
             HdxOutputColumn(name, parquetToHdx(name, fieldType))
           }
 
-          val timestamps = outCols.filter(_.datatype.`type` == "datetime64")
+          val timestamps = outCols.filter(_.datatype.`type` == HdxValueType.DateTime64)
           val outCols2 = if (timestamps.isEmpty) {
-            log.warn(s"No timestamp field found; making a fake one")
-            outCols ++ Some(HdxOutputColumn("_fake_timestamp", HdxColumnDatatype.apply("datetime64", true, true, resolution = Some("ms"), format = Some("2006-01-02T15:04:05.999"))))
+            log.info(s"No timestamp field found in $maybeTableName; making a fake one")
+            outCols ++ Some(HdxOutputColumn("_fake_timestamp", HdxColumnDatatype.apply(HdxValueType.DateTime64, true, true, resolution = Some("ms"), format = Some("2006-01-02T15:04:05.999"))))
           } else if (timestamps.size == 1) {
             outCols
           } else {
             val it = timestamps.head
-            log.warn(s"Multiple timestamp fields found; arbitrarily setting the first (${it.name}) as primary")
+            log.warn(s"Multiple timestamp fields found in $maybeTableName; arbitrarily setting the first (${it.name}) as primary")
             outCols.map { col =>
               if (col.name == it.name) {
                 col.copy(datatype = col.datatype.copy(primary = true))
@@ -74,10 +98,40 @@ object ParquetTransformTranslator extends App {
             }
           }
 
-          println(JSON.objectMapper.writeValueAsString(outCols2))
-          println()
+          val transform = HdxTransform(
+            maybeTableName,
+            None,
+            HdxTransformType.json,
+            maybeTableName,
+            HdxTransformSettings(
+              true,
+              HdxTransformCompression.gzip,
+              None,
+              None,
+              JsonFormatDetails(JsonFlattening(false, None, None, None)),
+              outCols2
+            )
+          )
+
+          tableTransforms.get(maybeTableName) match {
+            case Some(existing) =>
+              if (existing == transform) {
+                log.info(s"We already had a transform for $maybeTableName but it's identical, no biggie")
+              } else {
+                log.warn(s"Table $maybeTableName was seen twice, and had different transforms each time!")
+              }
+            case None =>
+              tableTransforms.put(maybeTableName, transform)
+
+              val s = JSON.objectMapper.convertValue[JsonNode](transform).toPrettyString
+              val file = new java.io.File(outPath, s"$maybeTableName.json")
+              val w = new OutputStreamWriter(new FileOutputStream(file))
+              w.write(s)
+              w.close()
+              log.info(s"Wrote ${file.getAbsolutePath}")
+          }
         } else {
-          println(s"Skipping $path")
+          log.info(s"Skipping $path")
         }
       }
   }
@@ -89,11 +143,11 @@ object ParquetTransformTranslator extends App {
         typ match {
           case p: PrimitiveType =>
             p.getPrimitiveTypeName match {
-              case PrimitiveTypeName.FLOAT => HdxColumnDatatype("double", false, false)
-              case PrimitiveTypeName.DOUBLE => HdxColumnDatatype("double", false, false)
-              case PrimitiveTypeName.INT32 => HdxColumnDatatype("int32", false, false)
-              case PrimitiveTypeName.INT64 => HdxColumnDatatype("int64", false, false)
-              case PrimitiveTypeName.BOOLEAN => HdxColumnDatatype("int8", false, false)
+              case PrimitiveTypeName.FLOAT => HdxColumnDatatype(HdxValueType.Double, false, false)
+              case PrimitiveTypeName.DOUBLE => HdxColumnDatatype(HdxValueType.Double, false, false)
+              case PrimitiveTypeName.INT32 => HdxColumnDatatype(HdxValueType.Int32, false, false)
+              case PrimitiveTypeName.INT64 => HdxColumnDatatype(HdxValueType.Int64, false, false)
+              case PrimitiveTypeName.BOOLEAN => HdxColumnDatatype(HdxValueType.Int8, false, false)
             }
         }
 
@@ -106,23 +160,23 @@ object ParquetTransformTranslator extends App {
 
         val pre = if (ilt.isSigned) "u" else ""
 
-        HdxColumnDatatype(pre + suf, false, false)
+        HdxColumnDatatype(HdxValueType.forName(pre + suf), false, false)
 
       case _: StringLogicalTypeAnnotation =>
-        HdxColumnDatatype("string", false, false)
+        HdxColumnDatatype(HdxValueType.String, false, false)
 
       case _: DateLogicalTypeAnnotation =>
-        HdxColumnDatatype("datetime", false, false, format = Some("2006-01-02"))
+        HdxColumnDatatype(HdxValueType.DateTime, false, false, format = Some("2006-01-02"))
 
       case d: DecimalLogicalTypeAnnotation =>
         if (d.getPrecision > 18) {
           log.warn(s"Decimal field $name has precision ${d.getPrecision}, may not fit in a `double`")
         }
-        HdxColumnDatatype("double", false, false)
+        HdxColumnDatatype(HdxValueType.Double, false, false)
 
       case ts: TimestampLogicalTypeAnnotation if ts.isAdjustedToUTC && ts.getUnit == LogicalTypeAnnotation.TimeUnit.MILLIS =>
         // TODO Parquet doesn't support less than millis resolution, figure out where to put the exceptions
-        HdxColumnDatatype("datetime64", false, false, resolution = Some("ms"), format = Some("2006-01-02T15:04:05.999"))
+        HdxColumnDatatype(HdxValueType.DateTime64, false, false, resolution = Some("ms"), format = Some("2006-01-02T15:04:05.999"))
 
       case _: MapLogicalTypeAnnotation =>
         val keyType = parquetToHdx(name, typ.asGroupType().getType(0))
@@ -131,14 +185,14 @@ object ParquetTransformTranslator extends App {
         val arr = JSON.objectMapper.getNodeFactory.arrayNode()
         arr.add(JSON.objectMapper.convertValue[JsonNode](keyType))
         arr.add(JSON.objectMapper.convertValue[JsonNode](valueType))
-        HdxColumnDatatype(s"map<${keyType.`type`},${valueType.`type`}>", false, false, elements = Some(arr))
+        HdxColumnDatatype(HdxValueType.Map, false, false, elements = Some(arr))
 
       case _: ListLogicalTypeAnnotation =>
         val elementType = parquetToHdx(name, typ.asGroupType().getType(0))
 
         val arr = JSON.objectMapper.getNodeFactory.arrayNode()
         arr.add(JSON.objectMapper.convertValue[JsonNode](elementType))
-        HdxColumnDatatype(s"array<${elementType.`type`}>", false, false, elements = Some(arr))
+        HdxColumnDatatype(HdxValueType.Array, false, false, elements = Some(arr))
     }
   }
 

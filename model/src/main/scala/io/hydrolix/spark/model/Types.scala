@@ -56,18 +56,18 @@ object Types {
     val index = hcol.indexed == 2 // TODO maybe OK to index=true if the column is indexed in only some partitions?
 
     sparkType match {
-      case DataTypes.StringType => HdxColumnDatatype("string", index, false)
-      case DataTypes.IntegerType => HdxColumnDatatype("int32", index, false)
-      case DataTypes.ShortType => HdxColumnDatatype("int32", index, false)
-      case DataTypes.LongType => HdxColumnDatatype("int64", index, false)
-      case DataTypes.BooleanType => HdxColumnDatatype("uint8", index, false)
-      case DataTypes.DoubleType => HdxColumnDatatype("double", index, false)
-      case DataTypes.FloatType => HdxColumnDatatype("double", index, false)
+      case DataTypes.StringType => HdxColumnDatatype(HdxValueType.String, index, false)
+      case DataTypes.IntegerType => HdxColumnDatatype(HdxValueType.Int32, index, false)
+      case DataTypes.ShortType => HdxColumnDatatype(HdxValueType.Int32, index, false)
+      case DataTypes.LongType => HdxColumnDatatype(HdxValueType.Int64, index, false)
+      case DataTypes.BooleanType => HdxColumnDatatype(HdxValueType.UInt8, index, false)
+      case DataTypes.DoubleType => HdxColumnDatatype(HdxValueType.Double, index, false)
+      case DataTypes.FloatType => HdxColumnDatatype(HdxValueType.Double, index, false)
       case DataTypes.TimestampType =>
         val (typ, res) = if (hcol.clickhouseType.toLowerCase().contains("datetime64")) {
-          "datetime64" -> "ms"
+          HdxValueType.DateTime64 -> "ms"
         } else {
-          "datetime" -> "s"
+          HdxValueType.DateTime -> "s"
         }
 
         HdxColumnDatatype(typ, index, name == primaryKeyName, resolution = Some(res))
@@ -78,7 +78,7 @@ object Types {
         val arr = JSON.objectMapper.getNodeFactory.arrayNode()
         arr.add(JSON.objectMapper.convertValue[JsonNode](elt))
 
-        HdxColumnDatatype("array", index, false, elements = Some(arr))
+        HdxColumnDatatype(HdxValueType.Array, index, false, elements = Some(arr))
 
       case MapType(keyType, valueType, _) =>
         val kt = sparkToHdx(name, keyType, primaryKeyName, cols).copy(index = false)
@@ -88,10 +88,10 @@ object Types {
         arr.add(JSON.objectMapper.convertValue[JsonNode](kt))
         arr.add(JSON.objectMapper.convertValue[JsonNode](vt))
 
-        HdxColumnDatatype("map", index, false, elements = Some(arr))
+        HdxColumnDatatype(HdxValueType.Map, index, false, elements = Some(arr))
 
-      case dt: DecimalType if dt.scale == 0 => HdxColumnDatatype("int64", index, false)
-      case DecimalType() => HdxColumnDatatype("double", index, false)
+      case dt: DecimalType if dt.scale == 0 => HdxColumnDatatype(HdxValueType.Int64, index, false)
+      case DecimalType() => HdxColumnDatatype(HdxValueType.Double, index, false)
     }
   }
 }
