@@ -74,6 +74,7 @@ object ParquetTransformTranslator extends App {
           val f = HadoopInputFile.fromPath(path, conf)
           val reader = new ParquetFileReader(f, ParquetReadOptions.builder().build())
           val schema = reader.getFileMetaData.getSchema
+          log.info(s"Schema for $path: $schema")
 
           val outCols = for ((fieldType, i) <- schema.getFields.asScala.toList.zipWithIndex) yield {
             val name = schema.getFieldName(i)
@@ -105,9 +106,9 @@ object ParquetTransformTranslator extends App {
             maybeTableName,
             HdxTransformSettings(
               true,
-              HdxTransformCompression.gzip,
+              HdxTransformCompression.none,
               None,
-              None,
+              Nil,
               JsonFormatDetails(JsonFlattening(false, None, None, None)),
               outCols2
             )
@@ -148,6 +149,7 @@ object ParquetTransformTranslator extends App {
               case PrimitiveTypeName.INT32 => HdxColumnDatatype(HdxValueType.Int32, false, false)
               case PrimitiveTypeName.INT64 => HdxColumnDatatype(HdxValueType.Int64, false, false)
               case PrimitiveTypeName.BOOLEAN => HdxColumnDatatype(HdxValueType.Int8, false, false)
+              case _ => sys.error(s"Can't map Parquet column $name: $typ")
             }
         }
 

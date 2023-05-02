@@ -1,158 +1,186 @@
 {
-  "name" : "web_site",
-  "description" : null,
-  "type" : "json",
-  "table" : "web_site",
-  "settings" : {
-    "isDefault" : true,
-    "compression" : "gzip",
-    "sqlTransform" : null,
-    "nullValues" : null,
-    "formatDetails" : {
-      "type" : "json",
-      "flattening" : { }
+  "name": "web_site",
+  "description": null,
+  "type": "json",
+  "table": "web_site",
+  "settings": {
+    "is_default": true,
+    "compression": "none",
+    "sql_transform": null,
+    "null_values": [],
+    "format_details": {
+      "type": "json",
+      "flattening": {}
     },
-    "outputColumns" : [ {
-      "name" : "web_site_sk",
-      "datatype" : {
-        "type" : "int32"
+    "output_columns": [
+      {
+        "name": "web_site_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "web_site_id",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_rec_start_date",
+        "datatype": {
+          "type": "datetime",
+          "format": "2006-01-02"
+        }
+      },
+      {
+        "name": "web_rec_end_date",
+        "datatype": {
+          "type": "datetime",
+          "format": "2006-01-02"
+        }
+      },
+      {
+        "name": "web_name",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_open_date_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "web_close_date_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "web_class",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_manager",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_mkt_id",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "web_mkt_class",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_mkt_desc",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_market_manager",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_company_id",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "web_company_name",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_street_number",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_street_name",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_street_type",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_suite_number",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_city",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_county",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_state",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_zip",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_country",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "web_gmt_offset",
+        "datatype": {
+          "type": "double"
+        }
+      },
+      {
+        "name": "web_tax_percentage",
+        "datatype": {
+          "type": "double"
+        }
+      },
+      {
+        "name": "_fake_timestamp",
+        "datatype": {
+          "type": "datetime64",
+          "index": true,
+          "primary": true,
+          "format": "2006-01-02T15:04:05.999",
+          "resolution": "ms"
+        }
       }
-    }, {
-      "name" : "web_site_id",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_rec_start_date",
-      "datatype" : {
-        "type" : "datetime",
-        "format" : "2006-01-02"
-      }
-    }, {
-      "name" : "web_rec_end_date",
-      "datatype" : {
-        "type" : "datetime",
-        "format" : "2006-01-02"
-      }
-    }, {
-      "name" : "web_name",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_open_date_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "web_close_date_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "web_class",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_manager",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_mkt_id",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "web_mkt_class",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_mkt_desc",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_market_manager",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_company_id",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "web_company_name",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_street_number",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_street_name",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_street_type",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_suite_number",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_city",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_county",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_state",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_zip",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_country",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "web_gmt_offset",
-      "datatype" : {
-        "type" : "double"
-      }
-    }, {
-      "name" : "web_tax_percentage",
-      "datatype" : {
-        "type" : "double"
-      }
-    }, {
-      "name" : "_fake_timestamp",
-      "datatype" : {
-        "type" : "datetime64",
-        "index" : true,
-        "primary" : true,
-        "format" : "2006-01-02T15:04:05.999",
-        "resolution" : "ms"
-      }
-    } ]
+    ]
   }
 }

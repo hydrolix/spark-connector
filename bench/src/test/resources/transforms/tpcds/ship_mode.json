@@ -1,56 +1,64 @@
 {
-  "name" : "ship_mode",
-  "description" : null,
-  "type" : "json",
-  "table" : "ship_mode",
-  "settings" : {
-    "isDefault" : true,
-    "compression" : "gzip",
-    "sqlTransform" : null,
-    "nullValues" : null,
-    "formatDetails" : {
-      "type" : "json",
-      "flattening" : { }
+  "name": "ship_mode",
+  "description": null,
+  "type": "json",
+  "table": "ship_mode",
+  "settings": {
+    "is_default": true,
+    "compression": "none",
+    "sql_transform": null,
+    "null_values": [],
+    "format_details": {
+      "type": "json",
+      "flattening": {}
     },
-    "outputColumns" : [ {
-      "name" : "sm_ship_mode_sk",
-      "datatype" : {
-        "type" : "int32"
+    "output_columns": [
+      {
+        "name": "sm_ship_mode_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "sm_ship_mode_id",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "sm_type",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "sm_code",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "sm_carrier",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "sm_contract",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "_fake_timestamp",
+        "datatype": {
+          "type": "datetime64",
+          "index": true,
+          "primary": true,
+          "format": "2006-01-02T15:04:05.999",
+          "resolution": "ms"
+        }
       }
-    }, {
-      "name" : "sm_ship_mode_id",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "sm_type",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "sm_code",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "sm_carrier",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "sm_contract",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "_fake_timestamp",
-      "datatype" : {
-        "type" : "datetime64",
-        "index" : true,
-        "primary" : true,
-        "format" : "2006-01-02T15:04:05.999",
-        "resolution" : "ms"
-      }
-    } ]
+    ]
   }
 }

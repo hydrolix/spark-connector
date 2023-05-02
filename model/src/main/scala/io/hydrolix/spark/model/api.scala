@@ -145,10 +145,11 @@ case class HdxTransform(name: String,
                     settings: HdxTransformSettings)
 
 
+@JsonNaming(classOf[PropertyNamingStrategies.SnakeCaseStrategy])
 case class HdxTransformSettings(isDefault: Boolean,
                               compression: HdxTransformCompression, // TODO layering
                              sqlTransform: Option[String] = None,
-                               nullValues: Option[List[String]] = None,
+                               nullValues: List[String] = Nil,
                             formatDetails: HdxTransformFormatDetails,
                             outputColumns: List[HdxOutputColumn])
 

@@ -1,41 +1,46 @@
 {
-  "name" : "reason",
-  "description" : null,
-  "type" : "json",
-  "table" : "reason",
-  "settings" : {
-    "isDefault" : true,
-    "compression" : "gzip",
-    "sqlTransform" : null,
-    "nullValues" : null,
-    "formatDetails" : {
-      "type" : "json",
-      "flattening" : { }
+  "name": "reason",
+  "description": null,
+  "type": "json",
+  "table": "reason",
+  "settings": {
+    "is_default": true,
+    "compression": "none",
+    "sql_transform": null,
+    "null_values": [],
+    "format_details": {
+      "type": "json",
+      "flattening": {}
     },
-    "outputColumns" : [ {
-      "name" : "r_reason_sk",
-      "datatype" : {
-        "type" : "int32"
+    "output_columns": [
+      {
+        "name": "r_reason_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "r_reason_id",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "r_reason_desc",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "_fake_timestamp",
+        "datatype": {
+          "type": "datetime64",
+          "index": true,
+          "primary": true,
+          "format": "2006-01-02T15:04:05.999",
+          "resolution": "ms"
+        }
       }
-    }, {
-      "name" : "r_reason_id",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "r_reason_desc",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "_fake_timestamp",
-      "datatype" : {
-        "type" : "datetime64",
-        "index" : true,
-        "primary" : true,
-        "format" : "2006-01-02T15:04:05.999",
-        "resolution" : "ms"
-      }
-    } ]
+    ]
   }
 }

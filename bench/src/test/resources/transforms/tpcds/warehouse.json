@@ -1,96 +1,112 @@
 {
-  "name" : "warehouse",
-  "description" : null,
-  "type" : "json",
-  "table" : "warehouse",
-  "settings" : {
-    "isDefault" : true,
-    "compression" : "gzip",
-    "sqlTransform" : null,
-    "nullValues" : null,
-    "formatDetails" : {
-      "type" : "json",
-      "flattening" : { }
+  "name": "warehouse",
+  "description": null,
+  "type": "json",
+  "table": "warehouse",
+  "settings": {
+    "is_default": true,
+    "compression": "none",
+    "sql_transform": null,
+    "null_values": [],
+    "format_details": {
+      "type": "json",
+      "flattening": {}
     },
-    "outputColumns" : [ {
-      "name" : "w_warehouse_sk",
-      "datatype" : {
-        "type" : "int32"
+    "output_columns": [
+      {
+        "name": "w_warehouse_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "w_warehouse_id",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "w_warehouse_name",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "w_warehouse_sq_ft",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "w_street_number",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "w_street_name",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "w_street_type",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "w_suite_number",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "w_city",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "w_county",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "w_state",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "w_zip",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "w_country",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "w_gmt_offset",
+        "datatype": {
+          "type": "double"
+        }
+      },
+      {
+        "name": "_fake_timestamp",
+        "datatype": {
+          "type": "datetime64",
+          "index": true,
+          "primary": true,
+          "format": "2006-01-02T15:04:05.999",
+          "resolution": "ms"
+        }
       }
-    }, {
-      "name" : "w_warehouse_id",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "w_warehouse_name",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "w_warehouse_sq_ft",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "w_street_number",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "w_street_name",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "w_street_type",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "w_suite_number",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "w_city",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "w_county",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "w_state",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "w_zip",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "w_country",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "w_gmt_offset",
-      "datatype" : {
-        "type" : "double"
-      }
-    }, {
-      "name" : "_fake_timestamp",
-      "datatype" : {
-        "type" : "datetime64",
-        "index" : true,
-        "primary" : true,
-        "format" : "2006-01-02T15:04:05.999",
-        "resolution" : "ms"
-      }
-    } ]
+    ]
   }
 }

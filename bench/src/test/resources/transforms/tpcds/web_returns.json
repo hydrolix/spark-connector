@@ -1,146 +1,172 @@
 {
-  "name" : "web_returns",
-  "description" : null,
-  "type" : "json",
-  "table" : "web_returns",
-  "settings" : {
-    "isDefault" : true,
-    "compression" : "gzip",
-    "sqlTransform" : null,
-    "nullValues" : null,
-    "formatDetails" : {
-      "type" : "json",
-      "flattening" : { }
+  "name": "web_returns",
+  "description": null,
+  "type": "json",
+  "table": "web_returns",
+  "settings": {
+    "is_default": true,
+    "compression": "none",
+    "sql_transform": null,
+    "null_values": [],
+    "format_details": {
+      "type": "json",
+      "flattening": {}
     },
-    "outputColumns" : [ {
-      "name" : "wr_returned_date_sk",
-      "datatype" : {
-        "type" : "int32"
+    "output_columns": [
+      {
+        "name": "wr_returned_date_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_returned_time_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_item_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_refunded_customer_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_refunded_cdemo_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_refunded_hdemo_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_refunded_addr_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_returning_customer_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_returning_cdemo_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_returning_hdemo_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_returning_addr_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_web_page_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_reason_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_order_number",
+        "datatype": {
+          "type": "int64"
+        }
+      },
+      {
+        "name": "wr_return_quantity",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wr_return_amt",
+        "datatype": {
+          "type": "double"
+        }
+      },
+      {
+        "name": "wr_return_tax",
+        "datatype": {
+          "type": "double"
+        }
+      },
+      {
+        "name": "wr_return_amt_inc_tax",
+        "datatype": {
+          "type": "double"
+        }
+      },
+      {
+        "name": "wr_fee",
+        "datatype": {
+          "type": "double"
+        }
+      },
+      {
+        "name": "wr_return_ship_cost",
+        "datatype": {
+          "type": "double"
+        }
+      },
+      {
+        "name": "wr_refunded_cash",
+        "datatype": {
+          "type": "double"
+        }
+      },
+      {
+        "name": "wr_reversed_charge",
+        "datatype": {
+          "type": "double"
+        }
+      },
+      {
+        "name": "wr_account_credit",
+        "datatype": {
+          "type": "double"
+        }
+      },
+      {
+        "name": "wr_net_loss",
+        "datatype": {
+          "type": "double"
+        }
+      },
+      {
+        "name": "_fake_timestamp",
+        "datatype": {
+          "type": "datetime64",
+          "index": true,
+          "primary": true,
+          "format": "2006-01-02T15:04:05.999",
+          "resolution": "ms"
+        }
       }
-    }, {
-      "name" : "wr_returned_time_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_item_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_refunded_customer_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_refunded_cdemo_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_refunded_hdemo_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_refunded_addr_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_returning_customer_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_returning_cdemo_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_returning_hdemo_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_returning_addr_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_web_page_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_reason_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_order_number",
-      "datatype" : {
-        "type" : "int64"
-      }
-    }, {
-      "name" : "wr_return_quantity",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wr_return_amt",
-      "datatype" : {
-        "type" : "double"
-      }
-    }, {
-      "name" : "wr_return_tax",
-      "datatype" : {
-        "type" : "double"
-      }
-    }, {
-      "name" : "wr_return_amt_inc_tax",
-      "datatype" : {
-        "type" : "double"
-      }
-    }, {
-      "name" : "wr_fee",
-      "datatype" : {
-        "type" : "double"
-      }
-    }, {
-      "name" : "wr_return_ship_cost",
-      "datatype" : {
-        "type" : "double"
-      }
-    }, {
-      "name" : "wr_refunded_cash",
-      "datatype" : {
-        "type" : "double"
-      }
-    }, {
-      "name" : "wr_reversed_charge",
-      "datatype" : {
-        "type" : "double"
-      }
-    }, {
-      "name" : "wr_account_credit",
-      "datatype" : {
-        "type" : "double"
-      }
-    }, {
-      "name" : "wr_net_loss",
-      "datatype" : {
-        "type" : "double"
-      }
-    }, {
-      "name" : "_fake_timestamp",
-      "datatype" : {
-        "type" : "datetime64",
-        "index" : true,
-        "primary" : true,
-        "format" : "2006-01-02T15:04:05.999",
-        "resolution" : "ms"
-      }
-    } ]
+    ]
   }
 }

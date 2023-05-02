@@ -1,98 +1,114 @@
 {
-  "name" : "web_page",
-  "description" : null,
-  "type" : "json",
-  "table" : "web_page",
-  "settings" : {
-    "isDefault" : true,
-    "compression" : "gzip",
-    "sqlTransform" : null,
-    "nullValues" : null,
-    "formatDetails" : {
-      "type" : "json",
-      "flattening" : { }
+  "name": "web_page",
+  "description": null,
+  "type": "json",
+  "table": "web_page",
+  "settings": {
+    "is_default": true,
+    "compression": "none",
+    "sql_transform": null,
+    "null_values": [],
+    "format_details": {
+      "type": "json",
+      "flattening": {}
     },
-    "outputColumns" : [ {
-      "name" : "wp_web_page_sk",
-      "datatype" : {
-        "type" : "int32"
+    "output_columns": [
+      {
+        "name": "wp_web_page_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wp_web_page_id",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "wp_rec_start_date",
+        "datatype": {
+          "type": "datetime",
+          "format": "2006-01-02"
+        }
+      },
+      {
+        "name": "wp_rec_end_date",
+        "datatype": {
+          "type": "datetime",
+          "format": "2006-01-02"
+        }
+      },
+      {
+        "name": "wp_creation_date_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wp_access_date_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wp_autogen_flag",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "wp_customer_sk",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wp_url",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "wp_type",
+        "datatype": {
+          "type": "string"
+        }
+      },
+      {
+        "name": "wp_char_count",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wp_link_count",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wp_image_count",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "wp_max_ad_count",
+        "datatype": {
+          "type": "int32"
+        }
+      },
+      {
+        "name": "_fake_timestamp",
+        "datatype": {
+          "type": "datetime64",
+          "index": true,
+          "primary": true,
+          "format": "2006-01-02T15:04:05.999",
+          "resolution": "ms"
+        }
       }
-    }, {
-      "name" : "wp_web_page_id",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "wp_rec_start_date",
-      "datatype" : {
-        "type" : "datetime",
-        "format" : "2006-01-02"
-      }
-    }, {
-      "name" : "wp_rec_end_date",
-      "datatype" : {
-        "type" : "datetime",
-        "format" : "2006-01-02"
-      }
-    }, {
-      "name" : "wp_creation_date_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wp_access_date_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wp_autogen_flag",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "wp_customer_sk",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wp_url",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "wp_type",
-      "datatype" : {
-        "type" : "string"
-      }
-    }, {
-      "name" : "wp_char_count",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wp_link_count",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wp_image_count",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "wp_max_ad_count",
-      "datatype" : {
-        "type" : "int32"
-      }
-    }, {
-      "name" : "_fake_timestamp",
-      "datatype" : {
-        "type" : "datetime64",
-        "index" : true,
-        "primary" : true,
-        "format" : "2006-01-02T15:04:05.999",
-        "resolution" : "ms"
-      }
-    } ]
+    ]
   }
 }
