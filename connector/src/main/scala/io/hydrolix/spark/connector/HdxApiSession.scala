@@ -39,7 +39,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
     val vs = views(db, table)
     val pkCandidates = vs.filter(_.settings.isDefault).flatMap { view =>
       view.settings.outputColumns.find { col =>
-        col.datatype.primary && (col.datatype.`type` == "datetime" || col.datatype.`type` == "datetime64")
+        col.datatype.primary && (col.datatype.`type` == HdxValueType.DateTime || col.datatype.`type` == HdxValueType.DateTime64)
       }
     }
 

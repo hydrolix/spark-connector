@@ -23,8 +23,7 @@ case class HdxConnectionInfo(orgId: UUID,
                               user: String,
                           password: String,
                             apiUrl: URI,
-                    turbineIniPath: String,
-                    turbineCmdPath: String)
+                  turbineIniBase64: String)
 {
   val asMap: Map[String, String] = {
     import HdxConnectionInfo._
@@ -35,8 +34,7 @@ case class HdxConnectionInfo(orgId: UUID,
       OPT_USERNAME -> user,
       OPT_PASSWORD -> password,
       OPT_API_URL -> apiUrl.toString,
-      OPT_TURBINE_INI_PATH -> turbineIniPath,
-      OPT_TURBINE_CMD_PATH -> turbineCmdPath,
+      OPT_TURBINE_INI_BASE64 -> turbineIniBase64
     )
   }
 }
@@ -49,8 +47,7 @@ object HdxConnectionInfo {
   val OPT_USERNAME = "username"
   val OPT_PASSWORD = "password"
   val OPT_API_URL = "api_url"
-  val OPT_TURBINE_INI_PATH = "turbine_ini_path"
-  val OPT_TURBINE_CMD_PATH = "turbine_cmd_path"
+  val OPT_TURBINE_INI_BASE64 = "turbine_ini_base64"
 
   private def req(options: CaseInsensitiveStringMap, name: String): String = {
     val s = options.get(name)
@@ -68,13 +65,9 @@ object HdxConnectionInfo {
     val user = req(options, OPT_USERNAME)
     val pass = req(options, OPT_PASSWORD)
     val apiUrl = new URI(req(options, OPT_API_URL))
-    val turbineIni = Path.of(req(options, OPT_TURBINE_INI_PATH))
-    val turbineCmd = Path.of(req(options, OPT_TURBINE_CMD_PATH))
+    val turbineIni = req(options, OPT_TURBINE_INI_BASE64)
 
-    if (!turbineIni.toFile.exists()) logger.warn(s"$OPT_TURBINE_INI_PATH $turbineIni does not exist")
-    if (!turbineCmd.toFile.exists()) logger.warn(s"$OPT_TURBINE_CMD_PATH $turbineCmd does not exist")
-
-    HdxConnectionInfo(orgId, url, user, pass, apiUrl, turbineIni.toString, turbineCmd.toString)
+    HdxConnectionInfo(orgId, url, user, pass, apiUrl, turbineIni)
   }
 
 }

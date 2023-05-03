@@ -2,9 +2,15 @@ ThisBuild / organization := "io.hydrolix"
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / scalaVersion := "2.12.17"
 
+lazy val commonSettings = Seq(
+  javacOptions := Seq("-source", "11", "-target", "11"),
+  scalacOptions := Seq("-target:jvm-11")
+)
+
 lazy val root = (project in file("."))
   .settings(
-    name := "hdx-spark"
+    commonSettings,
+    name := "hdx-spark",
   )
   .disablePlugins(AssemblyPlugin)
   .aggregate(model, bench, connector)
@@ -23,12 +29,14 @@ lazy val assemblySettings = Seq(
 )
 
 lazy val model = (project in file("model"))
+  .settings(commonSettings)
   .disablePlugins(AssemblyPlugin)
 
 lazy val bench = (project in file("bench"))
+  .settings(commonSettings)
   .disablePlugins(AssemblyPlugin)
   .dependsOn(model)
 
 lazy val connector = (project in file("connector"))
   .dependsOn(model)
-  .settings(assemblySettings)
+  .settings(commonSettings ++ assemblySettings)

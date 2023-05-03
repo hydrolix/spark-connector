@@ -1,14 +1,19 @@
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession, HdxOutputColumn, JSON, Types}
+import io.hydrolix.spark.model._
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPredicatePushdown
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.PartitionReader
+import org.sparkproject.jetty.util.IO
 
+import java.io.{ByteArrayInputStream, File, FileOutputStream}
+import java.util.Base64
 import java.util.concurrent.ArrayBlockingQueue
+import java.util.zip.GZIPInputStream
 import scala.sys.process.{Process, ProcessLogger}
+import scala.util.Using
 
 // TODO make a ColumnarBatch version too
 // TODO make a ColumnarBatch version too
@@ -44,20 +49,38 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     if (renderedPushed.isEmpty) Nil else List("--expr", renderedPushed.flatten.mkString("[", " AND ", "]"))
   }
 
+  // TODO try not to recreate these files every time
+  private val turbineCmdTmp = File.createTempFile("turbine_cmd", ".exe")
+  turbineCmdTmp.deleteOnExit()
+  turbineCmdTmp.setExecutable(true)
+  private val turbineCmdIn = getClass.getResourceAsStream("/turbine_cmd")
+  Using.Manager { use =>
+    IO.copy(use(turbineCmdIn), use(new FileOutputStream(turbineCmdTmp)))
+  }.get
+  log.warn(turbineCmdTmp.getAbsolutePath)
+
+  private val turbineIniTmp = File.createTempFile("turbine", ".ini")
+  turbineIniTmp.deleteOnExit()
+  Using.Manager { use =>
+    val ini = new GZIPInputStream(new ByteArrayInputStream(Base64.getDecoder.decode(info.turbineIniBase64)))
+    IO.copy(use(ini), use(new FileOutputStream(turbineIniTmp)))
+  }.get
+  log.warn(turbineIniTmp.getAbsolutePath)
+
   // TODO does anything need to be quoted here?
   //  Note, this relies on a bunch of changes in hdx_reader that may not have been merged to turbine/turbine-core yet,
   //  see https://hydrolix.atlassian.net/browse/HDX-3779
   private val turbineCmdArgs = List(
     "hdx_reader",
-    "--config", info.turbineIniPath,
+    "--config", turbineIniTmp.getAbsolutePath,
     "--output_format", "json",
-    "--fs_root", "/db/hdx",
     "--hdx_partition", scan.path,
     "--output_path", "-",
     "--schema", schemaStr
   ) ++ exprArgs
+  log.warn(turbineCmdTmp.getAbsolutePath + " " + turbineCmdArgs.mkString(" "))
 
-  private val hdxReaderProcessBuilder = Process(info.turbineCmdPath, turbineCmdArgs)
+  private val hdxReaderProcessBuilder = Process(turbineCmdTmp.getAbsolutePath, turbineCmdArgs)
 
   // TODO this relies on the stdout being split into strings; that won't be the case once we get gzip working!
   private val hdxReaderProcess = hdxReaderProcessBuilder.run(ProcessLogger(
