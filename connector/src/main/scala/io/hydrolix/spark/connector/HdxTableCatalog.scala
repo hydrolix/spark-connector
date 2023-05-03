@@ -11,6 +11,7 @@ import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Implicits._
 
+import java.util.Collections
 import java.{util => ju}
 import scala.collection.mutable
 
@@ -102,7 +103,7 @@ class HdxTableCatalog extends TableCatalog
   override def listNamespaces(namespace: Array[String]): Array[Array[String]] = ???
 
   // TODO implement if needed
-  override def loadNamespaceMetadata(namespace: Array[String]): ju.Map[String, String] = ju.Map.of()
+  override def loadNamespaceMetadata(namespace: Array[String]): ju.Map[String, String] = Collections.emptyMap()
 
   //noinspection ScalaDeprecation
   override def createTable(ident: Identifier, schema: StructType, partitions: Array[Transform], properties: ju.Map[String, String]): Table = nope()

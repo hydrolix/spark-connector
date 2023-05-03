@@ -9,7 +9,7 @@ import org.apache.spark.sql.connector.read.ScanBuilder
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-import java.util.Properties
+import java.util.{Collections, Properties}
 import java.{util => ju}
 
 case class HdxTable(info: HdxConnectionInfo,
@@ -46,7 +46,7 @@ case class HdxTable(info: HdxConnectionInfo,
         idxName,
         idxType,
         Array(Expressions.column(fieldName)),
-        ju.Map.of(),
+        Collections.emptyMap(),
         new Properties()
       )
     }.toArray

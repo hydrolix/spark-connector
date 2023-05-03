@@ -3,11 +3,12 @@ package io.hydrolix.spark.connector
 import io.hydrolix.spark.model._
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine, Expiry, LoadingCache}
+import org.apache.hc.client5.http.classic.methods.{HttpGet, HttpPost}
+import org.apache.hc.client5.http.impl.classic.{BasicHttpClientResponseHandler, HttpClients}
+import org.apache.hc.core5.http.ContentType
+import org.apache.hc.core5.http.io.entity.StringEntity
 import org.apache.spark.sql.catalyst.analysis.{NoSuchDatabaseException, NoSuchTableException}
 
-import java.net.http.HttpRequest.BodyPublishers
-import java.net.http.HttpResponse.BodyHandlers
-import java.net.http.{HttpClient, HttpRequest}
 import java.time.Duration
 import java.util.UUID
 
@@ -50,7 +51,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
     }
   }
 
-  private val client = HttpClient.newHttpClient()
+  private val client = HttpClients.createDefault()
 
   // It's a bit silly to have a one-element cache here, but we want the auto-renewal
   // TODO this is Integer for stupid Scala 2.12 reasons; it should be Unit. Always pass 0!
@@ -76,16 +77,14 @@ class HdxApiSession(info: HdxConnectionInfo) {
           Long.MaxValue
       })
       .build((_: Integer) => {
-        val loginPost = HttpRequest
-          .newBuilder(info.apiUrl.resolve("login"))
-          .headers("Content-Type", "application/json")
-          .POST(BodyPublishers.ofString(JSON.objectMapper.writeValueAsString(HdxLoginRequest(info.user, info.password))))
-          .build()
+        val loginPost = new HttpPost(info.apiUrl.resolve("login"))
+        loginPost.setEntity(new StringEntity(
+          JSON.objectMapper.writeValueAsString(HdxLoginRequest(info.user, info.password)),
+          ContentType.APPLICATION_JSON
+        ))
+        val loginRespS = client.execute(loginPost, new BasicHttpClientResponseHandler())
 
-        val loginResp = client.send(loginPost, BodyHandlers.ofString())
-        if (loginResp.statusCode() != 200) sys.error(s"POST /login response code was ${loginResp.statusCode()}")
-
-        val loginRespBody = JSON.objectMapper.readValue[HdxLoginResponse](loginResp.body())
+        val loginRespBody = JSON.objectMapper.readValue[HdxLoginResponse](loginRespS)
         loginRespBody.authToken
       })
   }
@@ -96,16 +95,12 @@ class HdxApiSession(info: HdxConnectionInfo) {
     Caffeine.newBuilder()
       .expireAfterWrite(Duration.ofHours(1))
       .build((_: Integer) => {
-        val projectGet = HttpRequest
-          .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/"))
-          .headers("Authorization", s"Bearer ${tokenCache.get(0).accessToken}")
-          .GET()
-          .build()
+        val projectGet = new HttpGet(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/"))
+        projectGet.addHeader("Authorization", s"Bearer ${tokenCache.get(0).accessToken}")
 
-        val projectResp = client.send(projectGet, BodyHandlers.ofString())
-        if (projectResp.statusCode() != 200) sys.error(s"GET /orgs/:org_id/projects/:project_id response code was ${projectResp.statusCode()}")
+        val projectResp = client.execute(projectGet, new BasicHttpClientResponseHandler())
 
-        JSON.objectMapper.readValue[List[HdxProject]](projectResp.body())
+        JSON.objectMapper.readValue[List[HdxProject]](projectResp)
       })
   }
 
@@ -115,16 +110,12 @@ class HdxApiSession(info: HdxConnectionInfo) {
       .build((key: UUID) => {
         val project = allProjectsCache.get(0).find(_.uuid == key).getOrElse(throw NoSuchDatabaseException(key.toString))
 
-        val tablesGet = HttpRequest
-          .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/${project.uuid}/tables/"))
-          .headers("Authorization", s"Bearer ${tokenCache.get(0).accessToken}")
-          .GET()
-          .build()
+        val tablesGet = new HttpGet(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/${project.uuid}/tables/"))
+        tablesGet.addHeader("Authorization", s"Bearer ${tokenCache.get(0).accessToken}")
 
-        val tablesResp = client.send(tablesGet, BodyHandlers.ofString())
-        if (tablesResp.statusCode() != 200) sys.error(s"GET /orgs/:org_id/projects/:project_id/tables/ response code was ${tablesResp.statusCode()}")
+        val tablesResp = client.execute(tablesGet, new BasicHttpClientResponseHandler())
 
-        JSON.objectMapper.readValue[List[HdxApiTable]](tablesResp.body())
+        JSON.objectMapper.readValue[List[HdxApiTable]](tablesResp)
       })
   }
 
@@ -135,16 +126,12 @@ class HdxApiSession(info: HdxConnectionInfo) {
         override def load(key: (UUID, UUID)): List[HdxView] = {
           val (projectId, tableId) = key
 
-          val viewsGet = HttpRequest
-            .newBuilder(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/$projectId/tables/$tableId/views/"))
-            .headers("Authorization", s"Bearer ${tokenCache.get(0).accessToken}")
-            .GET()
-            .build()
+          val viewsGet = new HttpGet(info.apiUrl.resolve(s"orgs/${info.orgId}/projects/$projectId/tables/$tableId/views/"))
+          viewsGet.addHeader("Authorization", s"Bearer ${tokenCache.get(0).accessToken}")
 
-          val viewsResp = client.send(viewsGet, BodyHandlers.ofString())
-          if (viewsResp.statusCode() != 200) sys.error(s"GET /orgs/:org_id/projects/:project_id/tables/:table_id/views/ response code was ${viewsResp.statusCode()}")
+          val viewsResp = client.execute(viewsGet, new BasicHttpClientResponseHandler())
 
-          JSON.objectMapper.readValue[List[HdxView]](viewsResp.body())
+          JSON.objectMapper.readValue[List[HdxView]](viewsResp)
         }
       })
   }

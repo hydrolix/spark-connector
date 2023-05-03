@@ -1,5 +1,6 @@
 package io.hydrolix.spark.connector
 
+import io.hydrolix.spark.Slurp
 import io.hydrolix.spark.model._
 
 import org.apache.spark.internal.Logging
@@ -62,7 +63,7 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   private val turbineIniTmp = File.createTempFile("turbine_ini_", ".ini")
   turbineIniTmp.deleteOnExit()
 
-  private val turbineIniBytes = resource(new GZIPInputStream(new ByteArrayInputStream(Base64.getDecoder.decode(info.turbineIniBase64)))) { _.readAllBytes() }
+  private val turbineIniBytes = resource(new GZIPInputStream(new ByteArrayInputStream(Base64.getDecoder.decode(info.turbineIniBase64)))) { _.slurp() }
   // Note this regex can break if turbine.ini format changes!
   private val gcsCredentialsR = Pattern.compile("""^(\s*fs.gcs.credentials.json_credentials_file\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
 
@@ -73,7 +74,7 @@ class HdxPartitionReader(info: HdxConnectionInfo,
       // For gcs, cloudCred1 is a base64(gzip(gcs_service_account_key.json))
       val gcsKeyB64 = Base64.getDecoder.decode(info.cloudCred1)
 
-      val gcsKeyBytes = use(new GZIPInputStream(new ByteArrayInputStream(gcsKeyB64))).readAllBytes()
+      val gcsKeyBytes = use(new GZIPInputStream(new ByteArrayInputStream(gcsKeyB64))).slurp()
 
       val s = new String(turbineIniBytes, "UTF-8")
       val s2 = gcsCredentialsR.matcher(s).replaceAll(s"$$1${gcsKeyFile.getAbsolutePath}")

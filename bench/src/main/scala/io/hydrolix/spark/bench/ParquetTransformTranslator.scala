@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 
 import java.io.{FileOutputStream, OutputStreamWriter}
 import java.net.URI
-import java.nio.file.{Path => jPath}
+import java.nio.file.Paths
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
@@ -34,7 +34,7 @@ object ParquetTransformTranslator extends App {
   private val googleUrlR = """gs://(.*?)/(.*?)$""".r
   private val log = LoggerFactory.getLogger(getClass)
 
-  private val outPath = jPath.of(args(2)).toFile
+  private val outPath = Paths.get(args(2)).toFile
   outPath.mkdirs()
   if (!outPath.canWrite || !outPath.isDirectory) {
     sys.error(s"${outPath.getAbsolutePath} doesn't exist and/or isn't writable")
