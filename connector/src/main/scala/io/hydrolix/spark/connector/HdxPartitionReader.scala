@@ -11,8 +11,10 @@ import org.sparkproject.jetty.util.IO
 import java.io.{ByteArrayInputStream, File, FileOutputStream}
 import java.util.Base64
 import java.util.concurrent.ArrayBlockingQueue
+import java.util.regex.Pattern
 import java.util.zip.GZIPInputStream
 import scala.sys.process.{Process, ProcessLogger}
+import scala.util.Using.resource
 import scala.util.{Try, Using}
 
 // TODO make a ColumnarBatch version too
@@ -49,20 +51,43 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     if (renderedPushed.isEmpty) Nil else List("--expr", renderedPushed.flatten.mkString("[", " AND ", "]"))
   }
 
-  // TODO try not to recreate these files every time
-  private val turbineCmdTmp = File.createTempFile("turbine_cmd", ".exe")
+  // TODO try not to recreate these files every time (if they're unchanged?)
+  private val turbineCmdTmp = File.createTempFile("turbine_cmd_", ".exe")
   turbineCmdTmp.deleteOnExit()
   turbineCmdTmp.setExecutable(true)
   Using.Manager { use =>
     IO.copy(use(getClass.getResourceAsStream("/turbine_cmd")), use(new FileOutputStream(turbineCmdTmp)))
   }.get
 
-  private val turbineIniTmp = File.createTempFile("turbine", ".ini")
+  private val turbineIniTmp = File.createTempFile("turbine_ini_", ".ini")
   turbineIniTmp.deleteOnExit()
-  Using.Manager { use =>
-    val ini = new GZIPInputStream(new ByteArrayInputStream(Base64.getDecoder.decode(info.turbineIniBase64)))
-    IO.copy(use(ini), use(new FileOutputStream(turbineIniTmp)))
-  }.get
+
+  private val turbineIniBytes = resource(new GZIPInputStream(new ByteArrayInputStream(Base64.getDecoder.decode(info.turbineIniBase64)))) { _.readAllBytes() }
+  // Note this regex can break if turbine.ini format changes!
+  private val gcsCredentialsR = Pattern.compile("""^(\s*fs.gcs.credentials.json_credentials_file\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
+
+  private val credTmp = if (info.storageType == "gcs") {
+    val gcsKeyFile = File.createTempFile("turbine_gcs_key_", ".json")
+    gcsKeyFile.deleteOnExit()
+    Using.Manager { use =>
+      // For gcs, cloudCred1 is a base64(gzip(gcs_service_account_key.json))
+      val gcsKeyB64 = Base64.getDecoder.decode(info.cloudCred1)
+
+      val gcsKeyBytes = use(new GZIPInputStream(new ByteArrayInputStream(gcsKeyB64))).readAllBytes()
+
+      val s = new String(turbineIniBytes, "UTF-8")
+      val s2 = gcsCredentialsR.matcher(s).replaceAll(s"$$1${gcsKeyFile.getAbsolutePath}")
+
+      use(new FileOutputStream(turbineIniTmp)).write(s2.getBytes("UTF-8"))
+      use(new FileOutputStream(gcsKeyFile)).write(gcsKeyBytes)
+    }.get
+
+    Some(gcsKeyFile)
+  } else {
+    // TODO replace the appropriate bits of turbine.ini for other storageTypes too
+    Using.resource(new FileOutputStream(turbineIniTmp)) { _.write(turbineIniBytes) }
+    None
+  }
 
   // TODO does anything need to be quoted here?
   //  Note, this relies on a bunch of changes in hdx_reader that may not have been merged to turbine/turbine-core yet,
@@ -75,7 +100,6 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     "--output_path", "-",
     "--schema", schemaStr
   ) ++ exprArgs
-  log.warn(turbineCmdTmp.getAbsolutePath + " " + turbineCmdArgs.mkString(" "))
 
   private val hdxReaderProcessBuilder = Process(turbineCmdTmp.getAbsolutePath, turbineCmdArgs)
 
@@ -128,6 +152,7 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   override def close(): Unit = {
     Try(turbineCmdTmp.delete())
     Try(turbineIniTmp.delete())
+    credTmp.foreach(f => Try(f.delete()))
 
     if (hdxReaderProcess.isAlive()) {
       log.debug(s"Killing child process for partition ${scan.path} early")
