@@ -6,19 +6,21 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPredicatePushdown
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownRequiredColumns, SupportsPushDownV2Filters}
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{StructField, StructType}
 
 class HdxScanBuilder(info: HdxConnectionInfo, table: HdxTable)
   extends ScanBuilder
     with SupportsPushDownV2Filters
     with SupportsPushDownRequiredColumns
-    with Logging {
+    with Logging
+{
   private var pushed: List[Predicate] = List()
   private var cols: StructType = _
   private val hcols = HdxJdbcSession(info)
     .collectColumns(table.ident.namespace().head, table.ident.name())
     .map(col => col.name -> col)
     .toMap
+  private val pkField = hcols.getOrElse(table.primaryKeyField, sys.error("No PK field"))
 
   override def pushPredicates(predicates: Array[Predicate]): Array[Predicate] = {
     val pushable = predicates.toList.groupBy(HdxPredicatePushdown.pushable(table.primaryKeyField, table.shardKeyField, _, hcols))
@@ -42,7 +44,11 @@ class HdxScanBuilder(info: HdxConnectionInfo, table: HdxTable)
   }
 
   override def pruneColumns(requiredSchema: StructType): Unit = {
-    cols = requiredSchema
+    if (requiredSchema.isEmpty) {
+      cols = StructType(List(StructField(table.primaryKeyField, pkField.sparkType)))
+    } else {
+      cols = requiredSchema
+    }
   }
 
   override def build(): Scan = {

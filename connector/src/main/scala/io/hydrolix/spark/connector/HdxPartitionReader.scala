@@ -13,7 +13,7 @@ import java.util.Base64
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.zip.GZIPInputStream
 import scala.sys.process.{Process, ProcessLogger}
-import scala.util.Using
+import scala.util.{Try, Using}
 
 // TODO make a ColumnarBatch version too
 // TODO make a ColumnarBatch version too
@@ -53,11 +53,9 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   private val turbineCmdTmp = File.createTempFile("turbine_cmd", ".exe")
   turbineCmdTmp.deleteOnExit()
   turbineCmdTmp.setExecutable(true)
-  private val turbineCmdIn = getClass.getResourceAsStream("/turbine_cmd")
   Using.Manager { use =>
-    IO.copy(use(turbineCmdIn), use(new FileOutputStream(turbineCmdTmp)))
+    IO.copy(use(getClass.getResourceAsStream("/turbine_cmd")), use(new FileOutputStream(turbineCmdTmp)))
   }.get
-  log.warn(turbineCmdTmp.getAbsolutePath)
 
   private val turbineIniTmp = File.createTempFile("turbine", ".ini")
   turbineIniTmp.deleteOnExit()
@@ -65,7 +63,6 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     val ini = new GZIPInputStream(new ByteArrayInputStream(Base64.getDecoder.decode(info.turbineIniBase64)))
     IO.copy(use(ini), use(new FileOutputStream(turbineIniTmp)))
   }.get
-  log.warn(turbineIniTmp.getAbsolutePath)
 
   // TODO does anything need to be quoted here?
   //  Note, this relies on a bunch of changes in hdx_reader that may not have been merged to turbine/turbine-core yet,
@@ -129,6 +126,9 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   override def get(): InternalRow = rec
 
   override def close(): Unit = {
+    Try(turbineCmdTmp.delete())
+    Try(turbineIniTmp.delete())
+
     if (hdxReaderProcess.isAlive()) {
       log.debug(s"Killing child process for partition ${scan.path} early")
       hdxReaderProcess.destroy()
