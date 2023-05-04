@@ -1,6 +1,6 @@
 //noinspection SbtDependencyVersionInspection
 libraryDependencies ++= List(
-  "org.apache.spark" %% "spark-sql" % "3.4.0" % "provided",
+  "org.apache.spark" %% "spark-sql" % "3.3.2" % "provided",
 
   "com.github.bigwheel" %% "util-backports" % "2.1",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.14.2",

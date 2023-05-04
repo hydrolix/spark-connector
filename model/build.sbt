@@ -1,7 +1,7 @@
 libraryDependencies ++= List(
-  "org.apache.spark" %% "spark-catalyst" % "3.4.0" % "provided",
+  "org.apache.spark" %% "spark-catalyst" % "3.3.2" % "provided",
 
-  "com.clickhouse" % "clickhouse-jdbc" % "0.3.2-patch11",
+  "com.clickhouse" % "clickhouse-jdbc" % "0.3.2-patch11", // We need the legacy driver for now
   "com.zaxxer" % "HikariCP" % "5.0.1",
 
   "com.github.bigwheel" %% "util-backports" % "2.1",
