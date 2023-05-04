@@ -1,13 +1,12 @@
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.Slurp
 import io.hydrolix.spark.model._
 
+import com.google.common.io.ByteStreams
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPredicatePushdown
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.PartitionReader
-import org.sparkproject.jetty.util.IO
 
 import java.io.{ByteArrayInputStream, File, FileOutputStream}
 import java.util.Base64
@@ -57,13 +56,13 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   turbineCmdTmp.deleteOnExit()
   turbineCmdTmp.setExecutable(true)
   Using.Manager { use =>
-    IO.copy(use(getClass.getResourceAsStream("/turbine_cmd")), use(new FileOutputStream(turbineCmdTmp)))
+    ByteStreams.copy(use(getClass.getResourceAsStream("/turbine_cmd")), use(new FileOutputStream(turbineCmdTmp)))
   }.get
 
   private val turbineIniTmp = File.createTempFile("turbine_ini_", ".ini")
   turbineIniTmp.deleteOnExit()
 
-  private val turbineIniBytes = resource(new GZIPInputStream(new ByteArrayInputStream(Base64.getDecoder.decode(info.turbineIniBase64)))) { _.slurp() }
+  private val turbineIniBytes = resource(new GZIPInputStream(new ByteArrayInputStream(Base64.getDecoder.decode(info.turbineIniBase64)))) { ByteStreams.toByteArray(_) }
   // Note this regex can break if turbine.ini format changes!
   private val gcsCredentialsR = Pattern.compile("""^(\s*fs.gcs.credentials.json_credentials_file\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
 
@@ -74,7 +73,7 @@ class HdxPartitionReader(info: HdxConnectionInfo,
       // For gcs, cloudCred1 is a base64(gzip(gcs_service_account_key.json))
       val gcsKeyB64 = Base64.getDecoder.decode(info.cloudCred1)
 
-      val gcsKeyBytes = use(new GZIPInputStream(new ByteArrayInputStream(gcsKeyB64))).slurp()
+      val gcsKeyBytes = ByteStreams.toByteArray(use(new GZIPInputStream(new ByteArrayInputStream(gcsKeyB64))))
 
       val s = new String(turbineIniBytes, "UTF-8")
       val s2 = gcsCredentialsR.matcher(s).replaceAll(s"$$1${gcsKeyFile.getAbsolutePath}")

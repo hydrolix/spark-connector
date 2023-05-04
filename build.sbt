@@ -16,6 +16,9 @@ lazy val root = (project in file("."))
   .aggregate(model, bench, connector)
 
 lazy val assemblySettings = Seq(
+  assemblyShadeRules := Seq(
+    ShadeRule.rename("com.github.benmanes.caffeine.**" -> "shadecaffeine.@1").inAll
+  ),
   assemblyMergeStrategy := {
     case PathList(pl@_*) if pl.last == "module-info.class" => MergeStrategy.discard
     case PathList(pl@_*) if pl.last == "public-suffix-list.txt" => MergeStrategy.discard
