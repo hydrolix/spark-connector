@@ -7,6 +7,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPredicatePushdown
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.PartitionReader
+import org.slf4j.LoggerFactory
 
 import java.io.{ByteArrayInputStream, File, FileOutputStream}
 import java.util.Base64
@@ -18,6 +19,30 @@ import scala.util.Using.resource
 import scala.util.{Try, Using}
 
 /**
+ * This is due to https://bugs.openjdk.org/browse/JDK-8068370 -- we spawn child processes too fast and they
+ * accidentally clobber each other's temp files
+ */
+object HdxPartitionReader {
+  private val logger = LoggerFactory.getLogger(classOf[HdxPartitionReaderFactory])
+  // TODO try not to recreate these files every time if they're unchanged... Maybe name them according to a git hash
+  //  or a sha256sum of the contents?
+  private val turbineCmdTmp = {
+    val f = File.createTempFile("turbine_cmd_", ".exe")
+    f.deleteOnExit()
+
+    Using.Manager { use =>
+      ByteStreams.copy(use(getClass.getResourceAsStream("/turbine_cmd")), use(new FileOutputStream(f)))
+    }.get
+
+    f.setExecutable(true)
+
+    f
+  }
+
+  logger.warn(s"Created ${turbineCmdTmp.getAbsolutePath}")
+}
+
+/**
  * TODO:
  *  - Refactor per-storage-type turbine.ini hacking and temp files to separate classes
  *  - Make it possible to retrieve the turbine.ini template from a URL instead of passing a large base64 blob
@@ -25,9 +50,9 @@ import scala.util.{Try, Using}
  *  - Allow secrets to be retrieved from secret services, not just config parameters
  *  - Make a ColumnarBatch version too (will require deep hdx_reader changes)
  */
-class HdxPartitionReader(info: HdxConnectionInfo,
-               primaryKeyName: String,
-                         scan: HdxPartitionScan)
+final class HdxPartitionReader(info: HdxConnectionInfo,
+                     primaryKeyName: String,
+                               scan: HdxPartitionScan)
   extends PartitionReader[InternalRow]
     with Logging
 {
@@ -38,9 +63,8 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   // Cache because PartitionReader says get() should always return the same record if called multiple times per next()
   private var rec: InternalRow = _
 
-  private val cols = HdxJdbcSession(info).collectColumns(scan.db, scan.table).map(col => col.name -> col).toMap
   private val schema = scan.schema.fields.map { fld =>
-    HdxOutputColumn(fld.name, Types.sparkToHdx(fld.name, fld.dataType, primaryKeyName, cols))
+    HdxOutputColumn(fld.name, Types.sparkToHdx(fld.name, fld.dataType, primaryKeyName, scan.hdxCols))
   }
 
   private val schemaStr = JSON.objectMapper.writeValueAsString(schema)
@@ -48,21 +72,12 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   private val exprArgs = {
     // TODO Spark seems to inject a `foo IS NOT NULL` alongside a `foo = <lit>`, maybe filter it out before doing this
 
-    val renderedPushed = scan.pushed.map(HdxPredicatePushdown.renderHdxFilterExpr(_, primaryKeyName, cols))
+    val renderedPushed = scan.pushed.map(HdxPredicatePushdown.renderHdxFilterExpr(_, primaryKeyName, scan.hdxCols))
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
     if (renderedPushed.isEmpty) Nil else List("--expr", renderedPushed.flatten.mkString("[", " AND ", "]"))
   }
-
-  // TODO try not to recreate these files every time if they're unchanged... Maybe name them according to a git hash
-  //  or a sha256sum of the contents?
-  private val turbineCmdTmp = File.createTempFile("turbine_cmd_", ".exe")
-  turbineCmdTmp.deleteOnExit()
-  turbineCmdTmp.setExecutable(true)
-  Using.Manager { use =>
-    ByteStreams.copy(use(getClass.getResourceAsStream("/turbine_cmd")), use(new FileOutputStream(turbineCmdTmp)))
-  }.get
 
   private val turbineIniBefore = resource(
     new GZIPInputStream(new ByteArrayInputStream(
@@ -128,7 +143,7 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     "--schema", schemaStr
   ) ++ exprArgs
 
-  private val hdxReaderProcessBuilder = Process(turbineCmdTmp.getAbsolutePath, turbineCmdArgs)
+  private val hdxReaderProcessBuilder = Process(HdxPartitionReader.turbineCmdTmp.getAbsolutePath, turbineCmdArgs)
 
   // TODO this relies on the stdout being split into strings; that won't be the case once we get gzip working!
   private val hdxReaderProcess = hdxReaderProcessBuilder.run(ProcessLogger(
@@ -177,7 +192,6 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   override def get(): InternalRow = rec
 
   override def close(): Unit = {
-    Try(turbineCmdTmp.delete())
     Try(turbineIniTmp.delete())
     credsTempFile.foreach(f => Try(f.delete()))
 

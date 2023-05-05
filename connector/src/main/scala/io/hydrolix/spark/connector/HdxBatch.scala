@@ -18,6 +18,8 @@ class HdxBatch(info: HdxConnectionInfo,
 
   override def planInputPartitions(): Array[InputPartition] = {
     val parts = jdbc.collectPartitions(table.ident.namespace().head, table.ident.name())
+    val db = table.ident.namespace().head
+    val tbl = table.ident.name()
 
     parts.flatMap { hp =>
       val max = hp.maxTimestamp
@@ -30,11 +32,11 @@ class HdxBatch(info: HdxConnectionInfo,
       } else {
         // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
         Some(HdxPartitionScan(
-          table.ident.namespace().head,
-          table.ident.name(),
+          db,
+          tbl,
           hp.partition,
           cols,
-          pushed))
+          pushed, jdbc.collectColumns(db, tbl).map(col => col.name -> col).toMap))
       }
     }.toArray
   }
