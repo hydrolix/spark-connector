@@ -49,7 +49,7 @@ class HdxJdbcSession private (info: HdxConnectionInfo) {
   def collectColumns(db: String, table: String): List[HdxColumnInfo] = {
     Using.Manager { use =>
       val conn = use(pool.getConnection)
-      val stmt = conn.createStatement()
+      val stmt = use(conn.createStatement())
       val rs = use(stmt.executeQuery(
         s"""SELECT
            |column_name,
