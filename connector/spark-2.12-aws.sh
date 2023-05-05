@@ -45,4 +45,4 @@ turbineIniBase64=$(gzip < "$TURBINE_INI_PATH" |base64 -w0)
         -c spark.sql.catalog.hydrolix.api_url="$HDX_API_URL" \
         -c spark.sql.catalog.hydrolix.turbine_ini_base64="$turbineIniBase64" \
         -c spark.sql.catalog.hydrolix.cloud_cred_1="$AWS_ACCESS_KEY_ID" \
-        -c spark.sql.catalog.hydrolix.cloud_cred_2="$AWS_AWS_SECRET_KEY"
+        -c spark.sql.catalog.hydrolix.cloud_cred_2="$AWS_SECRET_KEY"

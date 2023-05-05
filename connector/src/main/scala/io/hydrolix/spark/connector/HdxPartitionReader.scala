@@ -84,7 +84,7 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     gcsKeyFile.deleteOnExit()
 
     val turbineIni = Using.Manager { use =>
-      // For gcs, cloudCred1 is a base64(gzip(gcs_service_account_key.json))
+      // For gcs, cloudCred1 is a base64(gzip(gcs_service_account_key.json)) and cloudCred2 is unused
       val gcsKeyB64 = Base64.getDecoder.decode(info.cloudCred1)
 
       val gcsKeyBytes = ByteStreams.toByteArray(use(new GZIPInputStream(new ByteArrayInputStream(gcsKeyB64))))
@@ -98,10 +98,13 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     (turbineIni, Some(gcsKeyFile))
   } else if (info.storageType == "aws") {
     // For aws, cloudCred1 is the access key, and cloudCred2 is the secret.
+    val accessKey = info.cloudCred1
+    val secret = info.cloudCred2.getOrElse(sys.error("cloud_cred_2 is required for aws!"))
+
     // TODO other AWS settings like region need a place to live too; for now pre-populate the turbine.ini
     val s2 = awsMethodR.matcher(turbineIniBefore).replaceAll(s"$$1static")
-    val s3 = awsAccessKeyR.matcher(s2).replaceAll(s"$$1${info.cloudCred1}")
-    val s4 = awsSecretKeyR.matcher(s3).replaceAll(s"$$1${info.cloudCred2}")
+    val s3 = awsAccessKeyR.matcher(s2).replaceAll(s"$$1$accessKey")
+    val s4 = awsSecretKeyR.matcher(s3).replaceAll(s"$$1$secret")
 
     (s4, None)
   } else {
