@@ -1,6 +1,6 @@
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.HdxConnectionInfo
+import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo}
 
 import org.apache.spark.sql.connector.catalog.index.{SupportsIndex, TableIndex}
 import org.apache.spark.sql.connector.catalog.{Identifier, SupportsRead, Table, TableCapability}
@@ -13,12 +13,13 @@ import java.util.{Collections, Properties}
 import java.{util => ju}
 
 case class HdxTable(info: HdxConnectionInfo,
-                    ident: Identifier,
-                    schema: StructType,
-                    options: CaseInsensitiveStringMap,
-                    primaryKeyField: String,
-                    shardKeyField: Option[String],
-                    sortKeyFields: List[String])
+                   ident: Identifier,
+                  schema: StructType,
+                 options: CaseInsensitiveStringMap,
+         primaryKeyField: String,
+           shardKeyField: Option[String],
+           sortKeyFields: List[String],
+                 hdxCols: Map[String, HdxColumnInfo])
   extends Table
     with SupportsRead
     with SupportsIndex {

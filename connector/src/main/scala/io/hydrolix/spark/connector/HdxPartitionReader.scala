@@ -24,6 +24,7 @@ import scala.util.{Try, Using}
  */
 object HdxPartitionReader {
   private val logger = LoggerFactory.getLogger(classOf[HdxPartitionReaderFactory])
+
   // TODO try not to recreate these files every time if they're unchanged... Maybe name them according to a git hash
   //  or a sha256sum of the contents?
   private val turbineCmdTmp = {
@@ -36,10 +37,17 @@ object HdxPartitionReader {
 
     f.setExecutable(true)
 
+    logger.info(s"Extracted turbine_cmd binary to ${f.getAbsolutePath}")
+
     f
   }
 
-  logger.warn(s"Created ${turbineCmdTmp.getAbsolutePath}")
+  private val stderrFilterR = """^read hdx_partition=(.*?) rows=(.*?) values=(.*?) in (.*?)$""".r
+  // Note, these regexes can break if turbine.ini format changes!
+  private val gcsCredentialsR = Pattern.compile("""^(\s*fs.gcs.credentials.json_credentials_file\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
+  private val awsMethodR = Pattern.compile("""^(\s*fs.aws.credentials.method\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
+  private val awsAccessKeyR = Pattern.compile("""^(\s*fs.aws.credentials.access_key\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
+  private val awsSecretKeyR = Pattern.compile("""^(\s*fs.aws.credentials.secret_key\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
 }
 
 /**
@@ -56,6 +64,8 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   extends PartitionReader[InternalRow]
     with Logging
 {
+  import HdxPartitionReader._
+
   private val doneSignal = "DONE"
   private val q = new ArrayBlockingQueue[String](1024)
   @volatile private var exitCode: Option[Int] = None
@@ -86,13 +96,6 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   ) { is =>
     new String(ByteStreams.toByteArray(is), "UTF-8")
   }
-
-  // Note, these regexes can break if turbine.ini format changes!
-  private val gcsCredentialsR = Pattern.compile("""^(\s*fs.gcs.credentials.json_credentials_file\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
-
-  private val awsMethodR      = Pattern.compile("""^(\s*fs.aws.credentials.method\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
-  private val awsAccessKeyR   = Pattern.compile("""^(\s*fs.aws.credentials.access_key\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
-  private val awsSecretKeyR   = Pattern.compile("""^(\s*fs.aws.credentials.secret_key\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
 
   private val (turbineIniAfter, credsTempFile) = if (info.storageType == "gcs") {
     val gcsKeyFile = File.createTempFile("turbine_gcs_key_", ".json")
@@ -143,7 +146,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     "--schema", schemaStr
   ) ++ exprArgs
 
-  private val hdxReaderProcessBuilder = Process(HdxPartitionReader.turbineCmdTmp.getAbsolutePath, turbineCmdArgs)
+  private val hdxReaderProcessBuilder = Process(turbineCmdTmp.getAbsolutePath, turbineCmdArgs)
 
   // TODO this relies on the stdout being split into strings; that won't be the case once we get gzip working!
   private val hdxReaderProcess = hdxReaderProcessBuilder.run(ProcessLogger(
@@ -156,7 +159,11 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
           Thread.currentThread().interrupt()
       }
     },
-    { log.warn("hdx_reader stderr: {}", _) }
+    {
+      case stderrFilterR(_*) => ()
+      case line =>
+        log.warn("hdx_reader stderr: {}", line)
+    }
   ))
 
   // A dumb thread to wait for the child to exit so we can send doneSignal on the queue, and capture the exit code

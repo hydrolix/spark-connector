@@ -53,7 +53,7 @@ class HdxTableCatalog extends TableCatalog
     val db = properties.get(OPT_PROJECT_NAME)
     val table = properties.get(OPT_TABLE_NAME)
 
-    val apiTable = api.table(db, table).getOrElse(throw new NoSuchTableException(s"$db.$table"))
+    val apiTable = api.table(db, table).getOrElse(throw NoSuchTableException(s"$db.$table"))
     val primaryKey = api.pk(db, table)
 
     HdxTable(
@@ -63,7 +63,8 @@ class HdxTableCatalog extends TableCatalog
       CaseInsensitiveStringMap.empty(),
       primaryKey.name,
       apiTable.settings.shardKey,
-      apiTable.settings.sortKeys
+      apiTable.settings.sortKeys,
+      columns(db, table).map(col => col.name -> col).toMap
     )
   }
 

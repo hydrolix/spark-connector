@@ -1,6 +1,6 @@
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession}
+import io.hydrolix.spark.model.HdxConnectionInfo
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPredicatePushdown
@@ -16,21 +16,17 @@ class HdxScanBuilder(info: HdxConnectionInfo, table: HdxTable)
 {
   private var pushed: List[Predicate] = List()
   private var cols: StructType = _
-  private val hcols = HdxJdbcSession(info)
-    .collectColumns(table.ident.namespace().head, table.ident.name())
-    .map(col => col.name -> col)
-    .toMap
-  private val pkField = hcols.getOrElse(table.primaryKeyField, sys.error("No PK field"))
+  private val pkField = table.hdxCols.getOrElse(table.primaryKeyField, sys.error("No PK field"))
 
   override def pushPredicates(predicates: Array[Predicate]): Array[Predicate] = {
-    val pushable = predicates.toList.groupBy(HdxPredicatePushdown.pushable(table.primaryKeyField, table.shardKeyField, _, hcols))
+    val pushable = predicates.toList.groupBy(HdxPredicatePushdown.pushable(table.primaryKeyField, table.shardKeyField, _, table.hdxCols))
 
     val type1 = pushable.getOrElse(1, Nil)
     val type2 = pushable.getOrElse(2, Nil)
     val type3 = pushable.getOrElse(3, Nil)
 
-    if (type1.nonEmpty || type2.nonEmpty) log.warn(s"These predicates are pushable: 1:[$type1], 2:[$type2]")
-    if (type3.nonEmpty) log.warn(s"These predicates are NOT pushable: 3:[$type3]")
+    if (type1.nonEmpty || type2.nonEmpty) log.info(s"These predicates are pushable: 1:[$type1], 2:[$type2]")
+    if (type3.nonEmpty) log.info(s"These predicates are NOT pushable: 3:[$type3]")
 
     // Types 1 & 2 will be pushed
     pushed = type1 ++ type2

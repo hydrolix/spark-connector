@@ -13,7 +13,8 @@ class HdxBatch(info: HdxConnectionInfo,
                cols: StructType,
                pushed: List[Predicate])
   extends Batch
-    with Logging {
+    with Logging
+{
   private val jdbc = HdxJdbcSession(info)
 
   override def planInputPartitions(): Array[InputPartition] = {
@@ -31,12 +32,16 @@ class HdxBatch(info: HdxConnectionInfo,
         None
       } else {
         // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
-        Some(HdxPartitionScan(
-          db,
-          tbl,
-          hp.partition,
-          cols,
-          pushed, jdbc.collectColumns(db, tbl).map(col => col.name -> col).toMap))
+        Some(
+          HdxPartitionScan(
+            db,
+            tbl,
+            hp.partition,
+            cols,
+            pushed,
+            table.hdxCols
+          )
+        )
       }
     }.toArray
   }

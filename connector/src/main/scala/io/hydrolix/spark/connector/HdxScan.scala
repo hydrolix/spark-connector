@@ -7,10 +7,11 @@ import org.apache.spark.sql.connector.read.{Batch, Scan}
 import org.apache.spark.sql.types.StructType
 
 class HdxScan(info: HdxConnectionInfo,
-              table: HdxTable,
+             table: HdxTable,
               cols: StructType,
-              pushed: List[Predicate])
-  extends Scan {
+            pushed: List[Predicate])
+  extends Scan
+{
   override def toBatch: Batch = {
     new HdxBatch(info, table, cols, pushed)
   }
