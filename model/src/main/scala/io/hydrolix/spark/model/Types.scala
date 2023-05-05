@@ -5,7 +5,7 @@ import org.apache.spark.sql.types._
 
 object Types {
   private val arrayR = """array\((.*?)\)""".r
-  private val mapR = """array\((.*?),\s*(.*?)\)""".r
+  private val mapR = """map\((.*?),\s*(.*?)\)""".r
   private val nullableR = """nullable\((.*?)\)""".r
   private val datetime64R = """datetime64\((.*?)\)""".r
   private val datetimeR = """datetime\((.*?)\)""".r

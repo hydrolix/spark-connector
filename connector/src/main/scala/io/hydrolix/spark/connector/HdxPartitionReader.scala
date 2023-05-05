@@ -17,10 +17,14 @@ import scala.sys.process.{Process, ProcessLogger}
 import scala.util.Using.resource
 import scala.util.{Try, Using}
 
-// TODO make a ColumnarBatch version too
-// TODO make a ColumnarBatch version too
-// TODO make a ColumnarBatch version too
-// TODO make a ColumnarBatch version too
+/**
+ * TODO:
+ *  - Refactor per-storage-type turbine.ini hacking and temp files to separate classes
+ *  - Make it possible to retrieve the turbine.ini template from a URL instead of passing a large base64 blob
+ *  - Refactor the child process stuff to separate file with a clean module boundary
+ *  - Allow secrets to be retrieved from secret services, not just config parameters
+ *  - Make a ColumnarBatch version too (will require deep hdx_reader changes)
+ */
 class HdxPartitionReader(info: HdxConnectionInfo,
                primaryKeyName: String,
                          scan: HdxPartitionScan)
@@ -51,7 +55,8 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     if (renderedPushed.isEmpty) Nil else List("--expr", renderedPushed.flatten.mkString("[", " AND ", "]"))
   }
 
-  // TODO try not to recreate these files every time (if they're unchanged?)
+  // TODO try not to recreate these files every time if they're unchanged... Maybe name them according to a git hash
+  //  or a sha256sum of the contents?
   private val turbineCmdTmp = File.createTempFile("turbine_cmd_", ".exe")
   turbineCmdTmp.deleteOnExit()
   turbineCmdTmp.setExecutable(true)
@@ -59,35 +64,54 @@ class HdxPartitionReader(info: HdxConnectionInfo,
     ByteStreams.copy(use(getClass.getResourceAsStream("/turbine_cmd")), use(new FileOutputStream(turbineCmdTmp)))
   }.get
 
-  private val turbineIniTmp = File.createTempFile("turbine_ini_", ".ini")
-  turbineIniTmp.deleteOnExit()
+  private val turbineIniBefore = resource(
+    new GZIPInputStream(new ByteArrayInputStream(
+      Base64.getDecoder.decode(info.turbineIniBase64)
+    ))
+  ) { is =>
+    new String(ByteStreams.toByteArray(is), "UTF-8")
+  }
 
-  private val turbineIniBytes = resource(new GZIPInputStream(new ByteArrayInputStream(Base64.getDecoder.decode(info.turbineIniBase64)))) { ByteStreams.toByteArray(_) }
-  // Note this regex can break if turbine.ini format changes!
+  // Note, these regexes can break if turbine.ini format changes!
   private val gcsCredentialsR = Pattern.compile("""^(\s*fs.gcs.credentials.json_credentials_file\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
 
-  private val credTmp = if (info.storageType == "gcs") {
+  private val awsMethodR      = Pattern.compile("""^(\s*fs.aws.credentials.method\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
+  private val awsAccessKeyR   = Pattern.compile("""^(\s*fs.aws.credentials.access_key\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
+  private val awsSecretKeyR   = Pattern.compile("""^(\s*fs.aws.credentials.secret_key\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
+
+  private val (turbineIniAfter, credsTempFile) = if (info.storageType == "gcs") {
     val gcsKeyFile = File.createTempFile("turbine_gcs_key_", ".json")
     gcsKeyFile.deleteOnExit()
-    Using.Manager { use =>
+
+    val turbineIni = Using.Manager { use =>
       // For gcs, cloudCred1 is a base64(gzip(gcs_service_account_key.json))
       val gcsKeyB64 = Base64.getDecoder.decode(info.cloudCred1)
 
       val gcsKeyBytes = ByteStreams.toByteArray(use(new GZIPInputStream(new ByteArrayInputStream(gcsKeyB64))))
-
-      val s = new String(turbineIniBytes, "UTF-8")
-      val s2 = gcsCredentialsR.matcher(s).replaceAll(s"$$1${gcsKeyFile.getAbsolutePath}")
-
-      use(new FileOutputStream(turbineIniTmp)).write(s2.getBytes("UTF-8"))
       use(new FileOutputStream(gcsKeyFile)).write(gcsKeyBytes)
+
+      val turbineIniWithGcsCredsPath = gcsCredentialsR.matcher(turbineIniBefore).replaceAll(s"$$1${gcsKeyFile.getAbsolutePath}")
+
+      turbineIniWithGcsCredsPath
     }.get
 
-    Some(gcsKeyFile)
+    (turbineIni, Some(gcsKeyFile))
+  } else if (info.storageType == "aws") {
+    // For aws, cloudCred1 is the access key, and cloudCred2 is the secret.
+    // TODO other AWS settings like region need a place to live too; for now pre-populate the turbine.ini
+    val s2 = awsMethodR.matcher(turbineIniBefore).replaceAll(s"$$1static")
+    val s3 = awsAccessKeyR.matcher(s2).replaceAll(s"$$1${info.cloudCred1}")
+    val s4 = awsSecretKeyR.matcher(s3).replaceAll(s"$$1${info.cloudCred2}")
+
+    (s4, None)
   } else {
-    // TODO replace the appropriate bits of turbine.ini for other storageTypes too
-    Using.resource(new FileOutputStream(turbineIniTmp)) { _.write(turbineIniBytes) }
-    None
+    // TODO implement other storage types, but using turbine.ini unchanged is a good fallback
+    (turbineIniBefore, None)
   }
+
+  private val turbineIniTmp = File.createTempFile("turbine_ini_", ".ini")
+  turbineIniTmp.deleteOnExit()
+  resource(new FileOutputStream(turbineIniTmp)) { _.write(turbineIniAfter.getBytes("UTF-8")) }
 
   // TODO does anything need to be quoted here?
   //  Note, this relies on a bunch of changes in hdx_reader that may not have been merged to turbine/turbine-core yet,
@@ -152,7 +176,7 @@ class HdxPartitionReader(info: HdxConnectionInfo,
   override def close(): Unit = {
     Try(turbineCmdTmp.delete())
     Try(turbineIniTmp.delete())
-    credTmp.foreach(f => Try(f.delete()))
+    credsTempFile.foreach(f => Try(f.delete()))
 
     if (hdxReaderProcess.isAlive()) {
       log.debug(s"Killing child process for partition ${scan.path} early")

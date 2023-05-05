@@ -124,15 +124,19 @@ case class HdxViewSettings(isDefault: Boolean,
 case class HdxOutputColumn(name: String,
                        datatype: HdxColumnDatatype)
 
-case class HdxColumnDatatype(          `type`: HdxValueType,
-  @JsonInclude(Include.NON_DEFAULT)     index: Boolean,
-  @JsonInclude(Include.NON_DEFAULT)   primary: Boolean,
-  @JsonInclude(Include.NON_ABSENT)     source: Option[JsonNode] = None,
-  @JsonInclude(Include.NON_ABSENT)     format: Option[String] = None,
-  @JsonInclude(Include.NON_ABSENT) resolution: Option[String] = None,
-  @JsonInclude(Include.NON_ABSENT)    default: Option[String] = None,
-  @JsonInclude(Include.NON_ABSENT)     script: Option[String] = None,
-  @JsonInclude(Include.NON_ABSENT)   elements: Option[JsonNode] = None)
+@JsonNaming(classOf[SnakeCaseStrategy])
+case class HdxColumnDatatype(             `type`: HdxValueType,
+  @JsonInclude(Include.NON_DEFAULT)        index: Boolean,
+  @JsonInclude(Include.NON_DEFAULT)      primary: Boolean,
+  @JsonInclude(Include.NON_ABSENT)  indexOptions: Option[JsonNode] = None,
+  @JsonInclude(Include.NON_ABSENT)        source: Option[JsonNode] = None,
+  @JsonInclude(Include.NON_ABSENT)        format: Option[String] = None,
+  @JsonInclude(Include.NON_ABSENT)    resolution: Option[String] = None,
+  @JsonInclude(Include.NON_ABSENT)       default: Option[String] = None,
+  @JsonInclude(Include.NON_ABSENT)        script: Option[String] = None,
+  @JsonInclude(Include.NON_DEFAULT)     catchAll: Boolean = false,
+  @JsonInclude(Include.NON_DEFAULT)       ignore: Boolean = false,
+  @JsonInclude(Include.NON_ABSENT)      elements: Option[JsonNode] = None)
 
 /**
  * TODO sync this with the Elastic project somehow:

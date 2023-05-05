@@ -21,8 +21,6 @@ import java.util.UUID
  * @param cloudCred2       second credential for storageType storage, optional, e.g.:
  *                           - for `gcs`, not required
  *                           - for AWS, the secret key
- * @param turbineCmdPath the filesystem path to a `turbine_cmd` binary we'll use to dump partitions
- *                       (note, it needs to be built from the HDX-3779 branch)
  */
 case class HdxConnectionInfo(orgId: UUID,
                            jdbcUrl: String,
