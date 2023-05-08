@@ -3,11 +3,11 @@ package io.hydrolix.spark.connector
 import io.hydrolix.spark.model.HdxConnectionInfo
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.HdxPredicatePushdown
-import org.apache.spark.sql.connector.expressions.aggregate.{Aggregation, CountStar}
+import org.apache.spark.sql.HdxPushdown
+import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, Aggregation}
 import org.apache.spark.sql.connector.expressions.filter.Predicate
-import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownAggregates, SupportsPushDownRequiredColumns, SupportsPushDownV2Filters}
-import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
+import org.apache.spark.sql.connector.read._
+import org.apache.spark.sql.types.{StructField, StructType}
 
 class HdxScanBuilder(info: HdxConnectionInfo, table: HdxTable)
   extends ScanBuilder
@@ -17,12 +17,12 @@ class HdxScanBuilder(info: HdxConnectionInfo, table: HdxTable)
     with Logging
 {
   private var pushedPreds: List[Predicate] = List()
-  private var pushedCountStar = false
+  private var pushedAggs: List[AggregateFunc] = Nil
   private var cols: StructType = _
   private val pkField = table.hdxCols.getOrElse(table.primaryKeyField, sys.error("No PK field"))
 
   override def pushPredicates(predicates: Array[Predicate]): Array[Predicate] = {
-    val pushable = predicates.toList.groupBy(HdxPredicatePushdown.pushable(table.primaryKeyField, table.shardKeyField, _, table.hdxCols))
+    val pushable = predicates.toList.groupBy(HdxPushdown.pushable(table.primaryKeyField, table.shardKeyField, _, table.hdxCols))
 
     val type1 = pushable.getOrElse(1, Nil)
     val type2 = pushable.getOrElse(2, Nil)
@@ -54,15 +54,17 @@ class HdxScanBuilder(info: HdxConnectionInfo, table: HdxTable)
   override def supportCompletePushDown(aggregation: Aggregation): Boolean = false
 
   override def pushAggregation(aggregation: Aggregation): Boolean = {
-    val push = aggregation.groupByExpressions().isEmpty && aggregation.aggregateExpressions().exists(_.isInstanceOf[CountStar])
-    if (push) {
-      pushedCountStar = true
-      cols = StructType(List(StructField("COUNT(*)", DataTypes.LongType, false)))
+    val funcs = HdxPushdown.pushableAggs(aggregation, table.primaryKeyField)
+    if (funcs.nonEmpty && funcs.size == aggregation.aggregateExpressions().size) {
+      pushedAggs = funcs.map(_._1)
+      cols = StructType(funcs.map(_._2))
+      true
+    } else {
+      false
     }
-    push
   }
 
   override def build(): Scan = {
-    new HdxScan(info, table, cols, pushedPreds, pushedCountStar)
+    new HdxScan(info, table, cols, pushedPreds, pushedAggs)
   }
 }

@@ -4,7 +4,7 @@ import io.hydrolix.spark.model._
 
 import com.google.common.io.ByteStreams
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.HdxPredicatePushdown
+import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.PartitionReader
 import org.slf4j.LoggerFactory
@@ -82,7 +82,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   private val exprArgs = {
     // TODO Spark seems to inject a `foo IS NOT NULL` alongside a `foo = <lit>`, maybe filter it out before doing this
 
-    val renderedPushed = scan.pushed.map(HdxPredicatePushdown.renderHdxFilterExpr(_, primaryKeyName, scan.hdxCols))
+    val renderedPushed = scan.pushed.map(HdxPushdown.renderHdxFilterExpr(_, primaryKeyName, scan.hdxCols))
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!

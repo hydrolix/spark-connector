@@ -2,6 +2,7 @@ package io.hydrolix.spark.connector
 
 import io.hydrolix.spark.model.HdxColumnInfo
 
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.InputPartition
 import org.apache.spark.sql.types.StructType
@@ -14,4 +15,4 @@ case class HdxScanPartition(db: String,
                        hdxCols: Map[String, HdxColumnInfo])
   extends InputPartition
 
-case class HdxPushedCountStarPartition(rows: Long) extends InputPartition
+case class HdxPushedAggsPartition(row: InternalRow) extends InputPartition

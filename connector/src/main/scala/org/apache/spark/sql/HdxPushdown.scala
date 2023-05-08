@@ -6,9 +6,10 @@ import io.hydrolix.spark.model.HdxColumnInfo
 import net.openhft.hashing.LongHashFunction
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.util.DateTimeUtils.microsToInstant
+import org.apache.spark.sql.connector.expressions.aggregate._
 import org.apache.spark.sql.connector.expressions.filter.{And, Not, Or}
 import org.apache.spark.sql.connector.expressions.{Expression, FieldReference, GeneralScalarExpression, LiteralValue}
-import org.apache.spark.sql.types.{DataType, DataTypes}
+import org.apache.spark.sql.types.{DataType, DataTypes, StructField}
 
 import java.time.Instant
 import java.{lang => jl}
@@ -18,7 +19,7 @@ import java.{lang => jl}
  *  - see if multi-part names will ever show up (e.g. in a join?); that would break [[GetField]] but hopefully only
  *    in a way that would allow fewer pushdown opportunities rather than incorrect results.
  */
-object HdxPredicatePushdown extends Logging {
+object HdxPushdown extends Logging {
   private val LT = "<"
   private val GT = ">"
   private val NE = "<>"
@@ -276,6 +277,48 @@ object HdxPredicatePushdown extends Logging {
     }
   }
 
+  def pushableAggs(aggregation: Aggregation, primaryKeyField: String): List[(AggregateFunc, StructField)] = {
+    if (aggregation.groupByExpressions().nonEmpty) return Nil
+
+    aggregation.aggregateExpressions().flatMap {
+      case cs: CountStar => Some(cs -> StructField("COUNT(*)", DataTypes.LongType))
+      case mf @ MinField(`primaryKeyField`) => Some(mf -> StructField(s"MIN($primaryKeyField)", DataTypes.TimestampType))
+      case mf @ MaxField(`primaryKeyField`) => Some(mf -> StructField(s"MAX($primaryKeyField)", DataTypes.TimestampType))
+      case _ => None
+    }.toList
+  }
+
+  /**
+   * Looks at an expression, and if it's a Min(FieldReference(`field`)) where `field` is single-valued, returns `field`.
+   */
+  private object MinField {
+    def unapply(expr: Expression): Option[String] = {
+      expr match {
+        case min: Min =>
+          min.children() match {
+            case Array(FieldReference(Seq(fieldName))) => Some(fieldName)
+            case _ => None
+          }
+        case _ => None
+      }
+    }
+  }
+
+  /**
+   * Looks at an expression, and if it's a Max(FieldReference(`field`)) where `field` is single-valued, returns `field`.
+   */
+  private object MaxField {
+    def unapply(expr: Expression): Option[String] = {
+      expr match {
+        case max: Max =>
+          max.children() match {
+            case Array(FieldReference(Seq(fieldName))) => Some(fieldName)
+            case _ => None
+          }
+        case _ => None
+      }
+    }
+  }
 
   /**
    * Looks at an expression and, if it's a binary comparison operator of the form `<left> <op> <right>`

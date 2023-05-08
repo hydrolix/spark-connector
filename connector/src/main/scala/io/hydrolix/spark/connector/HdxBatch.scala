@@ -3,8 +3,10 @@ package io.hydrolix.spark.connector
 import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession}
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.HdxPredicatePushdown
+import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.util.DateTimeUtils
+import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, CountStar, Max, Min}
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReader, PartitionReaderFactory}
 import org.apache.spark.sql.types.StructType
@@ -13,14 +15,16 @@ class HdxBatch(info: HdxConnectionInfo,
               table: HdxTable,
                cols: StructType,
         pushedPreds: List[Predicate],
-    pushedCountStar: Boolean)
+         pushedAggs: List[AggregateFunc])
   extends Batch
     with Logging
 {
   private val jdbc = HdxJdbcSession(info)
 
   override def planInputPartitions(): Array[InputPartition] = {
-    // TODO we have `pushed`, we can make this query a lot more selective (carefully!)
+    // TODO we have `pushedPreds`, we can make this query a lot more selective (carefully!)
+    // TODO when `pushedAggs` is non-empty, select only what we need from here
+    // TODO make agg pushdown work when the GROUP BY is the shard key, and perhaps a primary timestamp derivation?
     val parts = jdbc.collectPartitions(table.ident.namespace().head, table.ident.name())
     val db = table.ident.namespace().head
     val tbl = table.ident.name()
@@ -30,12 +34,20 @@ class HdxBatch(info: HdxConnectionInfo,
       val min = hp.minTimestamp
       val sk = hp.shardKey
 
-      if (pushedPreds.nonEmpty && pushedPreds.forall(HdxPredicatePushdown.prunePartition(table.primaryKeyField, table.shardKeyField, _, min, max, sk))) {
+      if (pushedPreds.nonEmpty && pushedPreds.forall(HdxPushdown.prunePartition(table.primaryKeyField, table.shardKeyField, _, min, max, sk))) {
         // All pushed predicates found this partition can be pruned; skip it
         None
       } else {
-        if (pushedCountStar) {
-          Some(HdxPushedCountStarPartition(hp.rows))
+        if (pushedAggs.nonEmpty) {
+          // Build a row containing only the values of the pushed aggregates
+          val row = InternalRow(
+            pushedAggs.map {
+              case _: CountStar => hp.rows
+              case _: Min => DateTimeUtils.instantToMicros(min)
+              case _: Max => DateTimeUtils.instantToMicros(max)
+            }: _*
+          )
+          Some(HdxPushedAggsPartition(row))
         } else {
           // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
           Some(
@@ -53,8 +65,8 @@ class HdxBatch(info: HdxConnectionInfo,
   }
 
   override def createReaderFactory(): PartitionReaderFactory = {
-    if (pushedCountStar) {
-      new PushedCountStarPartitionReaderFactory
+    if (pushedAggs.nonEmpty) {
+      new PushedCountStarPartitionReaderFactory()
     } else {
       new HdxPartitionReaderFactory(info, table.primaryKeyField)
     }
@@ -63,12 +75,11 @@ class HdxBatch(info: HdxConnectionInfo,
 
 final class PushedCountStarPartitionReaderFactory extends PartitionReaderFactory {
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
-    new PushedCountStarPartitionReader(partition.asInstanceOf[HdxPushedCountStarPartition].rows)
+    new PushedCountStarPartitionReader(partition.asInstanceOf[HdxPushedAggsPartition].row)
   }
 }
 
-final class PushedCountStarPartitionReader(rows: Long) extends PartitionReader[InternalRow] {
-  private val row = InternalRow.apply(rows)
+final class PushedCountStarPartitionReader(row: InternalRow) extends PartitionReader[InternalRow] {
   private var consumed = false
 
   override def next(): Boolean = {
