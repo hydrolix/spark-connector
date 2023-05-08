@@ -50,12 +50,12 @@ class HdxScanBuilder(info: HdxConnectionInfo, table: HdxTable)
     }
   }
 
-  /** Note, this is always false because we only get the count per partition, not globally */
-  override def supportCompletePushDown(aggregation: Aggregation): Boolean = false
+  override def supportCompletePushDown(aggregation: Aggregation): Boolean = pushAggregation(aggregation)
 
   override def pushAggregation(aggregation: Aggregation): Boolean = {
+    // TODO make agg pushdown work when the GROUP BY is the shard key, and perhaps a primary timestamp derivation?
     val funcs = HdxPushdown.pushableAggs(aggregation, table.primaryKeyField)
-    if (funcs.nonEmpty && funcs.size == aggregation.aggregateExpressions().size) {
+    if (funcs.nonEmpty && funcs.size == aggregation.aggregateExpressions().length) {
       pushedAggs = funcs.map(_._1)
       cols = StructType(funcs.map(_._2))
       true

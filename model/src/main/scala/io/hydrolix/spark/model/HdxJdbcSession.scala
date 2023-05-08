@@ -4,6 +4,7 @@ import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.slf4j.LoggerFactory
 import ru.yandex.clickhouse.ClickHouseDataSource
 
+import java.time.Instant
 import java.util.Properties
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -76,6 +77,30 @@ class HdxJdbcSession private (info: HdxConnectionInfo) {
         cols += HdxColumnInfo(name, types.head, nullable, sparkType, indexed)
       }
       cols.toList
+    }.get
+  }
+
+  /**
+   * Get the sum(rows), min(primary) and max(primary) of ALL partitions
+   */
+  def collectPartitionAggs(db: String, table: String): (Long, Instant, Instant) = {
+    Using.Manager { use =>
+      val conn = use(pool.getConnection)
+      val stmt = use(conn.createStatement())
+      val rs = use(stmt.executeQuery(
+        s"""SELECT
+           |  sum(rows) as rows,
+           |  min(min_timestamp) as min_primary,
+           |  max(max_timestamp) as max_primary
+           |FROM `$db`.`$table#.catalog`""".stripMargin))
+
+      rs.next()
+
+      (
+        rs.getLong("rows"),
+        rs.getTimestamp("min_primary").toInstant,
+        rs.getTimestamp("max_primary").toInstant
+      )
     }.get
   }
 
