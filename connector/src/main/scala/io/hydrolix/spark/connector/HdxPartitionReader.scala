@@ -60,7 +60,7 @@ object HdxPartitionReader {
  */
 final class HdxPartitionReader(info: HdxConnectionInfo,
                      primaryKeyName: String,
-                               scan: HdxPartitionScan)
+                               scan: HdxScanPartition)
   extends PartitionReader[InternalRow]
     with Logging
 {

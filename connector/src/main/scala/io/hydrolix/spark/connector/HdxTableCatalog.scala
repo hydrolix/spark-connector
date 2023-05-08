@@ -21,7 +21,7 @@ class HdxTableCatalog extends TableCatalog
                          with Logging
 {
   var name: String = _
-  protected var info: HdxConnectionInfo = _
+  private var info: HdxConnectionInfo = _
   private var api: HdxApiSession = _
   private var jdbc: HdxJdbcSession = _
 

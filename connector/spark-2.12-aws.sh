@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-SPARK_HOME="${SPARK_HOME:-$HOME/dev/spark-3.4.0-bin-hadoop3}"
+SPARK_HOME="${SPARK_HOME:-$HOME/dev/spark-3.3.2-bin-hadoop3}"
 TURBINE_INI_PATH="${TURBINE_INI_PATH:-$HOME/dev/turbine_spark_aws.ini}"
 HDX_API_URL="${HDX_API_URL:-https://alex-test.hydro59.com/config/v1/}"
 HDX_JDBC_URL="${HDX_JDBC_URL:-jdbc:clickhouse://alex-test.hydro59.com:8088/?ssl=true}"

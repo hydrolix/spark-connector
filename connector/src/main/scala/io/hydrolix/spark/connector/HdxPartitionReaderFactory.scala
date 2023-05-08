@@ -8,6 +8,6 @@ import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, Par
 class HdxPartitionReaderFactory(info: HdxConnectionInfo, pkName: String)
   extends PartitionReaderFactory {
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
-    new HdxPartitionReader(info, pkName, partition.asInstanceOf[HdxPartitionScan])
+    new HdxPartitionReader(info, pkName, partition.asInstanceOf[HdxScanPartition])
   }
 }

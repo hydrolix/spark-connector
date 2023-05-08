@@ -9,11 +9,12 @@ import org.apache.spark.sql.types.StructType
 class HdxScan(info: HdxConnectionInfo,
              table: HdxTable,
               cols: StructType,
-            pushed: List[Predicate])
+       pushedPreds: List[Predicate],
+   pushedCountStar: Boolean)
   extends Scan
 {
   override def toBatch: Batch = {
-    new HdxBatch(info, table, cols, pushed)
+    new HdxBatch(info, table, cols, pushedPreds, pushedCountStar)
   }
 
   override def description(): String = super.description()

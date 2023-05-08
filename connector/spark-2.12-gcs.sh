@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-SPARK_HOME="${SPARK_HOME:-$HOME/dev/spark-3.4.0-bin-hadoop3}"
+SPARK_HOME="${SPARK_HOME:-$HOME/dev/spark-3.3.2-bin-hadoop3}"
 GCS_KEY_PATH="${GCS_KEY_PATH:-$HOME/dev/gcp.key}"
 TURBINE_INI_PATH="${TURBINE_INI_PATH:-$HOME/dev/turbine_spark_gcs.ini}"
 HDX_API_URL="${HDX_API_URL:-https://gcp-prod-test.hydrolix.net/config/v1/}"

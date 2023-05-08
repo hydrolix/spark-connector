@@ -17,7 +17,8 @@ lazy val root = (project in file("."))
 
 lazy val assemblySettings = Seq(
   assemblyShadeRules := Seq(
-    ShadeRule.rename("com.github.benmanes.caffeine.**" -> "shadecaffeine.@1").inAll
+    ShadeRule.rename("com.github.benmanes.caffeine.**" -> "shadecaffeine.@1").inAll,
+    ShadeRule.rename("com.fasterxml.jackson.**" -> "shadejackson.@1").inAll
   ),
   assemblyMergeStrategy := {
     case PathList(pl@_*) if pl.last == "module-info.class" => MergeStrategy.discard
