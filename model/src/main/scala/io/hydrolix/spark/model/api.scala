@@ -51,7 +51,8 @@ case class HdxTableStreamSettings(tokenList: List[String],
                 coldDataMaxRowsPerPartition: Long,
              coldDataMaxMinutesPerPartition: Int,
                      coldDataMaxOpenSeconds: Int,
-                     coldDataMaxIdleSeconds: Int)
+                     coldDataMaxIdleSeconds: Int,
+                        messageQueueMaxRows: Option[Int])
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxTableSettingsAge(maxAgeDays: Int)

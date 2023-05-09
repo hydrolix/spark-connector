@@ -35,7 +35,7 @@ class HdxTableCatalog extends TableCatalog
 
   def initialize(name: String, opts: CaseInsensitiveStringMap): Unit = {
     this.name = name
-    this.info = HdxConnectionInfo.fromOpts(opts, log)
+    this.info = HdxConnectionInfo.fromOpts(opts)
     this.api = new HdxApiSession(info)
     this.jdbc = HdxJdbcSession(info)
   }

@@ -32,7 +32,10 @@ object HdxPartitionReader {
     f.deleteOnExit()
 
     Using.Manager { use =>
-      ByteStreams.copy(use(getClass.getResourceAsStream("/turbine_cmd")), use(new FileOutputStream(f)))
+      ByteStreams.copy(
+        use(getClass.getResourceAsStream("/turbine_cmd")),
+        use(new FileOutputStream(f))
+      )
     }.get
 
     f.setExecutable(true)
@@ -141,7 +144,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     "hdx_reader",
     "--config", turbineIniTmp.getAbsolutePath,
     "--output_format", "json",
-    "--hdx_partition", scan.path,
+    "--hdx_partition", s"${info.partitionPrefix.getOrElse("")}${scan.path}",
     "--output_path", "-",
     "--schema", schemaStr
   ) ++ exprArgs

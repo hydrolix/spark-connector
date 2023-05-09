@@ -46,3 +46,5 @@ turbineIniBase64=$(gzip < "$TURBINE_INI_PATH" |base64 -w0)
         -c spark.sql.catalog.hydrolix.turbine_ini_base64="$turbineIniBase64" \
         -c spark.sql.catalog.hydrolix.cloud_cred_1="$AWS_ACCESS_KEY_ID" \
         -c spark.sql.catalog.hydrolix.cloud_cred_2="$AWS_SECRET_KEY"
+        # Add this if you have an old turbine server that doesn't prepend `db/hdx` to the partition paths
+	      # -c spark.sql.catalog.hydrolix.partition_prefix=/db/hdx/
