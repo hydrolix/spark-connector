@@ -5,9 +5,10 @@ import io.hydrolix.spark.model.HdxColumnInfo
 
 import net.openhft.hashing.LongHashFunction
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.catalyst.util.DateTimeUtils.microsToInstant
 import org.apache.spark.sql.connector.expressions.aggregate._
-import org.apache.spark.sql.connector.expressions.filter.{And, Not, Or}
+import org.apache.spark.sql.connector.expressions.filter.{And, Not, Or, Predicate}
 import org.apache.spark.sql.connector.expressions.{Expression, FieldReference, GeneralScalarExpression, LiteralValue}
 import org.apache.spark.sql.types.{DataType, DataTypes, StructField}
 
@@ -198,13 +199,13 @@ object HdxPushdown extends Logging {
 
         case and: And =>
           val pruneLeft = prunePartition(primaryKeyField, mShardKeyField, and.left(), partitionMin, partitionMax, partitionShardKey)
-          val pruneRight = prunePartition(primaryKeyField, mShardKeyField, and.left(), partitionMin, partitionMax, partitionShardKey)
+          val pruneRight = prunePartition(primaryKeyField, mShardKeyField, and.right(), partitionMin, partitionMax, partitionShardKey)
 
           pruneLeft || pruneRight // TODO!!
 
         case or: Or =>
           val pruneLeft = prunePartition(primaryKeyField, mShardKeyField, or.left(), partitionMin, partitionMax, partitionShardKey)
-          val pruneRight = prunePartition(primaryKeyField, mShardKeyField, or.left(), partitionMin, partitionMax, partitionShardKey)
+          val pruneRight = prunePartition(primaryKeyField, mShardKeyField, or.right(), partitionMin, partitionMax, partitionShardKey)
 
           pruneLeft && pruneRight // TODO!!
 
@@ -327,8 +328,8 @@ object HdxPushdown extends Logging {
    * Note that this is also used to match shard key comparisons, but the caller needs to check that `op` is in
    * [[shardOps]].
    */
-  private object Comparison {
-    def apply(l: Expression, op: String, r: Expression) = new GeneralScalarExpression(op, Array(l, r))
+  object Comparison {
+    def apply(l: Expression, op: String, r: Expression) = new Predicate(op, Array(l, r))
     def unapply(expr: Expression): Option[(Expression, String, Expression)] = {
       val kids = expr.children()
       expr match {
@@ -382,11 +383,28 @@ object HdxPushdown extends Logging {
    * Looks at an expression, and if it's a `FieldReference(<ss>)` (where `ss` is a single string),
    * returns that string, otherwise returns nothing.
    */
-  private object GetField {
+  object GetField {
+    def apply(f: String) = FieldReference(Seq(f))
     def unapply(expr: Expression): Option[String] = {
       expr match {
         case FieldReference(Seq(f)) => Some(f)
         case _ => None
+      }
+    }
+  }
+
+  object Literal {
+    def apply(value: Any): LiteralValue[_] = {
+      // TODO maps too?
+      value match {
+        case b: Byte => LiteralValue(b, DataTypes.ByteType)
+        case i: Int => LiteralValue(i, DataTypes.IntegerType)
+        case l: Long => LiteralValue(l, DataTypes.LongType)
+        case f: Float => LiteralValue(f, DataTypes.FloatType)
+        case d: Double => LiteralValue(d, DataTypes.DoubleType)
+        case s: String => LiteralValue(s, DataTypes.StringType)
+        case i: Instant => LiteralValue(DateTimeUtils.instantToMicros(i), DataTypes.TimestampType)
+        case _ => sys.error(s"Don't know how to translate $value into a LiteralValue[_]")
       }
     }
   }

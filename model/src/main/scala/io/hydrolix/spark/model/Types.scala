@@ -21,7 +21,7 @@ object Types {
     s.toLowerCase match {
       case "uint8" | "int8" | "int32" | "int16" | "uint16" => DataTypes.IntegerType -> false
       case "uint32" | "int64" => DataTypes.LongType -> false
-      case "uint64" => DataTypes.createDecimalType(19, 0) -> false
+      case "uint64" => DataTypes.createDecimalType(20, 0) -> false
       case "int128" | "uint128" => DataTypes.createDecimalType(39, 0) -> false
       case "int256" | "uint256" => DataTypes.createDecimalType(78, 0) -> false
       case "float32" => DataTypes.FloatType -> false
