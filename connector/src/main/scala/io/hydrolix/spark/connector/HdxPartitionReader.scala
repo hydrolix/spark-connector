@@ -19,16 +19,17 @@ import scala.sys.process.{Process, ProcessLogger}
 import scala.util.Using.resource
 import scala.util.{Try, Using}
 
-/**
- * This is due to https://bugs.openjdk.org/browse/JDK-8068370 -- we spawn child processes too fast and they
- * accidentally clobber each other's temp files
- */
 object HdxPartitionReader {
   private val logger = LoggerFactory.getLogger(classOf[HdxPartitionReaderFactory])
 
-  // TODO try not to recreate these files every time if they're unchanged... Maybe name them according to a git hash
-  //  or a sha256sum of the contents?
-  private val turbineCmdTmp = {
+  /**
+   * This is done early before any work needs to be done because of https://bugs.openjdk.org/browse/JDK-8068370 -- we
+   * spawn child processes too fast and they accidentally clobber each other's temp files
+   *
+   * TODO try not to recreate these files every time if they're unchanged... Maybe name them according to a git hash
+   *  or a sha256sum of the contents?
+   */
+  private lazy val turbineCmdTmp = {
     val f = File.createTempFile("turbine_cmd_", ".exe")
     f.deleteOnExit()
 
