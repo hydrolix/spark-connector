@@ -14,9 +14,10 @@ class HdxScan(info: HdxConnectionInfo,
         pushedAggs: List[AggregateFunc])
   extends Scan
 {
-  override def toBatch: Batch = {
-    new HdxBatch(info, table, cols, pushedPreds, pushedAggs)
-  }
+  // TODO add SupportsRuntimeFiltering maybe
+  private val batch = new HdxBatch(info, table, cols, pushedPreds, pushedAggs)
+
+  override def toBatch: Batch = batch
 
   override def description(): String = super.description()
 

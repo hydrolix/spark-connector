@@ -21,7 +21,17 @@ class HdxBatch(info: HdxConnectionInfo,
 {
   private val jdbc = HdxJdbcSession(info)
 
+  private var planned: Array[InputPartition] = _
+
   override def planInputPartitions(): Array[InputPartition] = {
+    if (planned == null) {
+      planned = plan()
+    }
+
+    planned
+  }
+
+  private def plan(): Array[InputPartition] = {
     if (pushedAggs.nonEmpty) {
       // TODO make agg pushdown work when the GROUP BY is the shard key, and perhaps a primary timestamp derivation?
       val (rows, min, max) = jdbc.collectPartitionAggs(table.ident.namespace().head, table.ident.name())
@@ -51,10 +61,10 @@ class HdxBatch(info: HdxConnectionInfo,
         val pushResults = pushedPreds.map(HdxPushdown.prunePartition(table.primaryKeyField, table.shardKeyField, _, min, max, sk))
         if (pushedPreds.nonEmpty && pushResults.contains(true)) {
           // At least one pushed predicate said we could skip this partition
-          log.debug(s"Skipping partition ${i+1}: $hp")
+          log.debug(s"Skipping partition ${i + 1}: $hp")
           None
         } else {
-          log.info(s"Scanning partition ${i+1}: $hp. Per-predicate results: ${pushedPreds.zip(pushResults).mkString("\n  ", "\n  ", "\n")}")
+          log.info(s"Scanning partition ${i + 1}: $hp. Per-predicate results: ${pushedPreds.zip(pushResults).mkString("\n  ", "\n  ", "\n")}")
           // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
           Some(
             HdxScanPartition(

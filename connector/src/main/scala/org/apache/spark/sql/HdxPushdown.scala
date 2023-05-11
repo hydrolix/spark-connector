@@ -234,7 +234,7 @@ object HdxPushdown extends Logging {
         if (hcol.indexed == 2) {
           if (hcol.hdxType == HdxValueType.String) {
             // This field is indexed in all partitions, make it so
-            Some(s""""$field" $hdxOp '$lit'""")
+            Some(s""""$field" $hdxOp $lit""")
           } else {
             log.warn(s"TODO $field isn't a string, we can't pushdown (yet?)")
             None
