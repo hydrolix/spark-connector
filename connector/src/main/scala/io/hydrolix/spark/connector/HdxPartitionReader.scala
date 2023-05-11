@@ -6,7 +6,7 @@ import com.google.common.io.ByteStreams
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.connector.read.PartitionReader
+import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 import org.slf4j.LoggerFactory
 
 import java.io.{ByteArrayInputStream, File, FileOutputStream}
@@ -19,8 +19,16 @@ import scala.sys.process.{Process, ProcessLogger}
 import scala.util.Using.resource
 import scala.util.{Try, Using}
 
+class HdxPartitionReaderFactory(info: HdxConnectionInfo, pkName: String)
+  extends PartitionReaderFactory
+{
+  override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
+    new HdxPartitionReader(info, pkName, partition.asInstanceOf[HdxScanPartition])
+  }
+}
+
 object HdxPartitionReader {
-  private val logger = LoggerFactory.getLogger(classOf[HdxPartitionReaderFactory])
+  private val logger = LoggerFactory.getLogger(classOf[HdxPartitionReader])
 
   /**
    * This is done early before any work needs to be done because of https://bugs.openjdk.org/browse/JDK-8068370 -- we

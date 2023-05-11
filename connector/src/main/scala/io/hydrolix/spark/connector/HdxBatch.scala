@@ -19,8 +19,6 @@ class HdxBatch(info: HdxConnectionInfo,
   extends Batch
     with Logging
 {
-  private val jdbc = HdxJdbcSession(info)
-
   private var planned: Array[InputPartition] = _
 
   override def planInputPartitions(): Array[InputPartition] = {
@@ -32,6 +30,8 @@ class HdxBatch(info: HdxConnectionInfo,
   }
 
   private def plan(): Array[InputPartition] = {
+    val jdbc = HdxJdbcSession(info)
+
     if (pushedAggs.nonEmpty) {
       // TODO make agg pushdown work when the GROUP BY is the shard key, and perhaps a primary timestamp derivation?
       val (rows, min, max) = jdbc.collectPartitionAggs(table.ident.namespace().head, table.ident.name())
@@ -82,32 +82,9 @@ class HdxBatch(info: HdxConnectionInfo,
 
   override def createReaderFactory(): PartitionReaderFactory = {
     if (pushedAggs.nonEmpty) {
-      new PushedCountStarPartitionReaderFactory()
+      new PushedAggsPartitionReaderFactory()
     } else {
       new HdxPartitionReaderFactory(info, table.primaryKeyField)
     }
   }
-}
-
-final class PushedCountStarPartitionReaderFactory extends PartitionReaderFactory {
-  override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
-    new PushedCountStarPartitionReader(partition.asInstanceOf[HdxPushedAggsPartition].row)
-  }
-}
-
-final class PushedCountStarPartitionReader(row: InternalRow) extends PartitionReader[InternalRow] {
-  private var consumed = false
-
-  override def next(): Boolean = {
-    if (consumed) {
-      false
-    } else {
-      consumed = true
-      true
-    }
-  }
-
-  override def get(): InternalRow = row
-
-  override def close(): Unit = ()
 }
