@@ -1,7 +1,7 @@
 // NOTE: this is in the spark.sql package because we make use of a few private[sql] members in there 😐
 package org.apache.spark.sql
 
-import io.hydrolix.spark.model.HdxColumnInfo
+import io.hydrolix.spark.model.{HdxColumnInfo, HdxValueType}
 
 import net.openhft.hashing.LongHashFunction
 import org.apache.spark.internal.Logging
@@ -232,8 +232,13 @@ object HdxPushdown extends Logging {
         val hdxOp = hdxOps.getOrElse(op, sys.error(s"No hydrolix operator for Spark operator $op"))
 
         if (hcol.indexed == 2) {
-          // This field is indexed in all partitions, make it so
-          Some(s""""$field" $hdxOp $lit""")
+          if (hcol.hdxType == HdxValueType.String) {
+            // This field is indexed in all partitions, make it so
+            Some(s""""$field" $hdxOp '$lit'""")
+          } else {
+            log.warn(s"TODO $field isn't a string, we can't pushdown (yet?)")
+            None
+          }
         } else {
           None
         }

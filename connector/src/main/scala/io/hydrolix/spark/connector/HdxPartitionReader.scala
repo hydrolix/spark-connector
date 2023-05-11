@@ -14,6 +14,7 @@ import java.util.Base64
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.regex.Pattern
 import java.util.zip.GZIPInputStream
+import scala.collection.mutable
 import scala.sys.process.{Process, ProcessLogger}
 import scala.util.Using.resource
 import scala.util.{Try, Using}
@@ -70,6 +71,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   import HdxPartitionReader._
 
   private val doneSignal = "DONE"
+  private val deadSignal = "DEAD"
   private val q = new ArrayBlockingQueue[String](1024)
   @volatile private var exitCode: Option[Int] = None
 
@@ -85,11 +87,13 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   private val exprArgs = {
     // TODO Spark seems to inject a `foo IS NOT NULL` alongside a `foo = <lit>`, maybe filter it out before doing this
 
-    val renderedPushed = scan.pushed.map(HdxPushdown.renderHdxFilterExpr(_, primaryKeyName, scan.hdxCols))
+    val renderedPreds = scan.pushed.map(HdxPushdown.renderHdxFilterExpr(_, primaryKeyName, scan.hdxCols))
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
-    if (renderedPushed.isEmpty) Nil else List("--expr", renderedPushed.flatten.mkString("[", " AND ", "]"))
+    val expr = renderedPreds.flatten.mkString("[", " AND ", "]")
+    log.info(s"Pushed-down expression: $expr")
+    if (renderedPreds.isEmpty) Nil else List("--expr", expr)
   }
 
   private val turbineIniBefore = resource(
@@ -148,8 +152,10 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     "--output_path", "-",
     "--schema", schemaStr
   ) ++ exprArgs
+  log.info(s"Running ${turbineCmdTmp.getAbsolutePath} ${turbineCmdArgs.mkString(" ")}")
 
   private val hdxReaderProcessBuilder = Process(turbineCmdTmp.getAbsolutePath, turbineCmdArgs)
+  private val stderr = mutable.ListBuffer[String]()
 
   // TODO this relies on the stdout being split into strings; that won't be the case once we get gzip working!
   private val hdxReaderProcess = hdxReaderProcessBuilder.run(ProcessLogger(
@@ -164,20 +170,24 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     },
     {
       case stderrFilterR(_*) => ()
-      case line =>
-        log.warn("hdx_reader stderr: {}", line)
+      case line => stderr += line
     }
   ))
 
   // A dumb thread to wait for the child to exit so we can send doneSignal on the queue, and capture the exit code
   new Thread(() => {
     try {
-      exitCode = Some(hdxReaderProcess.exitValue()) // Blocks until exit
+      val exit = hdxReaderProcess.exitValue() // Blocks until exit
+      exitCode = Some(exit)
     } catch {
       case _: InterruptedException =>
         Thread.currentThread().interrupt()
     } finally {
-      q.put(doneSignal)
+      if (exitCode.contains(0)) {
+        q.put(doneSignal)
+      } else {
+        q.put(deadSignal)
+      }
     }
   }).start()
 
@@ -193,6 +203,8 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
 
     if (line eq doneSignal) {
       false
+    } else if (line eq deadSignal) {
+      throw new RuntimeException(s"turbine_cmd process exited with code ${exitCode.getOrElse("<UNKNOWN, this is a bug!>")}; stderr was: ${stderr.mkString("\n  ", "\n  ", "\n")}")
     } else {
       rec = Json2Row.row(scan.schema, line)
       true

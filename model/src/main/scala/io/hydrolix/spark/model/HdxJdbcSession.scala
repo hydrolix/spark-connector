@@ -71,10 +71,10 @@ class HdxJdbcSession private (info: HdxConnectionInfo) {
           log.warn(s"Column $db.$table.$name had multiple types ($types); arbitrarily picking ${types.head} and hoping for the best!")
         }
 
-        val (sparkType, nullable) = Types.clickhouseToSpark(types.head)
+        val (sparkType, hdxType, nullable) = Types.decodeClickhouseType(types.head)
         val indexed = if (sumIndexed == occurs) 2 else if (sumIndexed == 0) 0 else 1
 
-        cols += HdxColumnInfo(name, types.head, nullable, sparkType, indexed)
+        cols += HdxColumnInfo(name, types.head, hdxType, nullable, sparkType, indexed)
       }
       cols.toList
     }.get
