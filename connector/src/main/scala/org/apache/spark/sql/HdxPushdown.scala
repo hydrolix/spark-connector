@@ -122,6 +122,8 @@ object HdxPushdown extends Logging {
    * Evaluate the min/max timestamps and shard key of a single partition against a single predicate
    * to determine if the partition CAN be pruned, i.e. doesn't need to be scanned.
    *
+   * TODO partition min/max are only at second resolution, figure out whether anything needs to change here!
+   *
    * @param primaryKeyField   the name of the timestamp field for this partition
    * @param mShardKeyField    the name of the shard key field for this partition
    * @param predicate         the predicate to evaluate
@@ -384,7 +386,7 @@ object HdxPushdown extends Logging {
    * returns that string, otherwise returns nothing.
    */
   object GetField {
-    def apply(f: String) = FieldReference(Seq(f))
+    def apply(f: String): FieldReference = FieldReference(Seq(f))
     def unapply(expr: Expression): Option[String] = {
       expr match {
         case FieldReference(Seq(f)) => Some(f)
@@ -397,6 +399,7 @@ object HdxPushdown extends Logging {
     def apply(value: Any): LiteralValue[_] = {
       // TODO maps too?
       value match {
+        case b: Boolean => LiteralValue(b, DataTypes.BooleanType)
         case b: Byte => LiteralValue(b, DataTypes.ByteType)
         case i: Int => LiteralValue(i, DataTypes.IntegerType)
         case l: Long => LiteralValue(l, DataTypes.LongType)

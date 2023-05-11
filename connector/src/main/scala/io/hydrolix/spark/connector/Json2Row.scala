@@ -65,7 +65,7 @@ object Json2Row {
 
   private def num(n: NumericNode, dt: DataType): Any = {
     dt match {
-      case _: DecimalType => n.decimalValue() // TODO do we care to preserve the precision and scale here?
+      case _: DecimalType => Decimal(n.decimalValue()) // TODO do we care to preserve the precision and scale here?
       case LongType => n.longValue()
       case DoubleType => n.doubleValue()
       case FloatType => n.floatValue()
