@@ -9,14 +9,16 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 import org.slf4j.LoggerFactory
 
-import java.io.{ByteArrayInputStream, File, FileOutputStream}
+import java.io._
 import java.util.Base64
 import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.atomic.AtomicLong
 import java.util.regex.Pattern
 import java.util.zip.GZIPInputStream
 import scala.collection.mutable
-import scala.sys.process.{Process, ProcessLogger}
+import scala.sys.process.{Process, ProcessIO}
 import scala.util.Using.resource
+import scala.util.control.Breaks.{break, breakable}
 import scala.util.{Try, Using}
 
 class HdxPartitionReaderFactory(info: HdxConnectionInfo, pkName: String)
@@ -55,12 +57,37 @@ object HdxPartitionReader {
     f
   }
 
+  private def readLines(stream: InputStream, onLine: String => Unit, onDone: => Unit): Unit = {
+    Using.resource(new BufferedReader(new InputStreamReader(stream, "UTF-8"))) { reader =>
+      breakable {
+        while (true) {
+          val line = reader.readLine()
+          try {
+            if (line == null) {
+              onDone
+              break()
+            } else {
+              onLine(line)
+            }
+          } catch {
+            case _: InterruptedException =>
+              // If we got killed early (e.g. because of a LIMIT) let's be quiet about it
+              Thread.currentThread().interrupt()
+              break()
+          }
+        }
+      }
+    }
+  }
+
   private val stderrFilterR = """^read hdx_partition=(.*?) rows=(.*?) values=(.*?) in (.*?)$""".r
   // Note, these regexes can break if turbine.ini format changes!
   private val gcsCredentialsR = Pattern.compile("""^(\s*fs.gcs.credentials.json_credentials_file\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
   private val awsMethodR = Pattern.compile("""^(\s*fs.aws.credentials.method\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
   private val awsAccessKeyR = Pattern.compile("""^(\s*fs.aws.credentials.access_key\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
   private val awsSecretKeyR = Pattern.compile("""^(\s*fs.aws.credentials.secret_key\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
+
+  private val doneSignal = "DONE"
 }
 
 /**
@@ -79,16 +106,8 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
 {
   import HdxPartitionReader._
 
-  private val doneSignal = "DONE"
-  private val deadSignal = "DEAD"
-  private val q = new ArrayBlockingQueue[String](1024)
-  @volatile private var exitCode: Option[Int] = None
-
-  // Cache because PartitionReader says get() should always return the same record if called multiple times per next()
-  private var rec: InternalRow = _
-
   private val schema = scan.schema.fields.map { fld =>
-    HdxOutputColumn(fld.name, Types.sparkToHdx(fld.name, fld.dataType, primaryKeyName, scan.hdxCols))
+    HdxOutputColumn(fld.name, scan.hdxCols.getOrElse(fld.name, sys.error(s"No HdxColumnInfo for ${fld.name}")).hdxType)
   }
 
   private val schemaStr = JSON.objectMapper.writeValueAsString(schema)
@@ -163,46 +182,39 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   ) ++ exprArgs
   log.info(s"Running ${turbineCmdTmp.getAbsolutePath} ${turbineCmdArgs.mkString(" ")}")
 
+  private val counter = new AtomicLong(1) // 1 => make room for doneSignal
+  private val linesQ = new ArrayBlockingQueue[String](1024)
+
+  // Cache because PartitionReader says get() should always return the same record if called multiple times per next()
+  @volatile private var rec: InternalRow = _
+
   private val hdxReaderProcessBuilder = Process(turbineCmdTmp.getAbsolutePath, turbineCmdArgs)
-  private val stderr = mutable.ListBuffer[String]()
+  private val capturedStderr = mutable.ListBuffer[String]()
 
   // TODO this relies on the stdout being split into strings; that won't be the case once we get gzip working!
-  private val hdxReaderProcess = hdxReaderProcessBuilder.run(ProcessLogger(
-    { line =>
-      try {
-        q.put(line)
-      } catch {
-        case _: InterruptedException =>
-          // If we got killed early (e.g. because of a LIMIT) let's be quiet about it
-          Thread.currentThread().interrupt()
+  private val hdxReaderProcess = hdxReaderProcessBuilder.run(new ProcessIO(
+    { _.close() }, // Don't care about stdin
+    readLines(_,
+      { line =>
+        linesQ.put(line)
+        counter.incrementAndGet()
+      },
+      {
+        linesQ.put(doneSignal)
       }
-    },
-    {
-      case stderrFilterR(_*) => ()
-      case line => stderr += line
-    }
+    ),
+    readLines(_,
+      {
+        case stderrFilterR(_*) => () // Ignore expected output
+        case l => capturedStderr += l // Capture unexpected output
+      },
+      () // No need to do anything special when stderr drains
+    )
   ))
-
-  // A dumb thread to wait for the child to exit so we can send doneSignal on the queue, and capture the exit code
-  new Thread(() => {
-    try {
-      val exit = hdxReaderProcess.exitValue() // Blocks until exit
-      exitCode = Some(exit)
-    } catch {
-      case _: InterruptedException =>
-        Thread.currentThread().interrupt()
-    } finally {
-      if (exitCode.contains(0)) {
-        q.put(doneSignal)
-      } else {
-        q.put(deadSignal)
-      }
-    }
-  }).start()
 
   override def next(): Boolean = {
     val line = try {
-      q.take() // It's OK to block here, we'll always have doneSignal...
+      linesQ.take() // It's OK to block here, we'll always have doneSignal...
     } catch {
       case _: InterruptedException =>
         // ...But if we got killed while waiting, don't be noisy about it
@@ -211,12 +223,18 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     }
 
     if (line eq doneSignal) {
-      false
-    } else if (line eq deadSignal) {
-      throw new RuntimeException(s"turbine_cmd process exited with code ${exitCode.getOrElse("<UNKNOWN, this is a bug!>")}; stderr was: ${stderr.mkString("\n  ", "\n  ", "\n")}")
+      // stdout is closed, now we can wait for the sweet release of death
+      val exit = hdxReaderProcess.exitValue()
+      if (exit != 0) {
+        throw new RuntimeException(s"turbine_cmd process exited with code $exit; stderr was: ${capturedStderr.mkString("\n  ", "\n  ", "\n")}")
+      } else {
+        // There are definitely no more records
+        false
+      }
     } else {
       rec = Json2Row.row(scan.schema, line)
-      true
+
+      counter.decrementAndGet() > 0
     }
   }
 
@@ -225,16 +243,5 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   override def close(): Unit = {
     Try(turbineIniTmp.delete())
     credsTempFile.foreach(f => Try(f.delete()))
-
-    if (hdxReaderProcess.isAlive()) {
-      log.debug(s"Killing child process for partition ${scan.path} early")
-      hdxReaderProcess.destroy()
-    } else {
-      exitCode match {
-        case None => log.error("Sanity violation: process exited but we have no exit code!")
-        case Some(i) if i != 0 => log.warn(s"Process exited with status $i")
-        case Some(_) => // OK
-      }
-    }
   }
 }

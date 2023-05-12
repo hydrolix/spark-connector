@@ -137,7 +137,7 @@ case class HdxColumnDatatype(             `type`: HdxValueType,
   @JsonInclude(Include.NON_ABSENT)        script: Option[String] = None,
   @JsonInclude(Include.NON_DEFAULT)     catchAll: Boolean = false,
   @JsonInclude(Include.NON_DEFAULT)       ignore: Boolean = false,
-  @JsonInclude(Include.NON_ABSENT)      elements: Option[JsonNode] = None)
+  @JsonInclude(Include.NON_ABSENT)      elements: Option[List[HdxColumnDatatype]] = None)
 
 /**
  * TODO sync this with the Elastic project somehow:

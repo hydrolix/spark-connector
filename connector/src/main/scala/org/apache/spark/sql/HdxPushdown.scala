@@ -232,7 +232,7 @@ object HdxPushdown extends Logging {
         val hdxOp = hdxOps.getOrElse(op, sys.error(s"No hydrolix operator for Spark operator $op"))
 
         if (hcol.indexed == 2) {
-          if (hcol.hdxType == HdxValueType.String) {
+          if (hcol.hdxType.`type` == HdxValueType.String) {
             // This field is indexed in all partitions, make it so
             Some(s""""$field" $hdxOp $lit""")
           } else {

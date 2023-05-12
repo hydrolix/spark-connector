@@ -184,17 +184,12 @@ object ParquetTransformTranslator extends App {
         val keyType = parquetToHdx(name, typ.asGroupType().getType(0))
         val valueType = parquetToHdx(name, typ.asGroupType().getType(1))
 
-        val arr = JSON.objectMapper.getNodeFactory.arrayNode()
-        arr.add(JSON.objectMapper.convertValue[JsonNode](keyType))
-        arr.add(JSON.objectMapper.convertValue[JsonNode](valueType))
-        HdxColumnDatatype(HdxValueType.Map, false, false, elements = Some(arr))
+        HdxColumnDatatype(HdxValueType.Map, false, false, elements = Some(List(keyType, valueType)))
 
       case _: ListLogicalTypeAnnotation =>
         val elementType = parquetToHdx(name, typ.asGroupType().getType(0))
 
-        val arr = JSON.objectMapper.getNodeFactory.arrayNode()
-        arr.add(JSON.objectMapper.convertValue[JsonNode](elementType))
-        HdxColumnDatatype(HdxValueType.Array, false, false, elements = Some(arr))
+        HdxColumnDatatype(HdxValueType.Array, false, false, elements = Some(List(elementType)))
     }
   }
 

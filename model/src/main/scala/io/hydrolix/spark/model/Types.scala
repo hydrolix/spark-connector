@@ -15,41 +15,43 @@ object Types {
    * TODO this is conservative about making space for rare, high-magnitude values, e.g. uint64 -> decimal ... should
    * probably be optional
    *
-   * @return (sparkType, hdxValueType, nullable?)
+   * @return (sparkType, hdxColumnDataType, nullable?)
    */
-  def decodeClickhouseType(s: String): (DataType, HdxValueType, Boolean) = {
+  def decodeClickhouseType(s: String): (DataType, HdxColumnDatatype, Boolean) = {
     s.toLowerCase match {
-      case "int8" => (DataTypes.ByteType, HdxValueType.Int8, false)    // signed 8-bit => byte
-      case "uint8" => (DataTypes.ShortType, HdxValueType.UInt8, false) // unsigned 8-bit => short
+      case "int8" => (DataTypes.ByteType, HdxColumnDatatype(HdxValueType.Int8, true, false), false)    // signed 8-bit => byte
+      case "uint8" => (DataTypes.ShortType, HdxColumnDatatype(HdxValueType.UInt8, true, false), false) // unsigned 8-bit => short
 
-      case "int16" => (DataTypes.ShortType, HdxValueType.Int32, false) // signed 16-bit => short
-      case "uint16" => (DataTypes.IntegerType, HdxValueType.UInt32, false) // unsigned 16-bit => int
+      case "int16" => (DataTypes.ShortType, HdxColumnDatatype(HdxValueType.Int32, true, false), false) // signed 16-bit => short
+      case "uint16" => (DataTypes.IntegerType, HdxColumnDatatype(HdxValueType.UInt32, true, false), false) // unsigned 16-bit => int
 
-      case "int32" => (DataTypes.IntegerType, HdxValueType.Int32, false) // signed 32-bit => int
-      case "uint32" => (DataTypes.LongType, HdxValueType.UInt32, false) // unsigned 32-bit => long
+      case "int32" => (DataTypes.IntegerType, HdxColumnDatatype(HdxValueType.Int32, true, false), false) // signed 32-bit => int
+      case "uint32" => (DataTypes.LongType, HdxColumnDatatype(HdxValueType.UInt32, true, false), false) // unsigned 32-bit => long
 
-      case "int64" => (DataTypes.LongType, HdxValueType.Int64, false) // signed 64-bit => long
-      case "uint64" => (DataTypes.createDecimalType(20, 0), HdxValueType.UInt64, false) // unsigned 64-bit => 20-digit decimal
+      case "int64" => (DataTypes.LongType, HdxColumnDatatype(HdxValueType.Int64, true, false), false) // signed 64-bit => long
+      case "uint64" => (DataTypes.createDecimalType(20, 0), HdxColumnDatatype(HdxValueType.UInt64, true, false), false) // unsigned 64-bit => 20-digit decimal
 
-      case "float32" => (DataTypes.FloatType, HdxValueType.Double, false) // float32 => double
-      case "float64" => (DataTypes.DoubleType, HdxValueType.Double, false) // float64 => double
+      case "float32" => (DataTypes.FloatType, HdxColumnDatatype(HdxValueType.Double, true, false), false) // float32 => double
+      case "float64" => (DataTypes.DoubleType, HdxColumnDatatype(HdxValueType.Double, true, false), false) // float64 => double
 
-      case "string" => (DataTypes.StringType, HdxValueType.String, false)
+      case "string" => (DataTypes.StringType, HdxColumnDatatype(HdxValueType.String, true, false), false)
 
-      case datetime64R(_) => (DataTypes.TimestampType, HdxValueType.DateTime64, false) // TODO OK to discard precision here?
-      case datetimeR(_) => (DataTypes.TimestampType, HdxValueType.DateTime, false) // TODO OK to discard precision here?
+      case datetime64R(_) => (DataTypes.TimestampType, HdxColumnDatatype(HdxValueType.DateTime64, true, false), false) // TODO OK to discard precision here?
+      case datetimeR(_) => (DataTypes.TimestampType, HdxColumnDatatype(HdxValueType.DateTime, true, false), false) // TODO OK to discard precision here?
 
-      case "datetime64" => (DataTypes.TimestampType, HdxValueType.DateTime64, false)
-      case "datetime" => (DataTypes.TimestampType, HdxValueType.DateTime64, false)
+      case "datetime64" => (DataTypes.TimestampType, HdxColumnDatatype(HdxValueType.DateTime64, true, false), false)
+      case "datetime" => (DataTypes.TimestampType, HdxColumnDatatype(HdxValueType.DateTime64, true, false), false)
 
       case arrayR(elementTypeName) =>
-        val (typ, _, nullable) = decodeClickhouseType(elementTypeName)
-        (DataTypes.createArrayType(typ), HdxValueType.Array, nullable)
+        val (typ, hdxType, nullable) = decodeClickhouseType(elementTypeName)
+
+        (DataTypes.createArrayType(typ), HdxColumnDatatype(HdxValueType.Array, true, false, elements = Some(List(hdxType))), nullable)
 
       case mapR(keyTypeName, valueTypeName) =>
-        val (keyType, _, _) = decodeClickhouseType(keyTypeName)
-        val (valueType, _, valueNull) = decodeClickhouseType(valueTypeName)
-        (DataTypes.createMapType(keyType, valueType, valueNull), HdxValueType.Map, false)
+        val (keyType, hdxKeyType, _) = decodeClickhouseType(keyTypeName)
+        val (valueType, hdxValueType, valueNull) = decodeClickhouseType(valueTypeName)
+
+        (DataTypes.createMapType(keyType, valueType, valueNull), HdxColumnDatatype(HdxValueType.Map, true, false, elements = Some(List(hdxKeyType, hdxValueType))), false)
 
       case nullableR(typeName) =>
         val (typ, hdxType, _) = decodeClickhouseType(typeName)
@@ -59,52 +61,6 @@ object Types {
       case encodingR(name, _) =>
         // TODO we might want the encoding somewhere but not for Spark per se
         decodeClickhouseType(name)
-    }
-  }
-
-  def sparkToHdx(name: String, sparkType: DataType, primaryKeyName: String, cols: Map[String, HdxColumnInfo]): HdxColumnDatatype = {
-    val hcol = cols.getOrElse(name, sys.error(s"No HdxColumnInfo for $name"))
-    val htype = hcol.hdxType
-    val index = hcol.indexed == 2 // TODO maybe OK to index=true if the column is indexed in only some partitions?
-
-    sparkType match {
-      case DataTypes.StringType => HdxColumnDatatype(htype, index, false)
-      case DataTypes.IntegerType => HdxColumnDatatype(htype, index, false)
-      case DataTypes.ShortType => HdxColumnDatatype(htype, index, false)
-      case DataTypes.LongType => HdxColumnDatatype(htype, index, false)
-      case DataTypes.BooleanType => HdxColumnDatatype(htype, index, false)
-      case DataTypes.DoubleType => HdxColumnDatatype(htype, index, false)
-      case DataTypes.FloatType => HdxColumnDatatype(htype, index, false)
-      case DataTypes.TimestampType =>
-        val (typ, res) = if (hcol.clickhouseType.toLowerCase().contains("datetime64")) {
-          htype -> "ms"
-        } else {
-          htype -> "s"
-        }
-
-        HdxColumnDatatype(typ, index, name == primaryKeyName, resolution = Some(res))
-
-      case ArrayType(elementType, _) =>
-        val elt = sparkToHdx(name, elementType, primaryKeyName, cols).copy(index = false)
-
-        val arr = JSON.objectMapper.getNodeFactory.arrayNode()
-        arr.add(JSON.objectMapper.convertValue[JsonNode](elt))
-
-        HdxColumnDatatype(HdxValueType.Array, index, false, elements = Some(arr))
-
-      case MapType(keyType, valueType, _) =>
-        val kt = sparkToHdx(name, keyType, primaryKeyName, cols).copy(index = false)
-        val vt = sparkToHdx(name, valueType, primaryKeyName, cols).copy(index = false)
-
-        val arr = JSON.objectMapper.getNodeFactory.arrayNode()
-        arr.add(JSON.objectMapper.convertValue[JsonNode](kt))
-        arr.add(JSON.objectMapper.convertValue[JsonNode](vt))
-
-        HdxColumnDatatype(HdxValueType.Map, index, false, elements = Some(arr))
-
-      case DecimalType() => HdxColumnDatatype(htype, index, false)
-
-      case other => sys.error(s"Can't convert $other to a HdxColumnDatatype")
     }
   }
 }

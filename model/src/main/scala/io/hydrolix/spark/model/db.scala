@@ -19,7 +19,7 @@ import java.time.Instant
  */
 case class HdxColumnInfo(name: String,
                clickhouseType: String,
-                      hdxType: HdxValueType,
+                      hdxType: HdxColumnDatatype,
                      nullable: Boolean,
                     sparkType: DataType,
                       indexed: Int)
