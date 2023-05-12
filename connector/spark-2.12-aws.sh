@@ -34,7 +34,7 @@ fi
 turbineIniBase64=$(gzip < "$TURBINE_INI_PATH" |base64 -w0)
 
 "$SPARK_HOME"/bin/spark-shell \
-        --jars ./target/scala-2.12/connector-assembly-0.1.0-SNAPSHOT.jar \
+        --jars ./target/scala-2.12/connector-assembly-0.8.0-SNAPSHOT.jar \
         -c spark.driver.extraJavaOptions=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 \
         -c spark.sql.catalog.hydrolix=io.hydrolix.spark.connector.HdxTableCatalog \
         -c spark.sql.catalog.hydrolix.storage_type=aws \
