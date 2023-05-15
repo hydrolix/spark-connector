@@ -58,6 +58,7 @@ object HdxPartitionReader {
   }
 
   private def readLines(stream: InputStream, onLine: String => Unit, onDone: => Unit): Unit = {
+    // TODO GZIP goes here if we ever get that working in turbine_cmd
     Using.resource(new BufferedReader(new InputStreamReader(stream, "UTF-8"))) { reader =>
       breakable {
         while (true) {
