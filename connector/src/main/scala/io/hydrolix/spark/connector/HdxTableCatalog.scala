@@ -5,11 +5,11 @@ import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxJdbcSession
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
-import org.apache.spark.sql.connector.catalog.{Identifier, NamespaceChange, SupportsNamespaces, Table, TableCatalog, TableChange}
+import org.apache.spark.sql.connector.catalog._
 import org.apache.spark.sql.connector.expressions.Transform
+import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Implicits._
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Implicits._
 
 import java.util.Collections
 import java.{util => ju}
@@ -53,11 +53,16 @@ class HdxTableCatalog extends TableCatalog
     val db = properties.get(OPT_PROJECT_NAME)
     val table = properties.get(OPT_TABLE_NAME)
 
-    val apiTable = api.table(db, table).getOrElse(throw NoSuchTableException(s"$db.$table"))
+    val apiTable = api.table(db, table)
+                      .getOrElse(throw NoSuchTableException(s"$db.$table"))
     val primaryKey = api.pk(db, table)
+    val storage = api.storages()
+                     .findSingle(_ => true)
+                     .getOrElse(sys.error(s"Multiple storages found in organization ${info.orgId}"))
 
     HdxTable(
       info,
+      storage,
       Identifier.of(Array(db), table),
       schema,
       CaseInsensitiveStringMap.empty(),

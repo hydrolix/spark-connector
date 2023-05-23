@@ -1,6 +1,6 @@
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.HdxConnectionInfo
+import io.hydrolix.spark.model.{HdxConnectionInfo, HdxStorage}
 
 import org.apache.spark.sql.connector.expressions.aggregate.AggregateFunc
 import org.apache.spark.sql.connector.expressions.filter.Predicate
@@ -8,6 +8,7 @@ import org.apache.spark.sql.connector.read.{Batch, Scan}
 import org.apache.spark.sql.types.StructType
 
 class HdxScan(info: HdxConnectionInfo,
+           storage: HdxStorage,
              table: HdxTable,
               cols: StructType,
        pushedPreds: List[Predicate],
@@ -15,7 +16,7 @@ class HdxScan(info: HdxConnectionInfo,
   extends Scan
 {
   // TODO add SupportsRuntimeFiltering maybe
-  private val batch = new HdxBatch(info, table, cols, pushedPreds, pushedAggs)
+  private val batch = new HdxBatch(info, storage, table, cols, pushedPreds, pushedAggs)
 
   override def toBatch: Batch = batch
 

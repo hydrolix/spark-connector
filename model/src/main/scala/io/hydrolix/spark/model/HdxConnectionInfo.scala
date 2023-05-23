@@ -1,7 +1,6 @@
 package io.hydrolix.spark.model
 
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import org.slf4j.Logger
 
 import java.net.URI
 import java.util.UUID
@@ -13,12 +12,10 @@ import java.util.UUID
  * @param user             the username to authenticate to JDBC and the Hydrolix API
  * @param password         the password for authentication to JDBC and the Hydrolix API
  * @param apiUrl           the URL of the Hydrolix API; probably needs to end with `/config/v1/` at the moment.
- * @param turbineIniBase64 the base64(gzip(_)) of a `turbine.ini` file we'll use to connect to storageType storage
- * @param storageType            which storageType we're trying to connect to, e.g. `gcs`
- * @param cloudCred1       first credential for storageType storage, required, e.g.:
+ * @param cloudCred1       first credential for storage, required, e.g.:
  *                           - for `gcs`, the base64(gzip(_)) of a gcp service account key file
  *                           - for AWS, the access key ID
- * @param cloudCred2       second credential for storageType storage, optional, e.g.:
+ * @param cloudCred2       second credential for storage, optional, e.g.:
  *                           - for `gcs`, not required
  *                           - for AWS, the secret key
  */
@@ -27,8 +24,6 @@ case class HdxConnectionInfo(orgId: UUID,
                               user: String,
                           password: String,
                             apiUrl: URI,
-                       storageType: String,
-                  turbineIniBase64: String,
                    partitionPrefix: Option[String],
                         cloudCred1: String,
                         cloudCred2: Option[String])
@@ -42,9 +37,7 @@ case class HdxConnectionInfo(orgId: UUID,
       OPT_USERNAME -> user,
       OPT_PASSWORD -> password,
       OPT_API_URL -> apiUrl.toString,
-      OPT_STORAGE_TYPE -> storageType,
       OPT_CLOUD_CRED_1 -> cloudCred1,
-      OPT_TURBINE_INI_BASE64 -> turbineIniBase64,
     ) ++
       cloudCred2.map(OPT_CLOUD_CRED_2 -> _) ++
       partitionPrefix.map(OPT_PARTITION_PREFIX -> _)
@@ -59,9 +52,7 @@ object HdxConnectionInfo {
   val OPT_USERNAME = "username"
   val OPT_PASSWORD = "password"
   val OPT_API_URL = "api_url"
-  val OPT_TURBINE_INI_BASE64 = "turbine_ini_base64"
   val OPT_PARTITION_PREFIX = "partition_prefix"
-  val OPT_STORAGE_TYPE = "storage_type"
   val OPT_CLOUD_CRED_1 = "cloud_cred_1"
   val OPT_CLOUD_CRED_2 = "cloud_cred_2"
 
@@ -81,12 +72,10 @@ object HdxConnectionInfo {
     val user = req(options, OPT_USERNAME)
     val pass = req(options, OPT_PASSWORD)
     val apiUrl = new URI(req(options, OPT_API_URL))
-    val turbineIniB64 = req(options, OPT_TURBINE_INI_BASE64)
     val partitionPrefix = opt(options, OPT_PARTITION_PREFIX)
-    val storageType = req(options, OPT_STORAGE_TYPE)
     val cloudCred1 = req(options, OPT_CLOUD_CRED_1)
     val cloudCred2 = opt(options, OPT_CLOUD_CRED_2)
 
-    HdxConnectionInfo(orgId, url, user, pass, apiUrl, storageType, turbineIniB64, partitionPrefix, cloudCred1, cloudCred2)
+    HdxConnectionInfo(orgId, url, user, pass, apiUrl, partitionPrefix, cloudCred1, cloudCred2)
   }
 }
