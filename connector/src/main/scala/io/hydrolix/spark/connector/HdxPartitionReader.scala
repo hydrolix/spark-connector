@@ -7,6 +7,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
+import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.slf4j.LoggerFactory
 
 import java.io._
@@ -24,7 +25,11 @@ import scala.util.{Try, Using}
 class HdxPartitionReaderFactory(info: HdxConnectionInfo, pkName: String)
   extends PartitionReaderFactory
 {
-  override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
+  override def createReader(partition: InputPartition): PartitionReader[InternalRow] = sys.error("No row-oriented anymore")
+
+  override def supportColumnarReads(partition: InputPartition) = true
+
+  override def createColumnarReader(partition: InputPartition): PartitionReader[ColumnarBatch] = {
     new HdxPartitionReader(info, pkName, partition.asInstanceOf[HdxScanPartition])
   }
 }
@@ -57,9 +62,9 @@ object HdxPartitionReader {
     f
   }
 
-  private def readLines(stream: InputStream, onLine: String => Unit, onDone: => Unit): Unit = {
+  private def readLines(stream: InputStream, onLine: String => Unit, onDone: => Unit, bufSize: Int = 16384): Unit = {
     // TODO GZIP goes here if we ever get that working in turbine_cmd
-    Using.resource(new BufferedReader(new InputStreamReader(stream, "UTF-8"))) { reader =>
+    Using.resource(new BufferedReader(new InputStreamReader(stream, "UTF-8"), bufSize)) { reader =>
       breakable {
         while (true) {
           val line = reader.readLine()
@@ -88,7 +93,7 @@ object HdxPartitionReader {
   private val awsAccessKeyR = Pattern.compile("""^(\s*fs.aws.credentials.access_key\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
   private val awsSecretKeyR = Pattern.compile("""^(\s*fs.aws.credentials.secret_key\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
 
-  private val doneSignal = "DONE"
+  private val doneSignal = new ColumnarBatch(Array())
 }
 
 /**
@@ -102,7 +107,7 @@ object HdxPartitionReader {
 final class HdxPartitionReader(info: HdxConnectionInfo,
                      primaryKeyName: String,
                                scan: HdxScanPartition)
-  extends PartitionReader[InternalRow]
+  extends PartitionReader[ColumnarBatch]
     with Logging
 {
   import HdxPartitionReader._
@@ -176,7 +181,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   private val turbineCmdArgs = List(
     "hdx_reader",
     "--config", turbineIniTmp.getAbsolutePath,
-    "--output_format", "json",
+    "--output_format", "jsonc",
     "--hdx_partition", s"${info.partitionPrefix.getOrElse("")}${scan.path}",
     "--output_path", "-",
     "--schema", schemaStr
@@ -184,10 +189,10 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   log.info(s"Running ${turbineCmdTmp.getAbsolutePath} ${turbineCmdArgs.mkString(" ")}")
 
   private val counter = new AtomicLong(1) // 1 => make room for doneSignal
-  private val linesQ = new ArrayBlockingQueue[String](1024)
+  private val batchQ = new ArrayBlockingQueue[ColumnarBatch](100)
 
   // Cache because PartitionReader says get() should always return the same record if called multiple times per next()
-  @volatile private var rec: InternalRow = _
+  @volatile private var batch: ColumnarBatch = _
 
   private val hdxReaderProcessBuilder = Process(turbineCmdTmp.getAbsolutePath, turbineCmdArgs)
   private val capturedStderr = mutable.ListBuffer[String]()
@@ -195,15 +200,9 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   // TODO this relies on the stdout being split into strings; that won't be the case once we get gzip working!
   private val hdxReaderProcess = hdxReaderProcessBuilder.run(new ProcessIO(
     { _.close() }, // Don't care about stdin
-    readLines(_,
-      { line =>
-        linesQ.put(line)
-        counter.incrementAndGet()
-      },
-      {
-        linesQ.put(doneSignal)
-      }
-    ),
+    { stdout =>
+      HdxReaderJsonParsing.batches(scan.schema, stdout, batchQ.put, batchQ.put(doneSignal))
+    },
     readLines(_,
       {
         case stderrFilterR(_*) => () // Ignore expected output
@@ -214,8 +213,8 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   ))
 
   override def next(): Boolean = {
-    val line = try {
-      linesQ.take() // It's OK to block here, we'll always have doneSignal...
+    val batch = try {
+      batchQ.take() // It's OK to block here, we'll always have doneSignal...
     } catch {
       case _: InterruptedException =>
         // ...But if we got killed while waiting, don't be noisy about it
@@ -223,7 +222,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
         return false
     }
 
-    if (line eq doneSignal) {
+    if (batch eq doneSignal) {
       // stdout is closed, now we can wait for the sweet release of death
       val exit = hdxReaderProcess.exitValue()
       if (exit != 0) {
@@ -233,13 +232,13 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
         false
       }
     } else {
-      rec = Json2Row.row(scan.schema, line)
+      this.batch = batch
 
       counter.decrementAndGet() > 0
     }
   }
 
-  override def get(): InternalRow = rec
+  override def get(): ColumnarBatch = batch
 
   override def close(): Unit = {
     Try(turbineIniTmp.delete())

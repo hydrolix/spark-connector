@@ -9,6 +9,6 @@ libraryDependencies ++= List(
   "com.fasterxml.jackson.module" % "jackson-module-parameter-names" % "2.14.2",
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % "2.14.2",
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % "2.14.2",
-  "ch.qos.logback" % "logback-classic" % "1.4.6",
+  "ch.qos.logback" % "logback-classic" % "1.3.6",
   "com.google.guava" % "guava" % "31.1-jre",
 )
