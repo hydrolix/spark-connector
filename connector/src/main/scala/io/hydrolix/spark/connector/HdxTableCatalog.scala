@@ -57,8 +57,8 @@ class HdxTableCatalog extends TableCatalog
                       .getOrElse(throw NoSuchTableException(s"$db.$table"))
     val primaryKey = api.pk(db, table)
     val storage = api.storages()
-                     .findSingle(_ => true)
-                     .getOrElse(sys.error(s"Multiple storages found in organization ${info.orgId}"))
+                     .findSingle(_.settings.isDefault)
+                     .getOrElse(sys.error(s"No default storage found in organization ${info.orgId}"))
 
     HdxTable(
       info,
