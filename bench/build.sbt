@@ -1,3 +1,4 @@
+//noinspection SbtDependencyVersionInspection -- JDK8 stuff :/
 libraryDependencies ++= List(
   "org.apache.spark" %% "spark-sql" % "3.3.2",
   "org.apache.hadoop" % "hadoop-common" % "3.3.5",

@@ -188,3 +188,19 @@ case class JsonFlattening(active: Boolean,
 
 case class FlatteningStrategy(left: String,
                              right: String)
+
+case class HdxStorage(name: String,
+                       org: UUID,
+               description: Option[String],
+                      uuid: UUID,
+                       url: URL,
+                   created: Instant,
+                  modified: Instant,
+                  settings: HdxStorageSettings)
+
+@JsonNaming(classOf[SnakeCaseStrategy])
+case class HdxStorageSettings(isDefault: Boolean,
+                             bucketName: String,
+                             bucketPath: String,
+                                 region: String,
+                                  cloud: String)

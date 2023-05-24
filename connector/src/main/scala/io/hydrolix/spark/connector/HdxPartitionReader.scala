@@ -14,7 +14,6 @@ import java.io._
 import java.util.Base64
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.atomic.AtomicLong
-import java.util.regex.Pattern
 import java.util.zip.GZIPInputStream
 import scala.collection.mutable
 import scala.sys.process.{Process, ProcessIO}
@@ -22,7 +21,7 @@ import scala.util.Using.resource
 import scala.util.control.Breaks.{break, breakable}
 import scala.util.{Try, Using}
 
-class HdxPartitionReaderFactory(info: HdxConnectionInfo, pkName: String)
+class HdxPartitionReaderFactory(info: HdxConnectionInfo, storage: HdxStorageSettings, pkName: String)
   extends PartitionReaderFactory
 {
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = sys.error("No row-oriented anymore")
@@ -87,11 +86,6 @@ object HdxPartitionReader {
   }
 
   private val stderrFilterR = """^read hdx_partition=(.*?) rows=(.*?) values=(.*?) in (.*?)$""".r
-  // Note, these regexes can break if turbine.ini format changes!
-  private val gcsCredentialsR = Pattern.compile("""^(\s*fs.gcs.credentials.json_credentials_file\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
-  private val awsMethodR = Pattern.compile("""^(\s*fs.aws.credentials.method\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
-  private val awsAccessKeyR = Pattern.compile("""^(\s*fs.aws.credentials.access_key\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
-  private val awsSecretKeyR = Pattern.compile("""^(\s*fs.aws.credentials.secret_key\s*=\s*)(.*?)\s*$""", Pattern.MULTILINE)
 
   private val doneSignal = new ColumnarBatch(Array())
 }
@@ -105,6 +99,7 @@ object HdxPartitionReader {
  *  - Make a ColumnarBatch version too (will require deep hdx_reader changes)
  */
 final class HdxPartitionReader(info: HdxConnectionInfo,
+                            storage: HdxStorageSettings,
                      primaryKeyName: String,
                                scan: HdxScanPartition)
   extends PartitionReader[ColumnarBatch]
@@ -121,24 +116,17 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   private val exprArgs = {
     // TODO Spark seems to inject a `foo IS NOT NULL` alongside a `foo = <lit>`, maybe filter it out before doing this
 
-    val renderedPreds = scan.pushed.map(HdxPushdown.renderHdxFilterExpr(_, primaryKeyName, scan.hdxCols))
+    val renderedPreds = scan.pushed.flatMap(HdxPushdown.renderHdxFilterExpr(_, primaryKeyName, scan.hdxCols))
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
-    val expr = renderedPreds.flatten.mkString("[", " AND ", "]")
-    log.info(s"Pushed-down expression: $expr")
+    val expr = renderedPreds.mkString("[", " AND ", "]")
     if (renderedPreds.isEmpty) Nil else List("--expr", expr)
   }
 
-  private val turbineIniBefore = resource(
-    new GZIPInputStream(new ByteArrayInputStream(
-      Base64.getDecoder.decode(info.turbineIniBase64)
-    ))
-  ) { is =>
-    new String(ByteStreams.toByteArray(is), "UTF-8")
-  }
+  private val turbineIniBefore = TurbineIni(storage, info.cloudCred1, info.cloudCred2)
 
-  private val (turbineIniAfter, credsTempFile) = if (info.storageType == "gcs") {
+  private val (turbineIniAfter, credsTempFile) = if (storage.cloud == "gcp") {
     val gcsKeyFile = File.createTempFile("turbine_gcs_key_", ".json")
     gcsKeyFile.deleteOnExit()
 
@@ -149,25 +137,14 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
       val gcsKeyBytes = ByteStreams.toByteArray(use(new GZIPInputStream(new ByteArrayInputStream(gcsKeyB64))))
       use(new FileOutputStream(gcsKeyFile)).write(gcsKeyBytes)
 
-      val turbineIniWithGcsCredsPath = gcsCredentialsR.matcher(turbineIniBefore).replaceAll(s"$$1${gcsKeyFile.getAbsolutePath}")
+      val turbineIniWithGcsCredsPath = turbineIniBefore.replace("%CREDS_FILE%", gcsKeyFile.getAbsolutePath)
 
       turbineIniWithGcsCredsPath
     }.get
 
     (turbineIni, Some(gcsKeyFile))
-  } else if (info.storageType == "aws") {
-    // For aws, cloudCred1 is the access key, and cloudCred2 is the secret.
-    val accessKey = info.cloudCred1
-    val secret = info.cloudCred2.getOrElse(sys.error("cloud_cred_2 is required for aws!"))
-
-    // TODO other AWS settings like region need a place to live too; for now pre-populate the turbine.ini
-    val s2 = awsMethodR.matcher(turbineIniBefore).replaceAll(s"$$1static")
-    val s3 = awsAccessKeyR.matcher(s2).replaceAll(s"$$1$accessKey")
-    val s4 = awsSecretKeyR.matcher(s3).replaceAll(s"$$1$secret")
-
-    (s4, None)
   } else {
-    // TODO implement other storage types, but using turbine.ini unchanged is a good fallback
+    // AWS doesn't need any further munging of turbine.ini
     (turbineIniBefore, None)
   }
 

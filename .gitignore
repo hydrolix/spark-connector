@@ -13,3 +13,6 @@ target/
 .DS_Store
 
 .bsp/
+
+### Spark
+**/metastore_db

@@ -1,3 +1,4 @@
+//noinspection SbtDependencyVersionInspection -- JDK8 stuff :/
 libraryDependencies ++= List(
   "org.apache.spark" %% "spark-catalyst" % "3.3.2" % "provided",
 
