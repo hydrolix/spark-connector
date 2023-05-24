@@ -22,6 +22,10 @@ class HdxApiSession(info: HdxConnectionInfo) {
     allProjectsCache.get(0)
   }
 
+  def storages(): List[HdxStorage] = {
+    allStoragesCache.get(0)
+  }
+
   private def database(db: String): Option[HdxProject] = {
     databases().findSingle(_.name == db)
   }
@@ -32,7 +36,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
   }
 
   private def views(db: String, table: String): List[HdxView] = {
-    val tbl = this.table(db, table).getOrElse(throw new NoSuchTableException(table))
+    val tbl = this.table(db, table).getOrElse(throw NoSuchTableException(table))
     allViewsByTableCache.get(tbl.project -> tbl.uuid)
   }
 
@@ -116,6 +120,19 @@ class HdxApiSession(info: HdxConnectionInfo) {
         val tablesResp = client.execute(tablesGet, new BasicHttpClientResponseHandler())
 
         JSON.objectMapper.readValue[List[HdxApiTable]](tablesResp)
+      })
+  }
+
+  private val allStoragesCache: LoadingCache[Integer, List[HdxStorage]] = {
+    Caffeine.newBuilder()
+      .expireAfterWrite(Duration.ofHours(1))
+      .build((_: Integer) => {
+        val tablesGet = new HttpGet(info.apiUrl.resolve(s"orgs/${info.orgId}/storages/"))
+        tablesGet.addHeader("Authorization", s"Bearer ${tokenCache.get(0).accessToken}")
+
+        val storagesResp = client.execute(tablesGet, new BasicHttpClientResponseHandler())
+
+        JSON.objectMapper.readValue[List[HdxStorage]](storagesResp)
       })
   }
 

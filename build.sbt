@@ -1,5 +1,5 @@
 ThisBuild / organization := "io.hydrolix"
-ThisBuild / version := "0.8.0-SNAPSHOT"
+ThisBuild / version := "0.9.0-SNAPSHOT"
 ThisBuild / scalaVersion := "2.12.17"
 
 lazy val commonSettings = Seq(
