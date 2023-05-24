@@ -1,6 +1,6 @@
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.{HdxConnectionInfo, HdxStorage}
+import io.hydrolix.spark.model.{HdxConnectionInfo, HdxStorageSettings}
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
@@ -10,7 +10,7 @@ import org.apache.spark.sql.connector.read._
 import org.apache.spark.sql.types.{StructField, StructType}
 
 class HdxScanBuilder(info: HdxConnectionInfo,
-                  storage: HdxStorage,
+                  storage: HdxStorageSettings,
                     table: HdxTable)
   extends ScanBuilder
     with SupportsPushDownV2Filters

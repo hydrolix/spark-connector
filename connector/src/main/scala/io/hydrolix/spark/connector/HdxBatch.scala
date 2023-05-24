@@ -1,6 +1,6 @@
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession, HdxStorage}
+import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession, HdxStorageSettings}
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
@@ -12,7 +12,7 @@ import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionRead
 import org.apache.spark.sql.types.StructType
 
 class HdxBatch(info: HdxConnectionInfo,
-            storage: HdxStorage,
+            storage: HdxStorageSettings,
               table: HdxTable,
                cols: StructType,
         pushedPreds: List[Predicate],

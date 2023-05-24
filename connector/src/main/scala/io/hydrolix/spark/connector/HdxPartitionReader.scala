@@ -20,7 +20,7 @@ import scala.util.Using.resource
 import scala.util.control.Breaks.{break, breakable}
 import scala.util.{Try, Using}
 
-class HdxPartitionReaderFactory(info: HdxConnectionInfo, storage: HdxStorage, pkName: String)
+class HdxPartitionReaderFactory(info: HdxConnectionInfo, storage: HdxStorageSettings, pkName: String)
   extends PartitionReaderFactory
 {
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
@@ -94,7 +94,7 @@ object HdxPartitionReader {
  *  - Make a ColumnarBatch version too (will require deep hdx_reader changes)
  */
 final class HdxPartitionReader(info: HdxConnectionInfo,
-                            storage: HdxStorage,
+                            storage: HdxStorageSettings,
                      primaryKeyName: String,
                                scan: HdxScanPartition)
   extends PartitionReader[InternalRow]
@@ -111,18 +111,17 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   private val exprArgs = {
     // TODO Spark seems to inject a `foo IS NOT NULL` alongside a `foo = <lit>`, maybe filter it out before doing this
 
-    val renderedPreds = scan.pushed.map(HdxPushdown.renderHdxFilterExpr(_, primaryKeyName, scan.hdxCols))
+    val renderedPreds = scan.pushed.flatMap(HdxPushdown.renderHdxFilterExpr(_, primaryKeyName, scan.hdxCols))
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
     // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
-    val expr = renderedPreds.flatten.mkString("[", " AND ", "]")
-    log.info(s"Pushed-down expression: $expr")
+    val expr = renderedPreds.mkString("[", " AND ", "]")
     if (renderedPreds.isEmpty) Nil else List("--expr", expr)
   }
 
   private val turbineIniBefore = TurbineIni(storage, info.cloudCred1, info.cloudCred2)
 
-  private val (turbineIniAfter, credsTempFile) = if (storage.settings.cloud == "gcp") {
+  private val (turbineIniAfter, credsTempFile) = if (storage.cloud == "gcp") {
     val gcsKeyFile = File.createTempFile("turbine_gcs_key_", ".json")
     gcsKeyFile.deleteOnExit()
 

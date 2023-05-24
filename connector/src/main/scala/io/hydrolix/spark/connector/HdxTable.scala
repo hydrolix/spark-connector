@@ -1,6 +1,6 @@
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxStorage}
+import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxStorageSettings}
 
 import org.apache.spark.sql.connector.catalog.{Identifier, SupportsRead, Table, TableCapability}
 import org.apache.spark.sql.connector.read.ScanBuilder
@@ -10,7 +10,7 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import java.{util => ju}
 
 case class HdxTable(info: HdxConnectionInfo,
-                 storage: HdxStorage,
+                 storage: HdxStorageSettings,
                    ident: Identifier,
                   schema: StructType,
                  options: CaseInsensitiveStringMap,

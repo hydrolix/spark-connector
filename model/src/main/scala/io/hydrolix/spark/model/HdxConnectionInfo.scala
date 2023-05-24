@@ -1,9 +1,8 @@
 package io.hydrolix.spark.model
 
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
-
 import java.net.URI
 import java.util.UUID
+import java.{util => ju}
 
 /**
  * All the information we need to connect to Hydrolix stuff
@@ -44,6 +43,7 @@ case class HdxConnectionInfo(orgId: UUID,
   }
 }
 
+//noinspection ScalaWeakerAccess
 object HdxConnectionInfo {
   val OPT_ORG_ID = "org_id"
   val OPT_PROJECT_NAME = "project_name"
@@ -55,18 +55,22 @@ object HdxConnectionInfo {
   val OPT_PARTITION_PREFIX = "partition_prefix"
   val OPT_CLOUD_CRED_1 = "cloud_cred_1"
   val OPT_CLOUD_CRED_2 = "cloud_cred_2"
+  val OPT_STORAGE_CLOUD = "storage_cloud"
+  val OPT_STORAGE_REGION = "storage_region"
+  val OPT_STORAGE_BUCKET_NAME = "storage_bucket_name"
+  val OPT_STORAGE_BUCKET_PATH = "storage_bucket_path"
 
-  private def req(options: CaseInsensitiveStringMap, name: String): String = {
+  def req(options: ju.Map[String, String], name: String): String = {
     val s = options.get(name)
     if (s == null) sys.error(s"$name is required")
     s
   }
 
-  private def opt(options: CaseInsensitiveStringMap, name: String): Option[String] = {
+  def opt(options: ju.Map[String, String], name: String): Option[String] = {
     Option(options.get(name))
   }
 
-  def fromOpts(options: CaseInsensitiveStringMap): HdxConnectionInfo = {
+  def fromOpts(options: ju.Map[String, String]): HdxConnectionInfo = {
     val orgId = UUID.fromString(req(options, OPT_ORG_ID))
     val url = req(options, OPT_JDBC_URL)
     val user = req(options, OPT_USERNAME)

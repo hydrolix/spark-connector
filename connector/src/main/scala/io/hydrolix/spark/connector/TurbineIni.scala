@@ -1,6 +1,6 @@
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.HdxStorage
+import io.hydrolix.spark.model.HdxStorageSettings
 
 import com.google.common.io.ByteStreams
 import org.apache.spark.internal.Logging
@@ -12,8 +12,8 @@ object TurbineIni extends Logging {
     new String(ByteStreams.toByteArray(stream), "UTF-8")
   }
 
-  def apply(storage: HdxStorage, cloudCred1: String, cloudCred2: Option[String]): String = {
-    val (creds, storageInfo) = storage.settings.cloud match {
+  def apply(storage: HdxStorageSettings, cloudCred1: String, cloudCred2: Option[String]): String = {
+    val (creds, storageInfo) = storage.cloud match {
       case "gcp" | "gcs" =>
         (
           """# GCS credentials
@@ -23,9 +23,9 @@ object TurbineIni extends Logging {
 
           s"""# GCS storage info
               |fs.id.default.type = gcs
-              |fs.id.default.gcs.region = ${storage.settings.region}
-              |fs.id.default.gcs.storage.bucket_name = ${storage.settings.bucketName}
-              |fs.id.default.gcs.storage.bucket_path = ${storage.settings.bucketPath}
+              |fs.id.default.gcs.region = ${storage.region}
+              |fs.id.default.gcs.storage.bucket_name = ${storage.bucketName}
+              |fs.id.default.gcs.storage.bucket_path = ${storage.bucketPath}
               |""".stripMargin
         )
 
@@ -33,15 +33,15 @@ object TurbineIni extends Logging {
         (
           s"""# AWS credentials
               |fs.aws.credentials.method = static
-              |fs.aws.credentials.access_key = ${cloudCred1}
+              |fs.aws.credentials.access_key = $cloudCred1
               |fs.aws.credentials.secret_key = ${cloudCred2.getOrElse(sys.error("cloud_cred_2 is required for AWS"))}
               |""".stripMargin,
 
           s"""# AWS storage info
               |fs.id.default.type = s3
-              |fs.id.default.aws.region = ${storage.settings.region}
-              |fs.id.default.aws.s3.bucket_name = ${storage.settings.bucketName}
-              |fs.id.default.aws.s3.bucket_path = ${storage.settings.bucketPath}
+              |fs.id.default.aws.region = ${storage.region}
+              |fs.id.default.aws.s3.bucket_name = ${storage.bucketName}
+              |fs.id.default.aws.s3.bucket_path = ${storage.bucketPath}
               |""".stripMargin
         )
 
