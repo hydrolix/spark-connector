@@ -24,7 +24,7 @@ fi
 gcpKeyBase64=$(gzip < "$GCS_KEY_PATH" |base64 -w0)
 
 "$SPARK_HOME"/bin/spark-shell \
-        --jars ./target/scala-2.12/connector-assembly-0.8.0-SNAPSHOT.jar \
+        --jars ./target/scala-2.12/connector-assembly-0.9.0-SNAPSHOT.jar \
         -c spark.driver.extraJavaOptions=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 \
         -c spark.sql.catalog.hydrolix=io.hydrolix.spark.connector.HdxTableCatalog \
         -c spark.sql.catalog.hydrolix.storage_type=gcs \
@@ -34,5 +34,4 @@ gcpKeyBase64=$(gzip < "$GCS_KEY_PATH" |base64 -w0)
         -c spark.sql.catalog.hydrolix.password="$HDX_PASSWORD" \
         -c spark.sql.catalog.hydrolix.api_url="$HDX_API_URL" \
         -c spark.sql.catalog.hydrolix.cloud_cred_1="$gcpKeyBase64"
-        # Add this if you have an old turbine server that doesn't prepend `db/hdx` to the partition paths
-	      # -c spark.sql.catalog.hydrolix.partition_prefix=/db/hdx/
+

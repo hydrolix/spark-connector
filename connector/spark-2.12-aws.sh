@@ -26,7 +26,7 @@ if [ -z "$AWS_SECRET_KEY" ]; then
 fi
 
 "$SPARK_HOME"/bin/spark-shell \
-        --jars ./target/scala-2.12/connector-assembly-0.8.0-SNAPSHOT.jar \
+        --jars ./target/scala-2.12/connector-assembly-0.9.0-SNAPSHOT.jar \
         -c spark.driver.extraJavaOptions=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 \
         -c spark.sql.catalog.hydrolix=io.hydrolix.spark.connector.HdxTableCatalog \
         -c spark.sql.catalog.hydrolix.storage_type=aws \
@@ -37,5 +37,3 @@ fi
         -c spark.sql.catalog.hydrolix.api_url="$HDX_API_URL" \
         -c spark.sql.catalog.hydrolix.cloud_cred_1="$AWS_ACCESS_KEY_ID" \
         -c spark.sql.catalog.hydrolix.cloud_cred_2="$AWS_SECRET_KEY"
-        # Add this if you have an old turbine server that doesn't prepend `db/hdx` to the partition paths
-	      # -c spark.sql.catalog.hydrolix.partition_prefix=/db/hdx/
