@@ -14,11 +14,6 @@ class ColumnarJsonParsingSimpleTest {
     StructField("col2", DataTypes.StringType)
   ))
 
-  private val complexSchema = StructType(List(
-    StructField("array<int>", DataTypes.createArrayType(DataTypes.IntegerType)),
-    StructField("map<string,bool>", DataTypes.createMapType(DataTypes.StringType, DataTypes.BooleanType))
-  ))
-
   private val simpleBad = List(
     """{}""",                                                          // Empty object
     """[]""",                                                          // Empty array
@@ -49,7 +44,7 @@ class ColumnarJsonParsingSimpleTest {
   def badLinesAllFailIndividually(): Unit = {
     for (line <- simpleBad) {
       try {
-        HdxReaderJsonParsing.batches(
+        HdxReaderColumnarJson.batches(
           simpleSchema,
           new ByteArrayInputStream(line.getBytes("UTF-8")),
           { batch =>
@@ -69,7 +64,7 @@ class ColumnarJsonParsingSimpleTest {
   def goodLinesAllSucceedIndividually(): Unit = {
     for (line <- simpleGood) {
       var got: ColumnarBatch = null
-      HdxReaderJsonParsing.batches(
+      HdxReaderColumnarJson.batches(
         simpleSchema,
         new ByteArrayInputStream(line.getBytes("UTF-8")),
         { got = _ },
@@ -84,7 +79,7 @@ class ColumnarJsonParsingSimpleTest {
   def goodLinesMultiline(): Unit = {
     val lines = simpleGood.mkString("\n")
     val got = ArrayBuffer[ColumnarBatch]()
-    HdxReaderJsonParsing.batches(
+    HdxReaderColumnarJson.batches(
       simpleSchema,
       new ByteArrayInputStream(lines.getBytes("UTF-8")),
       { got += _ },
@@ -105,7 +100,7 @@ class ColumnarJsonParsingSimpleTest {
     )
 
     for (empty <- empties) {
-      HdxReaderJsonParsing.batches(
+      HdxReaderColumnarJson.batches(
         simpleSchema,
         new ByteArrayInputStream(empty.getBytes("UTF-8")),
         { _ => fail("Got unexpected batch") },

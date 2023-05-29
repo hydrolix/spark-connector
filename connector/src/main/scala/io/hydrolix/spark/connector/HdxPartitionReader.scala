@@ -29,7 +29,7 @@ class HdxPartitionReaderFactory(info: HdxConnectionInfo, storage: HdxStorageSett
   override def supportColumnarReads(partition: InputPartition) = true
 
   override def createColumnarReader(partition: InputPartition): PartitionReader[ColumnarBatch] = {
-    new HdxPartitionReader(info, pkName, partition.asInstanceOf[HdxScanPartition])
+    new HdxPartitionReader(info, storage, pkName, partition.asInstanceOf[HdxScanPartition])
   }
 }
 
@@ -178,7 +178,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   private val hdxReaderProcess = hdxReaderProcessBuilder.run(new ProcessIO(
     { _.close() }, // Don't care about stdin
     { stdout =>
-      HdxReaderJsonParsing.batches(scan.schema, stdout, batchQ.put, batchQ.put(doneSignal))
+      HdxReaderColumnarJson.batches(scan.schema, stdout, batchQ.put, batchQ.put(doneSignal))
     },
     readLines(_,
       {

@@ -1,5 +1,6 @@
 package io.hydrolix.spark.connector
 
+import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
 import org.apache.spark.sql.execution.vectorized.{OnHeapColumnVector, WritableColumnVector}
 import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
@@ -19,26 +20,33 @@ class ColumnarJsonParsingComplexTest {
     StructField("arr2", DataTypes.createArrayType(DataTypes.StringType)),
     StructField("map1", DataTypes.createMapType(DataTypes.StringType, DataTypes.LongType)),
     StructField("map2", DataTypes.createMapType(DataTypes.StringType, DataTypes.StringType)),
+    StructField("map3", DataTypes.createMapType(DataTypes.StringType, DataTypes.createArrayType(DataTypes.IntegerType)))
   ))
 
   private val complexBad = List(
     """{
       |  "rows":2,
       |  "cols":{
+      |    "int":[],
+      |    "str":[],
       |    "arr1":[],
       |    "arr2":[],
       |    "map1":[],
-      |    "map2":[]
+      |    "map2":[],
+      |    "map3":[]
       |  }
       |}""".stripMargin, // not enough values: expected 2, got 0
 
     """{
       |  "rows":2,
       |  "cols":{
+      |    "int":[1],
+      |    "str":["one"],
       |    "arr1":[[1]],
       |    "arr2":[["one"]],
-      |    "map1":[{"foo":123}]
-      |    "map2":[{"foo":"bar"}]
+      |    "map1":[{"foo":123}],
+      |    "map2":[{"foo":"bar"}],
+      |    "map3":[{"foo":["bar"]}]
       |  }
       |}""".stripMargin, // not enough values: expected 2, got 1
   )
@@ -47,10 +55,13 @@ class ColumnarJsonParsingComplexTest {
     """{
       |  "rows":2,
       |  "cols":{
+      |    "int":[1,2],
+      |    "str":["one","two"],
       |    "arr1":[[1,2],[3,4]],
       |    "arr2":[["one","two"],["three","four"]],
-      |    "map1":[{"k1":1},{"k2":2}],
-      |    "map2":[{"k1":"v1"},{"k2":"v2"}]
+      |    "map1":[{"k11l":11,"k12l":12},{"k21l":21,"k22l":22,"k23l":23}],
+      |    "map2":[{"k11s":"v11","k12s":"v12"},{"k21s":"v21","k22s":"v22","k23s":"v23"}],
+      |    "map3":[{"k11a":[110,111],"k12a":[120,121]]},{"k21a":[210,211]],"k22a":[220,221]],"k23a":[230,231]]}]
       |  }
       |}""".stripMargin,
   )
@@ -59,7 +70,7 @@ class ColumnarJsonParsingComplexTest {
   def badLinesAllFailIndividually(): Unit = {
     for (line <- complexBad) {
       try {
-        HdxReaderJsonParsing.batches(
+        HdxReaderColumnarJson.batches(
           complexSchema,
           new ByteArrayInputStream(line.getBytes("UTF-8")),
           { batch =>
@@ -79,7 +90,7 @@ class ColumnarJsonParsingComplexTest {
   def goodLinesAllSucceedIndividually(): Unit = {
     for (line <- complexGood) {
       var got: ColumnarBatch = null
-      HdxReaderJsonParsing.batches(
+      HdxReaderColumnarJson.batches(
         complexSchema,
         new ByteArrayInputStream(line.getBytes("UTF-8")),
         { got = _ },
@@ -94,7 +105,7 @@ class ColumnarJsonParsingComplexTest {
   def goodLinesMultiline(): Unit = {
     val lines = complexGood.mkString("\n")
     val got = ArrayBuffer[ColumnarBatch]()
-    HdxReaderJsonParsing.batches(
+    HdxReaderColumnarJson.batches(
       complexSchema,
       new ByteArrayInputStream(lines.getBytes("UTF-8")),
       { got += _ },
@@ -102,6 +113,52 @@ class ColumnarJsonParsingComplexTest {
     )
 
     assertEquals(got.size, complexGood.size)
+
+    assertArrayEquals(
+      Array(1,2),
+      got(0).column(0).getInts(0, 2)
+    )
+
+    val rows = got(0).rowIterator()
+    checkRow(
+      rows.next(),
+      1,
+      "one",
+      Array(1, 2),
+      Array("one", "two"),
+      Map("k11l" -> 11L, "k12l" -> 12L),
+      Map("k11s" -> "v11", "k12s" -> "v12"),
+      Map("k11a" -> List(110,111), "k12a" -> List(120,121))
+    )
+    checkRow(
+      rows.next(),
+      2,
+      "two",
+      Array(3, 4),
+      Array("three", "four"),
+      Map("k21l" -> 21L, "k22l" -> 22L, "k23l" -> 23L),
+      Map("k21s" -> "v21", "k22s" -> "v22", "k23s" -> "v23"),
+      Map("k21a" -> List(210, 211), "k22a" -> List(220, 221), "k23a" -> List(230, 231)),
+    )
+  }
+
+  private def checkRow(row: InternalRow,
+                       int: Int,
+                       str: String,
+                      arr1: Array[Int],
+                      arr2: Array[String],
+                      map1: Map[String, Long],
+                      map2: Map[String, String],
+                      map3: Map[String, List[Int]])
+                          : Unit =
+  {
+    assertEquals(int, row.get(0, complexSchema.fields(0).dataType))
+    assertEquals(UTF8String.fromString(str), row.get(1, complexSchema.fields(1).dataType))
+    assertArrayEquals(arr1, row.getArray(2).toIntArray())
+    assertArrayEquals(arr2.map(UTF8String.fromString(_): AnyRef), row.getArray(3).toObjectArray(DataTypes.StringType))
+    assertEquals(map1, CatalystTypeConverters.convertToScala(row.getMap(4), complexSchema.fields(4).dataType))
+    assertEquals(map2, CatalystTypeConverters.convertToScala(row.getMap(5), complexSchema.fields(5).dataType))
+    assertEquals(map3, CatalystTypeConverters.convertToScala(row.getMap(6), complexSchema.fields(6).dataType))
   }
 
   @Test
@@ -178,7 +235,7 @@ class ColumnarJsonParsingComplexTest {
 
     assertEquals(
       ints.toList,
-      cols(0).getInts(0, ints.size).toList
+      cols(0).getInts(0, ints.length).toList
     )
 
     assertEquals(
@@ -244,7 +301,7 @@ class ColumnarJsonParsingComplexTest {
           val offset = child.appendByteArray(bytes, 0, bytes.length)
           if (firstOffset == -1) firstOffset = offset
         }
-        col.putArray(rowId, firstOffset, strings.size)
+        col.putArray(rowId, firstOffset, strings.length)
     }
   }
 
