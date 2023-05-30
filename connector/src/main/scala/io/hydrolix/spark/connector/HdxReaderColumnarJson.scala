@@ -27,7 +27,7 @@ object HdxReaderColumnarJson extends Logging {
   )
 
   /**
-   * Must be called in its own thread, because it does blocking reads from `stdout`! Doesn't close the stream.
+   * Must be called in its own thread, because it does blocking reads from `stream`! Doesn't close the stream.
    *
    * @param schema  the column names and types expected
    * @param stream  the input stream to read
@@ -44,32 +44,37 @@ object HdxReaderColumnarJson extends Logging {
 
     parser.nextToken() // Advance to start object if present, or null if empty stream
 
+    val cols = OnHeapColumnVector.allocateColumns(8192, schema) // TODO make the batch size configurable maybe
+    val colsByName = schema.zip(cols).map {
+      case (field, col) =>
+        field.name -> (field, col)
+    }.toMap
+
     while (true) {
-      block(parser, schema) match {
-        case Some(batch) =>
-          onBatch(batch)
-        case None =>
-          onDone
-          return
+      if (parser.currentToken() == null) {
+        onDone
+        return
       }
+
+      val rows = block(parser, colsByName)
+
+      onBatch(new ColumnarBatch(cols.toArray, rows))
+
+      cols.foreach(_.reset())
     }
   }
 
-  private def block(parser: JsonParser, schema: StructType): Option[ColumnarBatch] = {
-    parser.currentToken() match {
-      case JsonToken.START_OBJECT => // OK
-      case null => return None // Done
-      case other => sys.error(s"Expected object start, got $other")
-    }
+  /**
+   * Reads a single columnar batch from the parser into `cols`. The parser must be positioned on a START_OBJECT,
+   * and will be left '''after''' the corresponding END_OBJECT on successful completion.
+   */
+  private def block(parser: JsonParser, colsByName: Map[String, (StructField, WritableColumnVector)]): Int = {
+    if (!parser.isExpectedStartObjectToken) sys.error(s"Expected object start, got ${parser.currentToken()}")
 
     // TODO this expects `rows` to come before `cols` and it would be tricky to change that, maybe document it
     if (parser.nextFieldName() != "rows") sys.error("Expected `rows` field")
     val rows = parser.nextIntValue(-1)
     if (rows == -1) sys.error("`rows` was not an Int value")
-
-    val cols = OnHeapColumnVector.allocateColumns(rows, schema)
-
-    val schemaFields = schema.fields.zipWithIndex.map { case (field, i) => field.name -> (field -> i) }.toMap
 
     if (parser.nextFieldName() != "cols") sys.error("Expected `cols` field")
     if (parser.nextToken() != JsonToken.START_OBJECT) sys.error("Expected object start for `cols`")
@@ -77,45 +82,50 @@ object HdxReaderColumnarJson extends Logging {
     while (parser.nextToken() != JsonToken.END_OBJECT) {
       // For each column in `cols`...
       val name = parser.currentName()
-      val (field, pos) = schemaFields.getOrElse(name, sys.error(s"Couldn't find field $name in schema"))
+      val (field, col) = colsByName.getOrElse(name, sys.error(s"Couldn't find field $name in schema"))
 
       if (parser.nextToken() != JsonToken.START_ARRAY) sys.error(s"Expected array start for column $name, got ${parser.currentToken()}")
 
-      val written = readArray(parser, field.name, field.dataType, cols(pos), 0)
+      val written = readArray(parser, field.name, field.dataType, col, 0)
 
-      if (written < rows) {
-        sys.error(s"$name only had $written value(s); expected $rows")
+      if (written != rows) {
+        sys.error(s"$name had $written value(s); expected $rows")
       }
     }
 
     parser.nextToken() // Advance past the end of the `cols` object
     parser.nextToken() // Advance past the end of the block object
 
-    Some(new ColumnarBatch(cols.toArray, rows))
+    rows
   }
 
   private def scalarType(typ: DataType) = scalarTypes.contains(typ) || typ.isInstanceOf[DecimalType]
 
   private def readValue(parser: JsonParser, name: String, valueType: DataType, col: WritableColumnVector, rowId: Int, offset: Int): Int = {
-    if (parser.currentToken() == JsonToken.VALUE_NULL) {
-      col.putNull(offset)
-      return 1
-    }
+    try {
+      if (parser.currentToken() == JsonToken.VALUE_NULL) {
+        col.putNull(offset)
+        return 1
+      }
 
-    valueType match {
-      case typ if scalarType(typ) =>
-        readScalar(parser, valueType, name, col, offset)
-        1
+      valueType match {
+        case typ if scalarType(typ) =>
+          readScalar(parser, valueType, name, col, offset)
+          1
 
-      case ArrayType(elementType, _) =>
-        if (parser.currentToken() != JsonToken.START_ARRAY) sys.error("Expected array start")
+        case ArrayType(elementType, _) =>
+          if (!parser.isExpectedStartArrayToken) sys.error("Expected array start")
 
-        readArray(parser, name + "[]", elementType, col, offset)
+          readArray(parser, name + "[]", elementType, col, offset)
 
-      case MapType(DataTypes.StringType, valueType, _) =>
-        if (parser.currentToken() != JsonToken.START_OBJECT) sys.error("Expected object start")
+        case MapType(DataTypes.StringType, valueType, _) =>
+          if (!parser.isExpectedStartObjectToken) sys.error("Expected object start")
 
-        readMap(parser, name + "{}", valueType, col, rowId, offset)
+          readMap(parser, name + "{}", valueType, col, rowId, offset)
+      }
+    } catch {
+      case e: Exception =>
+        throw new RuntimeException(s"Couldn't read a value $name: $valueType", e)
     }
   }
 
@@ -143,8 +153,11 @@ object HdxReaderColumnarJson extends Logging {
       pos += 1
 
       elementType match {
-        case typ if scalarType(typ) =>
+        case typ if scalarType(typ) && col.dataType() == typ =>
           readScalar(parser, elementType, name, col, offset + pos)
+
+        case typ if scalarType(typ) =>
+          readScalar(parser, elementType, name, col.getChild(0), offset + pos)
 
         case at@ArrayType(_, _) =>
           // Array of arrays
@@ -191,7 +204,7 @@ object HdxReaderColumnarJson extends Logging {
       keys.putByteArray(offset + pos, key.getBytes("UTF-8"))
 
       parser.nextToken() // Advance to value
-      val len = readValue(parser, name + "{}", valueType, values, rowId, offset + pos)
+      val len = readValue(parser, s"$name.$key", valueType, values, rowId, offset + pos)
       valuesWritten += len
     }
 

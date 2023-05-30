@@ -174,19 +174,30 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   private val hdxReaderProcessBuilder = Process(turbineCmdTmp.getAbsolutePath, turbineCmdArgs)
   private val capturedStderr = mutable.ListBuffer[String]()
 
-  // TODO this relies on the stdout being split into strings; that won't be the case once we get gzip working!
   private val hdxReaderProcess = hdxReaderProcessBuilder.run(new ProcessIO(
     { _.close() }, // Don't care about stdin
     { stdout =>
-      HdxReaderColumnarJson.batches(scan.schema, stdout, batchQ.put, batchQ.put(doneSignal))
+      // TODO wrap a GZIPInputStream etc. around stdout once we get that working on the turbine side
+      HdxReaderColumnarJson.batches(
+        scan.schema,
+        stdout,
+        batchQ.put,
+        {
+          batchQ.put(doneSignal)
+          stdout.close()
+        }
+      )
     },
-    readLines(_,
-      {
-        case stderrFilterR(_*) => () // Ignore expected output
-        case l => capturedStderr += l // Capture unexpected output
-      },
-      () // No need to do anything special when stderr drains
-    )
+    { stderr =>
+      readLines(
+        stderr,
+        {
+          case stderrFilterR(_*) => () // Ignore expected output
+          case l => capturedStderr += l // Capture unexpected output
+        },
+        stderr.close()
+      )
+    }
   ))
 
   override def next(): Boolean = {

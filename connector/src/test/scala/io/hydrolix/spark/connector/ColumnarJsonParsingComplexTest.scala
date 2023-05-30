@@ -61,7 +61,7 @@ class ColumnarJsonParsingComplexTest {
       |    "arr2":[["one","two"],["three","four"]],
       |    "map1":[{"k11l":11,"k12l":12},{"k21l":21,"k22l":22,"k23l":23}],
       |    "map2":[{"k11s":"v11","k12s":"v12"},{"k21s":"v21","k22s":"v22","k23s":"v23"}],
-      |    "map3":[{"k11a":[110,111],"k12a":[120,121]]},{"k21a":[210,211]],"k22a":[220,221]],"k23a":[230,231]]}]
+      |    "map3":[{"k11a":[110,111],"k12a":[120,121]},{"k21a":[210,211],"k22a":[220,221],"k23a":[230,231]}]
       |  }
       |}""".stripMargin,
   )
@@ -114,12 +114,8 @@ class ColumnarJsonParsingComplexTest {
 
     assertEquals(got.size, complexGood.size)
 
-    assertArrayEquals(
-      Array(1,2),
-      got(0).column(0).getInts(0, 2)
-    )
-
     val rows = got(0).rowIterator()
+
     checkRow(
       rows.next(),
       1,
@@ -130,6 +126,7 @@ class ColumnarJsonParsingComplexTest {
       Map("k11s" -> "v11", "k12s" -> "v12"),
       Map("k11a" -> List(110,111), "k12a" -> List(120,121))
     )
+
     checkRow(
       rows.next(),
       2,
