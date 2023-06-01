@@ -88,7 +88,6 @@ object HdxPartitionReader {
 /**
  * TODO:
  *  - Refactor per-storage-type turbine.ini hacking and temp files to separate classes
- *  - Make it possible to retrieve the turbine.ini template from a URL instead of passing a large base64 blob
  *  - Refactor the child process stuff to separate file with a clean module boundary
  *  - Allow secrets to be retrieved from secret services, not just config parameters
  *  - Make a ColumnarBatch version too (will require deep hdx_reader changes)

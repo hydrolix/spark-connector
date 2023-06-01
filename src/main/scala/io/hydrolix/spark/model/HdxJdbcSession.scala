@@ -34,6 +34,7 @@ class HdxJdbcSession private (info: HdxConnectionInfo) {
       props.put("web_context", "/query")
       props.put("path", "/query")
       props.put("user", info.user)
+      props.put("username", info.user)
       props.put("password", info.password)
       props.put("compress", "false")
       props.put("ssl", "true")

@@ -5,7 +5,7 @@ import io.hydrolix.spark.model.JSON
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node._
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
+import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, DateTimeUtils, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
@@ -57,8 +57,8 @@ object Json2Row {
     dt match {
       case StringType => UTF8String.fromString(s.textValue())
       case DataTypes.TimestampType =>
-        val inst = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse(s.textValue()))
-        (inst.getEpochSecond * 1000000) + inst.getNano / 1000
+        val inst = Instant.from(DateTimeFormatter.ISO_OFFSET_DATE_TIME.parse(s.textValue()))
+        DateTimeUtils.instantToMicros(inst)
       case other => error(s"TODO make a $other from string value '$s'")
     }
   }

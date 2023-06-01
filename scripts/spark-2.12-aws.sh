@@ -2,7 +2,7 @@
 
 SPARK_HOME="${SPARK_HOME:-$HOME/dev/spark-3.3.2-bin-hadoop3}"
 HDX_API_URL="${HDX_API_URL:-https://alex-test.hydro59.com/config/v1/}"
-HDX_JDBC_URL="${HDX_JDBC_URL:-jdbc:clickhouse://alex-test.hydro59.com:8088/?ssl=true}"
+HDX_JDBC_URL="${HDX_JDBC_URL:-jdbc:clickhouse:tcp://alex-test.hydro59.com:9440/hydro?ssl=true}"
 HDX_ORG_ID="${HDX_ORG_ID:-759ca9ab-cc10-41ad-92db-b2710d2e152d}"
 
 if [ -z "$HDX_USER" ]; then
@@ -26,7 +26,7 @@ if [ -z "$AWS_SECRET_KEY" ]; then
 fi
 
 "$SPARK_HOME"/bin/spark-shell \
-        --jars ./target/scala-2.12/connector-assembly-1.0.0-SNAPSHOT.jar \
+        --jars ../target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar \
         -c spark.driver.extraJavaOptions=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 \
         -c spark.sql.catalog.hydrolix=io.hydrolix.spark.connector.HdxTableCatalog \
         -c spark.sql.catalog.hydrolix.org_id="$HDX_ORG_ID" \
