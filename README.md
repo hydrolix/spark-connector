@@ -100,7 +100,7 @@ Otherwise, if you’re building locally, it will show up at [./connector/target/
 
 ## Running
 
-To run it, have a look at the [GCS](./connector/spark-2.12-gcs.sh) or [AWS](./connector/spark-2.12-aws.sh) scripts 
+To run it, have a look at the [GCS](scripts/spark-2.12-gcs.sh) or [AWS](scripts/spark-2.12-aws.sh) scripts 
 in the source tree, which will give you an indication of what parameters you need to launch Spark with the connector. 
 
 The parameters are explained in this table. Note that the configuration parameters can always be set from `spark-shell` 
