@@ -1,8 +1,8 @@
 package io.hydrolix.spark.model
 
+import com.clickhouse.jdbc.ClickHouseDataSource
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.slf4j.LoggerFactory
-import ru.yandex.clickhouse.ClickHouseDataSource
 
 import java.time.Instant
 import java.util.Properties

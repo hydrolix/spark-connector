@@ -1,5 +1,5 @@
 ThisBuild / organization := "io.hydrolix"
-ThisBuild / version := "0.9.0-SNAPSHOT"
+ThisBuild / version := "1.0.0-SNAPSHOT"
 ThisBuild / scalaVersion := "2.12.17"
 
 lazy val commonSettings = Seq(
@@ -13,13 +13,16 @@ lazy val root = (project in file("."))
     name := "hdx-spark",
   )
   .disablePlugins(AssemblyPlugin)
-  .aggregate(model, bench, connector)
+  .aggregate(model, connector)
 
 lazy val assemblySettings = Seq(
   assemblyShadeRules := Seq(
     ShadeRule.rename("com.github.benmanes.caffeine.**" -> "shadecaffeine.@1").inAll,
     ShadeRule.rename("com.fasterxml.jackson.**" -> "shadejackson.@1").inAll
   ),
+  assembly / assemblyOption ~= {
+    _.withIncludeScala(false)
+  },
   assemblyMergeStrategy := {
     case PathList(pl@_*) if pl.last == "module-info.class" => MergeStrategy.discard
     case PathList(pl@_*) if pl.last == "public-suffix-list.txt" => MergeStrategy.discard
@@ -34,14 +37,17 @@ lazy val assemblySettings = Seq(
 )
 
 lazy val model = (project in file("model"))
-  .settings(commonSettings)
+  .settings(
+    commonSettings,
+    name := "hydrolix-spark-model",
+    exportJars := false
+  )
   .disablePlugins(AssemblyPlugin)
-
-lazy val bench = (project in file("bench"))
-  .settings(commonSettings)
-  .disablePlugins(AssemblyPlugin)
-  .dependsOn(model)
 
 lazy val connector = (project in file("connector"))
   .dependsOn(model)
-  .settings(commonSettings ++ assemblySettings)
+  .settings(
+    commonSettings ++ assemblySettings,
+    name := "hydrolix-spark-connector",
+    exportJars := false
+  )

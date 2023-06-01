@@ -1,6 +1,5 @@
 package io.hydrolix.spark.model
 
-import com.fasterxml.jackson.databind.JsonNode
 import org.apache.spark.sql.types._
 
 object Types {
