@@ -32,7 +32,7 @@ assemblyMergeStrategy := {
 libraryDependencies ++= List(
   "org.apache.spark" %% "spark-sql" % "3.3.2" % Provided,
 
-  "com.clickhouse" % "clickhouse-jdbc" % "0.4.6" classifier "all",
+  "com.clickhouse" % "clickhouse-jdbc" % "0.4.6",
   "com.zaxxer" % "HikariCP" % "5.0.1",
 
   "com.github.bigwheel" %% "util-backports" % "2.1",
