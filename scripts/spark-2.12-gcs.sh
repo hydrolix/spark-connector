@@ -33,4 +33,3 @@ gcpKeyBase64=$(gzip < "$GCS_KEY_PATH" |base64 -w0)
         -c spark.sql.catalog.hydrolix.password="$HDX_PASSWORD" \
         -c spark.sql.catalog.hydrolix.api_url="$HDX_API_URL" \
         -c spark.sql.catalog.hydrolix.cloud_cred_1="$gcpKeyBase64"
-

@@ -25,15 +25,19 @@ unifying DataFrame abstraction.
   metadata about the databases, tables and columns that are accessible to the authenticated user.
 * Provides implementations of the Spark types necessary to run queries, including: 
 
-  | Spark Type                                                                                                                             | Connector Implementation                                                                                         | 
-  |----------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-  | [Table](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/catalog/Table.html)                                | [HdxTable](./connector/src/main/scala/io/hydrolix/spark/connector/HdxTable.scala)                                |
-  | [ScanBuilder](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/ScanBuilder.html)                       | [HdxScanBuilder](./connector/src/main/scala/io/hydrolix/spark/connector/HdxScanBuilder.scala)                    |
-  | [Scan](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Scan.html)                                     | [HdxScan](./connector/src/main/scala/io/hydrolix/spark/connector/HdxScan.scala)                                  | 
-  | [Batch](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Batch.html)                                   | [HdxBatch](./connector/src/main/scala/io/hydrolix/spark/connector/HdxBatch.scala)                                | 
-  | [PartitionReaderFactory](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReaderFactory.html) | [HdxPartitionReaderFactory](./connector/src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L23) |
-  | [InputPartition](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/InputPartition.html)                 | [HdxInputPartition](./connector/src/main/scala/io/hydrolix/spark/connector/HdxScanPartition.scala)               |
-  | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxInputPartition](./connector/src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L31)         |
+  | Spark Type                                                                                                                             | Connector Implementation                                                                               | 
+  |----------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
+  | [Table](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/catalog/Table.html)                                | [HdxTable](./src/main/scala/io/hydrolix/spark/connector/HdxTable.scala)                                |
+  | [ScanBuilder](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/ScanBuilder.html)                       | [HdxScanBuilder](./src/main/scala/io/hydrolix/spark/connector/HdxScanBuilder.scala)                    |
+  | [Scan](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Scan.html)                                     | [HdxScan](./src/main/scala/io/hydrolix/spark/connector/HdxScan.scala)                                  | 
+  | [Batch](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Batch.html)                                   | [HdxBatch](./src/main/scala/io/hydrolix/spark/connector/HdxBatch.scala)                                | 
+  | [PartitionReaderFactory](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReaderFactory.html) | [HdxPartitionReaderFactory](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L23) |
+  | [InputPartition](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/InputPartition.html)                 | [HdxScanPartition](./src/main/scala/io/hydrolix/spark/connector/HdxScanPartition.scala)                |
+  | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxPartitionReader](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L95)        |
+
+### hdx_reader
+A native binary launched by HdxPartitionReader as a child process to read Hydrolix partitions. Packaged in the JAR, 
+not open source.
 
 ### Hydrolix Cluster
 A preexisting Hydrolix cluster; must be [version 3.40.5](https://docs.hydrolix.io/changelog/9-may-2023-v3404) or later.
@@ -96,26 +100,7 @@ You’ll need the connector jar, which can be resolved using the usual Maven mac
 
 TODO
 
-Otherwise, if you’re building locally, it will show up at [./connector/target/scala-2.12/connector-assembly-1.0.0-SNAPSHOT.jar](./connector/target/scala-2.12/connector-assembly-1.0.0-SNAPSHOT.jar). 
-
-## Running
-
-To run it, have a look at the [GCS](scripts/spark-2.12-gcs.sh) or [AWS](scripts/spark-2.12-aws.sh) scripts 
-in the source tree, which will give you an indication of what parameters you need to launch Spark with the connector. 
-
-The parameters are explained in this table. Note that the configuration parameters can always be set from `spark-shell` 
-or a notebook using `spark.conf.set(<name>, <value>)`, they don't need to be provided on startup.
-
-| Option Name                             | Option Value                                | Description                                                                                                      |
-|-----------------------------------------|---------------------------------------------|------------------------------------------------------------------------------------------------------------------|
-| spark.sql.catalog.hydrolix              | io.hydrolix.spark.connector.HdxTableCatalog | The fully qualified name of the class to instantiate when you ask for the `hydrolix` catalog.                    |
-| spark.sql.catalog.hydrolix.org_id       | <hydrolix organization UUID>                | The organization ID you want to authenticate to (see https://docs.hydrolix.io/reference/summary-of-organization) |
-| spark.sql.catalog.hydrolix.jdbc_url     | jdbc:clickhouse://<host>:<port>/?ssl=true   | JDBC URL of the Hydrolix query head                                                                              |
-| spark.sql.catalog.hydrolix.username     | <hdx user name>                             | Username to login to the Hydrolix cluster                                                                        |
-| spark.sql.catalog.hydrolix.password     | <hdx password>                              | Password to login to the Hydrolix cluster                                                                        |
-| spark.sql.catalog.hydrolix.api_url      | https://<hdx-cluster-host>/config/v1/       | URL of the Hydrolix config API, usually must end with `/config/v1/` including trailing slash                     |
-| spark.sql.catalog.hydrolix.cloud_cred_1 | <base64 or AWS access key ID>               | First cloud credential. Either a base64(GZIP(GCP service account key file)), or an AWS access key ID.            |
-| spark.sql.catalog.hydrolix.cloud_cred_2 | <AWS secret>                                | Second cloud credential. Not used for GCP; the AWS secret key for AWS.                                           |
+Otherwise, if you’re building locally, it will show up at [./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar). 
 
 ## Building
 
@@ -124,7 +109,62 @@ or a notebook using `spark.conf.set(<name>, <value>)`, they don't need to be pro
    git clone git@gitlab.com:hydrolix/interop-spark.git && cd interop-spark
    ```
 3. Run `sbt assembly` to compile and build the connector jar file.
-4. If the build succeeds, the jar can be found at [./connector/target/scala-2.12/connector-assembly-1.0.0-SNAPSHOT.jar](./connector/target/scala-2.12/connector-assembly-1.0.0-SNAPSHOT.jar).
+4. If the build succeeds, the jar can be found at [./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar).
+
+## Running
+
+### Configuration
+To run it, have a look at the [GCS](scripts/spark-2.12-gcs.sh) or [AWS](scripts/spark-2.12-aws.sh) scripts 
+in the source tree, which will give you an indication of what parameters you need to launch Spark with the connector. 
+
+The parameters are explained in this table. Note that the configuration parameters can always be set from `spark-shell` 
+or a notebook using `spark.conf.set(<name>, <value>)`, they don't need to be provided on startup.
+
+| Option Name                               | Option Value                                          | Description                                                                                                                                                                           |
+|-------------------------------------------|-------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `spark.sql.catalog.hydrolix`              | `io.hydrolix.spark.connector.HdxTableCatalog`         | The fully qualified name of the class to instantiate when you ask for the `hydrolix` catalog.                                                                                         |
+| `spark.sql.catalog.hydrolix.org_id`       | `<hydrolix organization UUID>`                        | The organization ID you want to authenticate to (see https://docs.hydrolix.io/reference/summary-of-organization)                                                                      |
+| `spark.sql.catalog.hydrolix.jdbc_url`     | `jdbc:clickhouse://<host>:<port>/<database>?ssl=true` | JDBC URL of the Hydrolix query head. Note that the Clickhouse JDBC driver requires a valid database name in the URL, but the connector will read any database the user has access to. |
+| `spark.sql.catalog.hydrolix.username`     | `<hdx user name>`                                     | Username to login to the Hydrolix cluster                                                                                                                                             |
+| `spark.sql.catalog.hydrolix.password`     | `<hdx password>`                                      | Password to login to the Hydrolix cluster                                                                                                                                             |
+| `spark.sql.catalog.hydrolix.api_url`      | `https://<hdx-cluster-host>/config/v1/`               | URL of the Hydrolix config API, usually must end with `/config/v1/` including the trailing slash                                                                                      |
+| `spark.sql.catalog.hydrolix.cloud_cred_1` | `<base64 or AWS access key ID>`                       | First cloud credential. Either a base64(GZIP(GCP service account key file)), or an AWS access key ID.                                                                                 |
+| `spark.sql.catalog.hydrolix.cloud_cred_2` | `<AWS secret>`                                        | Second cloud credential. Not used for GCP; the AWS secret key for AWS.                                                                                                                |
+
+#### Note: Credentials
+All of the above configuration options can be set at runtime, so there's no need to hardcode credentials in cluster/job 
+launch scripts. For example, when running the connector in a Databricks workspace, you can retrieve credentials from the 
+Databricks secret manager like so:
+
+```
+spark.conf.set("spark.sql.catalog.hydrolix.password", dbutils.secrets.get("my-scope", "hdx-password"))
+spark.conf.set("spark.sql.catalog.hydrolix.cloud_cred_1", dbutils.secrets.get("my-scope", "aws_access_key_id"))
+spark.conf.set("spark.sql.catalog.hydrolix.cloud_cred_2", dbutils.secrets.get("my-scope", "aws_secret_access_key"))
+...
+sql("use hydrolix")
+```
+
+### Querying
+
+```
+%sql
+
+use hydrolix
+
+select count(*), min(timestamp), max(timestamp) from hydro.logs
+```
+
+```
+%scala
+
+sql("use hydrolix")
+
+val logs = spark.sqlContext.table("hydro.logs")
+
+val recent = logs.filter(col("timestamp") > "2023-06-01T00:00:00.000Z"))
+
+recent.count()
+```
 
 ## Roadmap
 
@@ -155,4 +195,4 @@ cloud storage. We should add integrations to retrieve credentials from various s
 ## Changelog
 
 ### 1.0.0
-Initial 
+Initial public release! 
