@@ -4,7 +4,7 @@ import com.clickhouse.jdbc.ClickHouseDataSource
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.slf4j.LoggerFactory
 
-import java.time.Instant
+import java.time.{Instant, ZoneOffset}
 import java.util.Properties
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -99,8 +99,8 @@ class HdxJdbcSession private (info: HdxConnectionInfo) {
 
       (
         rs.getLong("rows"),
-        rs.getTimestamp("min_primary").toInstant,
-        rs.getTimestamp("max_primary").toInstant
+        rs.getTimestamp("min_primary").toLocalDateTime.toInstant(ZoneOffset.UTC),
+        rs.getTimestamp("max_primary").toLocalDateTime.toInstant(ZoneOffset.UTC)
       )
     }.get
   }
@@ -116,8 +116,8 @@ class HdxJdbcSession private (info: HdxConnectionInfo) {
       while (rs.next()) {
         partitions += HdxDbPartition(
           rs.getString("partition"),
-          rs.getTimestamp("min_timestamp").toInstant,
-          rs.getTimestamp("max_timestamp").toInstant,
+          rs.getTimestamp("min_timestamp").toLocalDateTime.toInstant(ZoneOffset.UTC),
+          rs.getTimestamp("max_timestamp").toLocalDateTime.toInstant(ZoneOffset.UTC),
           rs.getLong("manifest_size"),
           rs.getLong("data_size"),
           rs.getLong("index_size"),
