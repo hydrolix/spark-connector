@@ -16,3 +16,7 @@ target/
 
 ### Spark
 **/metastore_db
+**/derby.log
+
+### Turbine
+**/turbine.log
