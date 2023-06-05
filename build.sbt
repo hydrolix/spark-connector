@@ -46,7 +46,7 @@ libraryDependencies ++= List(
   "org.apache.httpcomponents.client5" % "httpclient5" % "5.2.1",
   //noinspection SbtDependencyVersionInspection -- JDK8
   "ch.qos.logback" % "logback-classic" % "1.3.6",
-  "net.openhft" % "zero-allocation-hashing" % "0.16",
+  "com.dynatrace.hash4j" % "hash4j" % "0.10.0",
 
   // Testing...
   "com.github.sbt" % "junit-interface" % "0.13.3" % Test,
