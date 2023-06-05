@@ -59,7 +59,8 @@ The connector supports the following query optimizations, in addition to the log
 
 #### Partition Pruning
 When the query has suitable predicates based on the timestamp and/or shard key, we can use them to eliminate partitions 
-from consideration based on each partition’s min/max timestamps and shard key. In some cases this can be extremely effective, especially in high-selectivity queries (e.g. timestamp in a narrow range).
+from consideration based on each partition’s min/max timestamps and shard key. In some cases this can be extremely 
+effective, especially in high-selectivity queries (e.g. timestamp in a narrow range).
 
 #### Predicate Pushdown
 Suitable predicates that do simple comparisons between indexed fields and literals are evaluated by the low-level 
@@ -169,7 +170,7 @@ recent.count()
 ## Roadmap
 
 ### Dictionary Tables
-Map [Hydrolix dictionaries](https://docs.hydrolix.io/docs/dictionaries-user-defined-functions) to Spark tables so they 
+Map [Hydrolix dictionaries](https://docs.hydrolix.io/docs/dictionaries-user-defined-functions) to Spark tables, so they 
 can be queried more naturally using `JOIN`s
 
 ### Performance
