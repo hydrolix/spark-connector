@@ -51,7 +51,7 @@ class HdxApiSession(info: HdxConnectionInfo) {
     pkCandidates match {
       case List(one) => one
       case Nil => sys.error(s"Couldn't find a primary key for $db.$table")
-      case other => sys.error(s"Found multiple candidate primary keys for $db.$table")
+      case other => sys.error(s"Found multiple candidate primary keys for $db.$table: ${other.mkString(", ")}")
     }
   }
 
