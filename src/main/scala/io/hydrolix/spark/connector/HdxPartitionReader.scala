@@ -222,7 +222,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   override def get(): InternalRow = rec
 
   override def close(): Unit = {
-    log.info(s"$count records read")
+    log.info(s"$count records read from ${scan.path}")
     Try(turbineIniTmp.delete())
     credsTempFile.foreach(f => Try(f.delete()))
   }

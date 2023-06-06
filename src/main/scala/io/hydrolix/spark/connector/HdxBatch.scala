@@ -72,7 +72,7 @@ class HdxBatch(info: HdxConnectionInfo,
             case Some(id) if hp.partition.startsWith(id.toString + "/") =>
               log.info(s"storage_id = ${hp.storageId}, partition = ${hp.partition}")
               // Remove storage ID prefix if present, it's not there physically
-              "db/hdx" + hp.partition.drop(id.toString.length + 1)
+              "db/hdx/" + hp.partition.drop(id.toString.length + 1)
             case _ =>
               // No storage ID or not present in the path, assume the prefix is there
               info.partitionPrefix.getOrElse("") + hp.partition
