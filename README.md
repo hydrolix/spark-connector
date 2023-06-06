@@ -85,21 +85,34 @@ clauses, we exclusively use partition metadata to answer such queries very quick
 The Hydrolix Spark Connector is currently read-only; any attempt to execute DDL or DML queries (or their Python/Scala 
 equivalents) will result in an error.
 
+#### Dictionary Tables
+(see [roadmap](#dictionary-tables-1) item)
+
 ## System Requirements
+
+### JVM
+The Hydrolix Spark Connector requires a minimum Java version of 11; later versions might work. Java 8 definitely 
+doesn't.
+
+### Scala
+The connector is built exclusively for Scala 2.12 at the moment. You don't need to install Scala yourself, the build 
+system will take care of it.
 
 ### Operating System
 Currently, the connector only runs on recent AMD64/x86_64 Linux distros. Ubuntu 22.x and Fedora 38 work fine; 
 Ubuntu 20.x definitely doesn't work; other distros MIGHT work. It DOES NOT work on macOS, because it uses a 
 native binary built from the C++ source tree, which can only target Linux at this time.
 
-### Spark
+You can *build* the connector on macOS, it just won't run. Sorry.
+
+### Spark (for local deployments)
 You’ll need to download a copy of Apache Spark 3.3.2 or 3.4.0, compiled for Scala 2.12. You can untar it to wherever you 
 like and use it as-is, no configuration files need to be updated.
 
 ### Connector Jar
 You’ll need the connector jar, which can be resolved using the usual Maven machinery at the following coordinates:
 
-TODO
+TODO!
 
 Otherwise, if you’re building locally, it will show up at [./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar). 
 
@@ -114,7 +127,39 @@ Otherwise, if you’re building locally, it will show up at [./target/scala-2.12
 
 ## Running
 
-### Configuration
+### Local Deployment
+For local testing, look at the [GCS](scripts/spark-2.12-gcs.sh) or [AWS](scripts/spark-2.12-aws.sh) scripts for 
+inspiration.
+
+### Deploying on Databricks
+1. Databricks Runtime 13 or higher is required
+2. Upload the [connector jar](./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar) in the Libraries 
+   tab, or use its Maven coordinates (TODO!) 
+3. Select JDK11 by [setting an environment variable](https://docs.databricks.com/release-notes/runtime/10.0.html#cluster-support-for-jdk-11-public-preview) 
+   in `Advanced Options > Spark > Environment Variables`
+4. Set `Policy` to `Unrestricted`
+5. Set `Access mode` to `No isolation shared`
+6. (Optional) apply configuration settings as space-separated name-value pairs in 
+   `Advanced Options > Spark > Spark config`, e.g. for AWS:
+   ```
+   spark.sql.catalog.hydrolix io.hydrolix.spark.connector.HdxTableCatalog
+   spark.sql.catalog.hydrolix.api_url https://my-hdx-cluster.example.com/config/v1/
+   spark.sql.catalog.hydrolix.jdbc_url jdbc:clickhouse://my-hdx-cluster.example.com:8088?ssl=true
+   spark.sql.catalog.hydrolix.org_id <hydrolix org ID>
+   spark.sql.catalog.hydrolix.username <hydrolix username>
+   spark.sql.catalog.hydrolix.password <hydrolix password>
+   spark.sql.catalog.hydrolix.cloud_cred_1 <access key ID>
+   spark.sql.catalog.hydrolix.cloud_cred_2 <secret key>
+   ```
+   **Note:** these settings can also be applied in a notebook or from spark-shell, using 
+   `spark.conf.set(<key>, <value>)`, which also allows credentials to be loaded from the Databricks secrets API; see
+   [Note: Credentials](#note-credentials) 
+
+### Deploying on AWS Elastic MapReduce (EMR)
+1. AWS EMR 6.10.0 or later is required
+2. TODO!
+
+### Configuration Details
 To run it, have a look at the [GCS](scripts/spark-2.12-gcs.sh) or [AWS](scripts/spark-2.12-aws.sh) scripts 
 in the source tree, which will give you an indication of what parameters you need to launch Spark with the connector. 
 
