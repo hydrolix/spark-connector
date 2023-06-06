@@ -21,6 +21,9 @@ class HdxBatch(info: HdxConnectionInfo,
     with Logging
 {
   private var planned: Array[InputPartition] = _
+  private val hdxCols = table.hdxCols
+    .filterKeys(cols.fieldNames.contains(_))
+    .map(identity) // because Map.filterKeys produces something non-Serializable
 
   override def planInputPartitions(): Array[InputPartition] = {
     if (planned == null) {
@@ -85,7 +88,7 @@ class HdxBatch(info: HdxConnectionInfo,
               path,
               cols,
               pushedPreds,
-              table.hdxCols)
+              hdxCols)
           )
         }
       }.toArray

@@ -7,7 +7,6 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
-import org.slf4j.LoggerFactory
 
 import java.io._
 import java.util.Base64
@@ -28,9 +27,7 @@ class HdxPartitionReaderFactory(info: HdxConnectionInfo, storage: HdxStorageSett
   }
 }
 
-object HdxPartitionReader {
-  private val logger = LoggerFactory.getLogger(classOf[HdxPartitionReader])
-
+object HdxPartitionReader extends Logging {
   /**
    * This is done early before any work needs to be done because of https://bugs.openjdk.org/browse/JDK-8068370 -- we
    * spawn child processes too fast and they accidentally clobber each other's temp files
@@ -51,7 +48,7 @@ object HdxPartitionReader {
 
     f.setExecutable(true)
 
-    logger.info(s"Extracted turbine_cmd binary to ${f.getAbsolutePath}")
+    log.info(s"Extracted turbine_cmd binary to ${f.getAbsolutePath}")
 
     f
   }
@@ -173,8 +170,8 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     { _.close() }, // Don't care about stdin
     readLines(_,
       { line =>
-        linesQ.put(line)
         counter.incrementAndGet()
+        linesQ.put(line)
       },
       {
         linesQ.put(doneSignal)
@@ -204,10 +201,12 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     if (line eq doneSignal) {
       // stdout is closed, now we can wait for the sweet release of death
       val exit = hdxReaderProcess.exitValue()
+      val err = capturedStderr.mkString("\n  ", "\n  ", "\n")
       if (exit != 0) {
-        throw new RuntimeException(s"turbine_cmd process exited with code $exit; stderr was: ${capturedStderr.mkString("\n  ", "\n  ", "\n")}")
+        throw new RuntimeException(s"turbine_cmd process exited with code $exit; stderr was: $err")
       } else {
         // There are definitely no more records
+        if (err.trim.nonEmpty) log.warn(s"turbine_cmd process exited with code $exit but stderr was: $err")
         false
       }
     } else {
