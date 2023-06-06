@@ -157,12 +157,10 @@ inspiration.
 
 ### Deploying on AWS Elastic MapReduce (EMR)
 1. AWS EMR 6.10.0 or later is required
-2. TODO!
+2. Configure JDK 11, as in [this StackOverflow answer](https://stackoverflow.com/a/72054500)
+3. TODO!
 
-### Configuration Details
-To run it, have a look at the [GCS](scripts/spark-2.12-gcs.sh) or [AWS](scripts/spark-2.12-aws.sh) scripts 
-in the source tree, which will give you an indication of what parameters you need to launch Spark with the connector. 
-
+### Configuration Parameter Details
 The parameters are explained in this table. Note that the configuration parameters can always be set from `spark-shell` 
 or a notebook using `spark.conf.set(<name>, <value>)`, they don't need to be provided on startup.
 

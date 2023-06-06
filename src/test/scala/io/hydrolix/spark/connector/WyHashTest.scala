@@ -26,8 +26,9 @@ class WyHashTest {
 
   @Test
   def doStuff(): Unit = {
-    for ((s, hash) <- testValues) {
-      assertEquals(hash, WyHash(s))
+    for ((s, expected) <- testValues) {
+      val got = WyHash(s)
+      assertEquals(s"Hash value of '$s'", expected, got)
     }
   }
 }
