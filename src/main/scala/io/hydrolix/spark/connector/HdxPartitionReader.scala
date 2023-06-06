@@ -153,7 +153,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     "hdx_reader",
     "--config", turbineIniTmp.getAbsolutePath,
     "--output_format", "json",
-    "--hdx_partition", s"${info.partitionPrefix.getOrElse("")}${scan.path}",
+    "--hdx_partition", s"${scan.path}",
     "--output_path", "-",
     "--schema", schemaStr
   ) ++ exprArgs
@@ -189,6 +189,8 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     )
   ))
 
+  private var count = 0
+
   override def next(): Boolean = {
     val line = try {
       linesQ.take() // It's OK to block here, we'll always have doneSignal...
@@ -209,6 +211,8 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
         false
       }
     } else {
+      count += 1
+
       rec = Json2Row.row(scan.schema, line)
 
       counter.decrementAndGet() > 0
@@ -218,6 +222,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   override def get(): InternalRow = rec
 
   override def close(): Unit = {
+    log.info(s"$count records read")
     Try(turbineIniTmp.delete())
     credsTempFile.foreach(f => Try(f.delete()))
   }

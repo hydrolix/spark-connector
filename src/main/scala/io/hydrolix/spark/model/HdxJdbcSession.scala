@@ -5,10 +5,10 @@ import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import org.slf4j.LoggerFactory
 
 import java.time.{Instant, ZoneOffset}
-import java.util.Properties
+import java.util.{Properties, UUID}
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.util.Using
+import scala.util.{Try, Using}
 
 object HdxJdbcSession {
   private val cache = mutable.Map[HdxConnectionInfo, HdxJdbcSession]()
@@ -113,6 +113,8 @@ class HdxJdbcSession private (info: HdxConnectionInfo) {
 
       val partitions = ListBuffer[HdxDbPartition]()
 
+      val hasStorageId = Try(rs.findColumn("storage_id")).isSuccess
+
       while (rs.next()) {
         partitions += HdxDbPartition(
           rs.getString("partition"),
@@ -125,7 +127,12 @@ class HdxJdbcSession private (info: HdxConnectionInfo) {
           rs.getLong("mem_size"),
           rs.getString("root_path"),
           rs.getString("shard_key"),
-          rs.getByte("active") == 1
+          rs.getByte("active") == 1,
+          if (hasStorageId) {
+            rs.getString("storage_id").noneIfEmpty.map(UUID.fromString)
+          } else {
+            None
+          }
         )
       }
       partitions.toList

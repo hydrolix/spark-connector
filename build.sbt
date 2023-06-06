@@ -4,8 +4,7 @@ ThisBuild / scalaVersion := "2.12.17"
 
 name := "hydrolix-spark-connector"
 
-javacOptions := Seq("-source", "8", "-target", "8")
-scalacOptions := Seq("-target:jvm-8")
+javacOptions := Seq("-source", "11", "-target", "11")
 
 assemblyShadeRules := Seq(
   ShadeRule.rename("com.github.benmanes.caffeine.**" -> "shadecaffeine.@1").inAll,
@@ -34,19 +33,17 @@ libraryDependencies ++= List(
 
   "com.clickhouse" % "clickhouse-jdbc" % "0.4.6",
   "com.zaxxer" % "HikariCP" % "5.0.1",
+  "com.google.guava" % "guava" % "32.0.0-jre",
 
   "com.github.bigwheel" %% "util-backports" % "2.1",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.14.2",
   "com.fasterxml.jackson.module" % "jackson-module-parameter-names" % "2.14.2",
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % "2.14.2",
   "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % "2.14.2",
-  //noinspection SbtDependencyVersionInspection -- JDK8
-  "com.github.ben-manes.caffeine" % "caffeine" % "2.9.3",
-  //noinspection SbtDependencyVersionInspection -- JDK8
+  "com.github.ben-manes.caffeine" % "caffeine" % "3.1.5",
   "org.apache.httpcomponents.client5" % "httpclient5" % "5.2.1",
-  //noinspection SbtDependencyVersionInspection -- JDK8
-  "ch.qos.logback" % "logback-classic" % "1.3.6",
-  "com.dynatrace.hash4j" % "hash4j" % "0.10.0",
+  "ch.qos.logback" % "logback-classic" % "1.4.7",
+  "net.java.dev.jna" % "jna" % "5.13.0", // for Wyhash
 
   // Testing...
   "com.github.sbt" % "junit-interface" % "0.13.3" % Test,

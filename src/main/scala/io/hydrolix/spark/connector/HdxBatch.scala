@@ -54,8 +54,8 @@ class HdxBatch(info: HdxConnectionInfo,
       val tbl = table.ident.name()
 
       parts.zipWithIndex.flatMap { case (hp, i) =>
-        val max = hp.maxTimestamp
         val min = hp.minTimestamp
+        val max = hp.maxTimestamp
         val sk = hp.shardKey
 
         // pushedPreds is implicitly an AND here
@@ -67,11 +67,22 @@ class HdxBatch(info: HdxConnectionInfo,
         } else {
           log.info(s"Scanning partition ${i + 1}: $hp. Per-predicate results: ${pushedPreds.zip(pushResults).mkString("\n  ", "\n  ", "\n")}")
           // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
+
+          val path = hp.storageId match {
+            case Some(id) if hp.partition.startsWith(id.toString + "/") =>
+              log.info(s"storage_id = ${hp.storageId}, partition = ${hp.partition}")
+              // Remove storage ID prefix if present, it's not there physically
+              "db/hdx" + hp.partition.drop(id.toString.length + 1)
+            case _ =>
+              // No storage ID or not present in the path, assume the prefix is there
+              info.partitionPrefix.getOrElse("") + hp.partition
+          }
+
           Some(
             HdxScanPartition(
               db,
               tbl,
-              hp.partition,
+              path,
               cols,
               pushedPreds,
               table.hdxCols)

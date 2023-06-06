@@ -1,9 +1,9 @@
 // NOTE: this is in the spark.sql package because we make use of a few private[sql] members in there 😐
 package org.apache.spark.sql
 
+import io.hydrolix.spark.connector.WyHash
 import io.hydrolix.spark.model.{HdxColumnInfo, HdxValueType}
 
-import com.dynatrace.hash4j.hashing.Hashing
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.catalyst.util.DateTimeUtils.microsToInstant
@@ -13,7 +13,6 @@ import org.apache.spark.sql.connector.expressions.{Expression, FieldReference, G
 import org.apache.spark.sql.types.{DataType, DataTypes, StructField}
 
 import java.time.Instant
-import java.{lang => jl}
 
 /**
  * TODO:
@@ -55,7 +54,6 @@ object HdxPushdown extends Logging {
 
   private val allTimestamps = new AllLiterals(DataTypes.TimestampType)
   private val allStrings = new AllLiterals(DataTypes.StringType)
-  private val hasher = Hashing.wyhashFinal3(0) // documented as immutable, safe to reuse
 
   /**
    * Tests whether a given predicate should be pushable for the given timestamp and shard key field names. Note that we
@@ -171,7 +169,7 @@ object HdxPushdown extends Logging {
         case Comparison(GetField(field), op, LiteralValue(shardKey: String, DataTypes.StringType)) if mShardKeyField.contains(field) && shardOps.contains(op) =>
           // [`shardKeyField` <op> <stringLiteral>], where op ∈ `shardOps`
           // TODO do we need to care about 42bc986dc5eec4d3 here?
-          val hashed = jl.Long.toHexString(hasher.hashCharsToLong(shardKey))
+          val hashed = WyHash(shardKey)
 
           op match {
             case EQ =>
