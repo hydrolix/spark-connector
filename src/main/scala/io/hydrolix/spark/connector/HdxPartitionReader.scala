@@ -144,8 +144,6 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   resource(new FileOutputStream(turbineIniTmp)) { _.write(turbineIniAfter.getBytes("UTF-8")) }
 
   // TODO does anything need to be quoted here?
-  //  Note, this relies on a bunch of changes in hdx_reader that may not have been merged to turbine/turbine-core yet,
-  //  see https://hydrolix.atlassian.net/browse/HDX-3779
   private val turbineCmdArgs = List(
     "hdx_reader",
     "--config", turbineIniTmp.getAbsolutePath,

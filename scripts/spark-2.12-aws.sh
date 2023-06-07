@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 SPARK_HOME="${SPARK_HOME:-$HOME/dev/spark-3.3.2-bin-hadoop3}"
-HDX_API_URL="${HDX_API_URL:-https://alex-test.hydro59.com/config/v1/}"
-HDX_JDBC_URL="${HDX_JDBC_URL:-jdbc:clickhouse:tcp://alex-test.hydro59.com:9440/hydro?ssl=true}"
-HDX_ORG_ID="${HDX_ORG_ID:-759ca9ab-cc10-41ad-92db-b2710d2e152d}"
+HDX_API_URL="${HDX_API_URL:-https://hdx-cluster.example.com/config/v1/}"
+HDX_JDBC_URL="${HDX_JDBC_URL:-jdbc:clickhouse:tcp://hdx-cluster.example.com:9440/hydro?ssl=true}"
+HDX_ORG_ID="${HDX_ORG_ID:-11111111-2222-4333-4444-555555555555}"
 
 if [ -z "$HDX_USER" ]; then
   echo "HDX_USER must be set to your hydrolix cluster username (e.g. alex@hydrolix.io)"

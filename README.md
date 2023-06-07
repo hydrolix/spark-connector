@@ -120,7 +120,7 @@ Otherwise, if you’re building locally, it will show up at [./target/scala-2.12
 
 1. Install [SBT](https://scala-sbt.org/) however you prefer. Your Linux distro might have it packaged already.
 2. ```
-   git clone git@gitlab.com:hydrolix/interop-spark.git && cd interop-spark
+   git clone git@github.com:hydrolix/spark-connector.git hydrolix-spark-connector && cd hydrolix-spark-connector
    ```
 3. Run `sbt assembly` to compile and build the connector jar file.
 4. If the build succeeds, the jar can be found at [./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar).
