@@ -36,21 +36,21 @@ unifying DataFrame abstraction.
   | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxPartitionReader](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L97)        |
 
 ### hdx_reader
-A native binary launched by HdxPartitionReader as a child process to read Hydrolix partitions. Packaged in the JAR, 
-not open source.
+An operating mode of the `turbine_cmd` binary, launched by `HdxPartitionReader` as a child process to read Hydrolix 
+partitions. Packaged in the JAR, [not open source](#proprietary)!
 
 ### Hydrolix Cluster
 A preexisting Hydrolix cluster; must be [version 3.40.5](https://docs.hydrolix.io/changelog/9-may-2023-v3404) or later.
 The connector must be able to access the Hydrolix API (typically on port 443) and the Clickhouse Native protocol 
 (typically on port 9440).
 
+#### API
+The connector talks to the Hydrolix API at query planning time using a REST client to authenticate, and to retrieve 
+database, table and column metadata. The connector does not use the API for query execution.
+
 #### Query Head
 The connector talks to the Hydrolix query head at query planning time using the Clickhouse JDBC driver to retrieve 
-partition metadata. The connector does not use the query head for query execution. 
-
-#### API
-The connector talks to the Hydrolix API at query planning time using a REST client to retrieve database, table and 
-column metadata. The connector does not use the API for query execution.
+partition and column index metadata. The connector does not use the query head for query execution. 
 
 ## Feature Set
 ### Query Optimizations
@@ -104,14 +104,15 @@ The following are released under the Apache 2.0 license:
 
 ### Proprietary
 * [turbine_cmd](./src/main/resources/linux-x86-64/turbine_cmd) is ***proprietary***; you may use it in conjunction
-  with the Hydrolix Spark Connector, to interoperate with data stored in Hydrolix tables and managed by Hydrolix
-  clusters, and for no other purpose except as agreed to in writing by Hydrolix Inc. You may not disassemble,
-  reverse-engineer or sublicense it. Your license to use `turbine_cmd` exists at the sole discretion of Hydrolix Inc.
-  and may be revoked at any time without notice or compensation. Hydrolix Inc. may modify, rename, move or compile the
-  `turbine_cmd` binary for additional OS/architecture targets in the future; the same license terms will apply to all
-  such future versions as well unless otherwise noted explicitly.
-* Any file in this repository not otherwise listed in this Licensing section is released under the same terms as 
-  `turbine_cmd` described in this section. If this seems like a mistake, it probably was, please let us know!
+  with the Hydrolix Spark Connector, to query data stored in Hydrolix tables and managed by Hydrolix clusters, and for 
+  no other purpose except as agreed to in writing by Hydrolix Inc. You may not disassemble, reverse-engineer or 
+  sublicense it. Your license to use `turbine_cmd` exists at the sole discretion of Hydrolix Inc. and may be revoked at 
+  any time without notice or compensation. Hydrolix Inc. may modify, rename, move or compile the `turbine_cmd` binary 
+  for additional OS/architecture targets in the future; the same license terms will apply to all such future versions as 
+  well unless otherwise noted explicitly.
+* Any file in this repository not otherwise listed in this [Licenses](#licenses) section is released under the same 
+  proprietary license as `turbine_cmd` described above. If this seems like a mistake, it probably was, please let us 
+  know!
 
 ### Other
 * [src/main/resources/linux-x86-64/wyhash.c](src/main/resources/linux-x86-64/wyhash.c) is derived from
