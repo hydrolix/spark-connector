@@ -14,10 +14,6 @@ any of the following:
 In fact, the connector supports queries using an any arbitrary combination of these languages, thanks to Spark's 
 unifying DataFrame abstraction.
 
-## License
-
-Apache 2.0
-
 ## Architecture
 
 ![diagram](./doc/architecture.png)
@@ -35,9 +31,9 @@ Apache 2.0
   | [ScanBuilder](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/ScanBuilder.html)                       | [HdxScanBuilder](./src/main/scala/io/hydrolix/spark/connector/HdxScanBuilder.scala)                    |
   | [Scan](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Scan.html)                                     | [HdxScan](./src/main/scala/io/hydrolix/spark/connector/HdxScan.scala)                                  | 
   | [Batch](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Batch.html)                                   | [HdxBatch](./src/main/scala/io/hydrolix/spark/connector/HdxBatch.scala)                                | 
-  | [PartitionReaderFactory](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReaderFactory.html) | [HdxPartitionReaderFactory](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L23) |
+  | [PartitionReaderFactory](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReaderFactory.html) | [HdxPartitionReaderFactory](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L22) |
   | [InputPartition](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/InputPartition.html)                 | [HdxScanPartition](./src/main/scala/io/hydrolix/spark/connector/HdxScanPartition.scala)                |
-  | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxPartitionReader](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L95)        |
+  | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxPartitionReader](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L97)        |
 
 ### hdx_reader
 A native binary launched by HdxPartitionReader as a child process to read Hydrolix partitions. Packaged in the JAR, 
@@ -91,6 +87,36 @@ equivalents) will result in an error.
 
 #### Dictionary Tables
 (see [roadmap](#dictionary-tables-1) item)
+
+## Licenses
+
+### Apache 2.0
+The following are released under the Apache 2.0 license:
+* All files in [src/main/scala](./src/main/scala)
+* All files in [src/main/java](./src/main/java)
+* All files in [src/test/scala](./src/test/scala)
+* All files in [scripts](./scripts)
+* All files in [doc](./doc)
+* [src/main/resources/logback.xml](src/main/resources/logback.xml)
+* [build.sbt](./build.sbt)
+* [project/plugins.sbt](./project/plugins.sbt)
+* [project/plugins.sbt](./project/build.properties)
+
+### Proprietary
+* [turbine_cmd](./src/main/resources/linux-x86-64/turbine_cmd) is ***proprietary***; you may use it in conjunction
+  with the Hydrolix Spark Connector, to interoperate with data stored in Hydrolix tables and managed by Hydrolix
+  clusters, and for no other purpose except as agreed to in writing by Hydrolix Inc. You may not disassemble,
+  reverse-engineer or sublicense it. Your license to use `turbine_cmd` exists at the sole discretion of Hydrolix Inc.
+  and may be revoked at any time without notice or compensation. Hydrolix Inc. may modify, rename, move or compile the
+  `turbine_cmd` binary for additional OS/architecture targets in the future; the same license terms will apply to all
+  such future versions as well unless otherwise noted explicitly.
+* Any file in this repository not otherwise listed in this Licensing section is released under the same terms as 
+  `turbine_cmd` described in this section. If this seems like a mistake, it probably was, please let us know!
+
+### Other
+* [src/main/resources/linux-x86-64/wyhash.c](src/main/resources/linux-x86-64/wyhash.c) is derived from
+  https://github.com/wangyi-fudan/wyhash/ which was [released under "Unlicense" or public domain](
+  https://github.com/wangyi-fudan/wyhash/commit/1b9d461b437b61140ccdd9318b17a205c48065cf).
 
 ## System Requirements
 
@@ -243,4 +269,4 @@ cloud storage. We should add integrations to retrieve credentials from various s
 ## Changelog
 
 ### 1.0.0
-Initial public release! 
+Initial public release!
