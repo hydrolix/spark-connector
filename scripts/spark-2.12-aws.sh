@@ -6,7 +6,7 @@ HDX_JDBC_URL="${HDX_JDBC_URL:-jdbc:clickhouse:tcp://hdx-cluster.example.com:9440
 HDX_ORG_ID="${HDX_ORG_ID:-11111111-2222-4333-4444-555555555555}"
 
 if [ -z "$HDX_USER" ]; then
-  echo "HDX_USER must be set to your hydrolix cluster username (e.g. alex@hydrolix.io)"
+  echo "HDX_USER must be set to your hydrolix cluster username (e.g. alice@example.com)"
   exit 1
 fi
 

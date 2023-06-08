@@ -19,7 +19,9 @@ import scala.util.Using.resource
 import scala.util.control.Breaks.{break, breakable}
 import scala.util.{Try, Using}
 
-class HdxPartitionReaderFactory(info: HdxConnectionInfo, storage: HdxStorageSettings, pkName: String)
+final class HdxPartitionReaderFactory(info: HdxConnectionInfo,
+                                   storage: HdxStorageSettings,
+                                    pkName: String)
   extends PartitionReaderFactory
 {
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
@@ -41,7 +43,7 @@ object HdxPartitionReader extends Logging {
 
     Using.Manager { use =>
       ByteStreams.copy(
-        use(getClass.getResourceAsStream("/turbine_cmd")),
+        use(getClass.getResourceAsStream("/linux-x86-64/turbine_cmd")),
         use(new FileOutputStream(f))
       )
     }.get
@@ -53,8 +55,13 @@ object HdxPartitionReader extends Logging {
     f
   }
 
+  /**
+   * Read lines from `stream`, calling `onLine` when a line is read, then `onDone` when EOF is reached.
+   * Must be called in its own thread, because it does blocking reads!
+   *
+   * Closes the stream.
+   */
   private def readLines(stream: InputStream, onLine: String => Unit, onDone: => Unit): Unit = {
-    // TODO GZIP goes here if we ever get that working in turbine_cmd
     Using.resource(new BufferedReader(new InputStreamReader(stream, "UTF-8"))) { reader =>
       breakable {
         while (true) {
@@ -84,8 +91,6 @@ object HdxPartitionReader extends Logging {
 
 /**
  * TODO:
- *  - Refactor per-storage-type turbine.ini hacking and temp files to separate classes
- *  - Refactor the child process stuff to separate file with a clean module boundary
  *  - Allow secrets to be retrieved from secret services, not just config parameters
  *  - Make a ColumnarBatch version too (will require deep hdx_reader changes)
  */
@@ -94,7 +99,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
                      primaryKeyName: String,
                                scan: HdxScanPartition)
   extends PartitionReader[InternalRow]
-    with Logging
+     with Logging
 {
   import HdxPartitionReader._
 
@@ -105,14 +110,16 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   private val schemaStr = JSON.objectMapper.writeValueAsString(schema)
 
   private val exprArgs = {
-    // TODO Spark seems to inject a `foo IS NOT NULL` alongside a `foo = <lit>`, maybe filter it out before doing this
+    val renderedPreds = scan.pushed.flatMap { predicate =>
+      HdxPushdown.renderHdxFilterExpr(predicate, primaryKeyName, scan.hdxCols)
+    }
 
-    val renderedPreds = scan.pushed.flatMap(HdxPushdown.renderHdxFilterExpr(_, primaryKeyName, scan.hdxCols))
-    // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
-    // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
-    // TODO this assumes it's safe to push down partial predicates (as long as they're an AND?), double check!
-    val expr = renderedPreds.mkString("[", " AND ", "]")
-    if (renderedPreds.isEmpty) Nil else List("--expr", expr)
+    if (renderedPreds.isEmpty) Nil else {
+      List(
+        "--expr",
+        renderedPreds.mkString("[", " AND ", "]")
+      )
+    }
   }
 
   private val turbineIniBefore = TurbineIni(storage, info.cloudCred1, info.cloudCred2)
@@ -139,56 +146,65 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     (turbineIniBefore, None)
   }
 
+  // TODO don't create a duplicate file per partition, use a content hash or something
   private val turbineIniTmp = File.createTempFile("turbine_ini_", ".ini")
   turbineIniTmp.deleteOnExit()
   resource(new FileOutputStream(turbineIniTmp)) { _.write(turbineIniAfter.getBytes("UTF-8")) }
 
-  // TODO does anything need to be quoted here?
-  private val turbineCmdArgs = List(
-    "hdx_reader",
-    "--config", turbineIniTmp.getAbsolutePath,
-    "--output_format", "json",
-    "--hdx_partition", s"${scan.path}",
-    "--output_path", "-",
-    "--schema", schemaStr
-  ) ++ exprArgs
-  log.info(s"Running ${turbineCmdTmp.getAbsolutePath} ${turbineCmdArgs.mkString(" ")}")
+  private val expectedLines = new AtomicLong(1) // 1, not 0, to make room for doneSignal
+  private val stdoutQueue = new ArrayBlockingQueue[String](1024)
+  private val stderrLines = mutable.ListBuffer[String]()
 
-  private val counter = new AtomicLong(1) // 1 => make room for doneSignal
-  private val linesQ = new ArrayBlockingQueue[String](1024)
+  private val hdxReaderProcess = {
+    val turbineCmdArgs = List(
+      "hdx_reader",
+      "--config", turbineIniTmp.getAbsolutePath,
+      "--output_format", "json",
+      "--output_path", "-",
+      "--hdx_partition", s"${scan.path}",
+      "--schema", schemaStr
+    ) ++ exprArgs
+    log.info(s"Running ${turbineCmdTmp.getAbsolutePath} ${turbineCmdArgs.mkString(" ")}")
 
+    Process(
+      turbineCmdTmp.getAbsolutePath,
+      turbineCmdArgs
+    ).run(
+      new ProcessIO(
+        { _.close() }, // Don't care about stdin
+        { stdout =>
+          // TODO this relies on the stdout being split into strings; that won't be the case once we implement compression
+          readLines(
+            stdout,
+            { line =>
+              expectedLines.incrementAndGet()
+              stdoutQueue.put(line)
+            },
+            {
+              stdoutQueue.put(doneSignal)
+            }
+          )
+        },
+        { stderr =>
+          readLines(stderr,
+            {
+              case stderrFilterR(_*) => () // Ignore expected output
+              case l => stderrLines += l // Capture unexpected output
+            },
+            () // No need to do anything special when stderr drains
+          )
+        }
+      )
+    )
+  }
+
+  @volatile private var recordsEmitted = 0
   // Cache because PartitionReader says get() should always return the same record if called multiple times per next()
   @volatile private var rec: InternalRow = _
 
-  private val hdxReaderProcessBuilder = Process(turbineCmdTmp.getAbsolutePath, turbineCmdArgs)
-  private val capturedStderr = mutable.ListBuffer[String]()
-
-  // TODO this relies on the stdout being split into strings; that won't be the case once we get gzip working!
-  private val hdxReaderProcess = hdxReaderProcessBuilder.run(new ProcessIO(
-    { _.close() }, // Don't care about stdin
-    readLines(_,
-      { line =>
-        counter.incrementAndGet()
-        linesQ.put(line)
-      },
-      {
-        linesQ.put(doneSignal)
-      }
-    ),
-    readLines(_,
-      {
-        case stderrFilterR(_*) => () // Ignore expected output
-        case l => capturedStderr += l // Capture unexpected output
-      },
-      () // No need to do anything special when stderr drains
-    )
-  ))
-
-  private var count = 0
-
   override def next(): Boolean = {
     val line = try {
-      linesQ.take() // It's OK to block here, we'll always have doneSignal...
+      stdoutQueue.take() // It's OK to block here, we'll always have doneSignal...
     } catch {
       case _: InterruptedException =>
         // ...But if we got killed while waiting, don't be noisy about it
@@ -197,29 +213,28 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     }
 
     if (line eq doneSignal) {
-      // stdout is closed, now we can wait for the sweet release of death
+      // There are definitely no more records, stdout is closed, now we can wait for the sweet release of death
       val exit = hdxReaderProcess.exitValue()
-      val err = capturedStderr.mkString("\n  ", "\n  ", "\n")
+      val err = stderrLines.mkString("\n  ", "\n  ", "\n")
       if (exit != 0) {
         throw new RuntimeException(s"turbine_cmd process exited with code $exit; stderr was: $err")
       } else {
-        // There are definitely no more records
         if (err.trim.nonEmpty) log.warn(s"turbine_cmd process exited with code $exit but stderr was: $err")
         false
       }
     } else {
-      count += 1
-
       rec = Json2Row.row(scan.schema, line)
 
-      counter.decrementAndGet() > 0
+      recordsEmitted += 1
+
+      expectedLines.decrementAndGet() > 0
     }
   }
 
   override def get(): InternalRow = rec
 
   override def close(): Unit = {
-    log.info(s"$count records read from ${scan.path}")
+    log.info(s"$recordsEmitted records read from ${scan.path}")
     Try(turbineIniTmp.delete())
     credsTempFile.foreach(f => Try(f.delete()))
   }

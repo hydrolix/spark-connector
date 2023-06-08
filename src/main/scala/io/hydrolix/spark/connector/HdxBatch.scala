@@ -11,14 +11,14 @@ import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory}
 import org.apache.spark.sql.types.StructType
 
-class HdxBatch(info: HdxConnectionInfo,
-            storage: HdxStorageSettings,
-              table: HdxTable,
-               cols: StructType,
-        pushedPreds: List[Predicate],
-         pushedAggs: List[AggregateFunc])
+final class HdxBatch(info: HdxConnectionInfo,
+                  storage: HdxStorageSettings,
+                    table: HdxTable,
+                     cols: StructType,
+              pushedPreds: List[Predicate],
+               pushedAggs: List[AggregateFunc])
   extends Batch
-    with Logging
+     with Logging
 {
   private var planned: Array[InputPartition] = _
   private val hdxCols = table.hdxCols
@@ -74,7 +74,7 @@ class HdxBatch(info: HdxConnectionInfo,
           val path = hp.storageId match {
             case Some(id) if hp.partition.startsWith(id.toString + "/") =>
               log.info(s"storage_id = ${hp.storageId}, partition = ${hp.partition}")
-              // Remove storage ID prefix if present, it's not there physically
+              // Remove storage ID prefix if present; it's not there physically
               "db/hdx/" + hp.partition.drop(id.toString.length + 1)
             case _ =>
               // No storage ID or not present in the path, assume the prefix is there

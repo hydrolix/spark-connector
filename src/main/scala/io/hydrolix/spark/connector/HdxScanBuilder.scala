@@ -9,16 +9,16 @@ import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read._
 import org.apache.spark.sql.types.{StructField, StructType}
 
-class HdxScanBuilder(info: HdxConnectionInfo,
-                  storage: HdxStorageSettings,
-                    table: HdxTable)
+final class HdxScanBuilder(info: HdxConnectionInfo,
+                        storage: HdxStorageSettings,
+                          table: HdxTable)
   extends ScanBuilder
-    with SupportsPushDownV2Filters
-    with SupportsPushDownRequiredColumns
-    with SupportsPushDownAggregates
-    with Logging
+     with SupportsPushDownV2Filters
+     with SupportsPushDownRequiredColumns
+     with SupportsPushDownAggregates
+     with Logging
 {
-  private var pushedPreds: List[Predicate] = List()
+  private var pushedPreds: List[Predicate] = Nil
   private var pushedAggs: List[AggregateFunc] = Nil
   private var cols: StructType = _
   private val pkField = table.hdxCols.getOrElse(table.primaryKeyField, sys.error("No PK field"))

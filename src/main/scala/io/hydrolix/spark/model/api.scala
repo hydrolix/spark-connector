@@ -14,7 +14,7 @@ import java.util.UUID
  * These are Scala representations of the JSON schema returned by the Hydrolix API.
  *
  * TODO At the moment they're quite fragile, they break when fields are added or removed.
- *  We should fix that before this ships.
+ *  We should fix that.
  */
 
 case class HdxLoginRequest(username: String,

@@ -5,18 +5,21 @@ import java.util.UUID
 import java.{util => ju}
 
 /**
- * All the information we need to connect to Hydrolix stuff
- * @param orgId            the UUID of the organization we need to authenticate as
- * @param jdbcUrl          the JDBC URL to connect to the Hydrolix query head, e.g. `jdbc:clickhouse://host:port?ssl=true`
- * @param user             the username to authenticate to JDBC and the Hydrolix API
- * @param password         the password for authentication to JDBC and the Hydrolix API
- * @param apiUrl           the URL of the Hydrolix API; probably needs to end with `/config/v1/` at the moment.
- * @param cloudCred1       first credential for storage, required, e.g.:
- *                           - for `gcs`, the base64(gzip(_)) of a gcp service account key file
- *                           - for AWS, the access key ID
- * @param cloudCred2       second credential for storage, optional, e.g.:
- *                           - for `gcs`, not required
- *                           - for AWS, the secret key
+ * All the information we need to connect to a Hydrolix cluster
+ *
+ * @param orgId           the UUID of the organization we need to authenticate as
+ * @param jdbcUrl         the JDBC URL to connect to the Hydrolix query head,
+ *                        e.g. `jdbc:clickhouse://host:port/db?ssl=true`
+ * @param user            the username to authenticate to JDBC and the Hydrolix API
+ * @param password        the password for authentication to JDBC and the Hydrolix API
+ * @param apiUrl          the URL of the Hydrolix API; probably needs to end with `/config/v1/` at the moment.
+ * @param partitionPrefix string to prepend to partition paths, only needed during weird version transitions
+ * @param cloudCred1      first credential for storage, required, e.g.:
+ *                          - for `gcs`, the base64(gzip(_)) of a gcp service account key file
+ *                          - for AWS, the access key ID
+ * @param cloudCred2      second credential for storage, optional, e.g.:
+ *                          - for `gcs`, not required
+ *                          - for AWS, the secret key
  */
 case class HdxConnectionInfo(orgId: UUID,
                            jdbcUrl: String,

@@ -12,7 +12,7 @@ import org.apache.spark.sql.catalyst.analysis.{NoSuchDatabaseException, NoSuchTa
 import java.time.Duration
 import java.util.UUID
 
-class HdxApiSession(info: HdxConnectionInfo) {
+final class HdxApiSession(info: HdxConnectionInfo) {
   def tables(db: String): List[HdxApiTable] = {
     val project = database(db).getOrElse(throw NoSuchDatabaseException(db))
     allTablesCache.get(project.uuid)

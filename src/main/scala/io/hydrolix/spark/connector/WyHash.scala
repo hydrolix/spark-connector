@@ -4,6 +4,9 @@ import com.sun.jna.{Library, Native}
 
 import java.{lang => jl}
 
+/**
+ * See the [README](../../../../../resources/linux-x86-64/README.md)
+ */
 object WyHash {
   private val instance = Native.load("wyhash", classOf[WyHash])
 

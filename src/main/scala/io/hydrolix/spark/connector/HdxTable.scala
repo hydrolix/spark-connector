@@ -19,7 +19,7 @@ case class HdxTable(info: HdxConnectionInfo,
            sortKeyFields: List[String],
                  hdxCols: Map[String, HdxColumnInfo])
   extends Table
-    with SupportsRead
+     with SupportsRead
 {
   override def name(): String = ident.toString
 

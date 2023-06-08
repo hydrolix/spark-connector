@@ -10,5 +10,5 @@ We might prefer for this to be statically linked, but it's extremely dependency-
 
 See [WyHashTest.scala](../../../test/scala/io/hydrolix/spark/connector/WyHashTest.scala) for some test cases.
 
-We could cross-build this for other OS's too, but at the moment [turbine_cmd](../turbine_cmd) is only built for 
-`linux-x86-64` anyway so there wouldn't be much point.
+We could cross-build this for other OS's and architectures too, but at the moment [turbine_cmd](turbine_cmd) is 
+`linux-x86-64`-only anyway so there's not much point at the moment.

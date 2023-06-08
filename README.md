@@ -14,6 +14,10 @@ any of the following:
 In fact, the connector supports queries using an any arbitrary combination of these languages, thanks to Spark's 
 unifying DataFrame abstraction.
 
+## License
+
+Apache 2.0
+
 ## Architecture
 
 ![diagram](./doc/architecture.png)
@@ -22,7 +26,7 @@ unifying DataFrame abstraction.
 * Implements the Spark [TableCatalog](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/catalog/TableCatalog.html) 
   interface
 * Makes requests to the Hydrolix query head (via JDBC) and API (via REST client) to collect 
-  metadata about the databases, tables and columns that are accessible to the authenticated user.
+  metadata about the databases, tables, partitions and columns that are accessible to the authenticated user.
 * Provides implementations of the Spark types necessary to run queries, including: 
 
   | Spark Type                                                                                                                             | Connector Implementation                                                                               | 
