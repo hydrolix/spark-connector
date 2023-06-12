@@ -8,7 +8,6 @@ import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 import org.apache.spark.sql.vectorized.ColumnarBatch
-import org.slf4j.LoggerFactory
 
 import java.io._
 import java.util.Base64
@@ -26,12 +25,14 @@ final class HdxPartitionReaderFactory(info: HdxConnectionInfo,
                                     pkName: String)
   extends PartitionReaderFactory
 {
-  override def createReader(partition: InputPartition): PartitionReader[InternalRow] = sys.error("No row-oriented anymore")
-
   override def supportColumnarReads(partition: InputPartition) = true
 
   override def createColumnarReader(partition: InputPartition): PartitionReader[ColumnarBatch] = {
     new HdxPartitionReader(info, storage, pkName, partition.asInstanceOf[HdxScanPartition])
+  }
+
+  override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
+    sys.error("Row-oriented reads aren't supported anymore")
   }
 }
 
@@ -217,7 +218,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
 
   @volatile private var recordsEmitted = 0
   // Cache because PartitionReader says get() should always return the same record if called multiple times per next()
-  @volatile private var rec: InternalRow = _
+  @volatile private var batch: ColumnarBatch = _
 
   override def next(): Boolean = {
     val batch = try {
