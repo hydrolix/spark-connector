@@ -1,9 +1,9 @@
 // NOTE: this is in the spark.sql package because we make use of a few private[sql] members in there 😐
 package org.apache.spark.sql
 
+import io.hydrolix.spark.connector.WyHash
 import io.hydrolix.spark.model.{HdxColumnInfo, HdxValueType}
 
-import com.dynatrace.hash4j.hashing.Hashing
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.catalyst.util.DateTimeUtils.microsToInstant
@@ -13,7 +13,6 @@ import org.apache.spark.sql.connector.expressions.{Expression, FieldReference, G
 import org.apache.spark.sql.types.{DataType, DataTypes, StructField}
 
 import java.time.Instant
-import java.{lang => jl}
 
 /**
  * TODO:
@@ -55,7 +54,6 @@ object HdxPushdown extends Logging {
 
   private val allTimestamps = new AllLiterals(DataTypes.TimestampType)
   private val allStrings = new AllLiterals(DataTypes.StringType)
-  private val hasher = Hashing.wyhashFinal3(0) // documented as immutable, safe to reuse
 
   /**
    * Tests whether a given predicate should be pushable for the given timestamp and shard key field names. Note that we
@@ -63,7 +61,6 @@ object HdxPushdown extends Logging {
    * authoritatively prune particular partitions, since it will have their specific min/max timestamps and shard keys.
    *
    * TODO:
-   *  - once we figure out precisely what FilterExpr can do, change this to return `1` sometimes!
    *  - Decide whether we need to care about [[org.apache.spark.sql.types.TimestampNTZType]]
    *
    * @param primaryKeyField name of the timestamp ("primary key") field for this table
@@ -97,9 +94,8 @@ object HdxPushdown extends Logging {
         // field op literal
         val hcol = cols.getOrElse(f, sys.error(s"No HdxColumnInfo for $f"))
         if (hcol.indexed == 2) {
-          // This field is indexed in all partitions, it can be pushed down completely!
-          // TODO not so fast! filter_interpreter is only doing block filtering; we still need to eval after scan, but
-          //  it'll be much smaller
+          // This field is indexed in all partitions, but we can't return 1 because `turbine_cmd` only does block-level
+          // filtering, i.e. it will return a block of 8k rows when that block contains _any_ matching value(s).
           2
         } else {
           2
@@ -171,7 +167,7 @@ object HdxPushdown extends Logging {
         case Comparison(GetField(field), op, LiteralValue(shardKey: String, DataTypes.StringType)) if mShardKeyField.contains(field) && shardOps.contains(op) =>
           // [`shardKeyField` <op> <stringLiteral>], where op ∈ `shardOps`
           // TODO do we need to care about 42bc986dc5eec4d3 here?
-          val hashed = jl.Long.toHexString(hasher.hashCharsToLong(shardKey))
+          val hashed = WyHash(shardKey)
 
           op match {
             case EQ =>
@@ -367,7 +363,7 @@ object HdxPushdown extends Logging {
   }
 
   /**
-   * Looks at a list of expressions, and if it's not empty, and EVERY value is a literals of type `typ`,
+   * Looks at a list of expressions, and if it's not empty, and EVERY value is a literal of type `typ`,
    * returns them as a list of [[LiteralValue]].
    *
    * Returns nothing if:

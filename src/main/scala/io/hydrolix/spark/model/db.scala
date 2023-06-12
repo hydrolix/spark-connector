@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 import org.apache.spark.sql.types.DataType
 
 import java.time.Instant
+import java.util.UUID
 
 /*
  * These are Scala representations of the metadata visible from a Hydrolix JDBC connection.
@@ -38,5 +39,6 @@ case class HdxDbPartition(
   memSize: Long,
   rootPath: String,
   shardKey: String,
-  active: Boolean
+  active: Boolean,
+  storageId: Option[UUID]
 )

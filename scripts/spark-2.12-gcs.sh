@@ -2,12 +2,12 @@
 
 SPARK_HOME="${SPARK_HOME:-$HOME/dev/spark-3.3.2-bin-hadoop3}"
 GCS_KEY_PATH="${GCS_KEY_PATH:-$HOME/dev/gcp.key}"
-HDX_API_URL="${HDX_API_URL:-https://gcp-prod-test.hydrolix.net/config/v1/}"
-HDX_JDBC_URL="${HDX_JDBC_URL:-jdbc:clickhouse:tcp://gcp-prod-test.hydrolix.net:9440/hydro?ssl=true}"
-HDX_ORG_ID="${HDX_ORG_ID:-3287e312-482e-49e1-83fa-11edaa0a66c1}"
+HDX_API_URL="${HDX_API_URL:-https://hdx-cluster.example.com/config/v1/}"
+HDX_JDBC_URL="${HDX_JDBC_URL:-jdbc:clickhouse:tcp://hdx-cluster.example.com:9440/hydro?ssl=true}"
+HDX_ORG_ID="${HDX_ORG_ID:-11111111-2222-4333-4444-555555555555}"
 
 if [ -z "$HDX_USER" ]; then
-  echo "HDX_USER must be set to your hydrolix cluster username (e.g. alex@hydrolix.io)"
+  echo "HDX_USER must be set to your hydrolix cluster username (e.g. alice@example.com)"
   exit 1
 fi
 

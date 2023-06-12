@@ -8,7 +8,7 @@ package object connector {
       underlying.filter(f) match {
         case as: Seq[A] if as.isEmpty => None
         case as: Seq[A] if as.size == 1 => as.headOption
-        case other => sys.error("Multiple elements found when zero or one was expected")
+        case _ => sys.error("Multiple elements found when zero or one was expected")
       }
     }
   }

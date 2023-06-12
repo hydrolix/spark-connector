@@ -16,9 +16,10 @@ import java.{util => ju}
 import scala.collection.mutable
 
 //noinspection ScalaUnusedSymbol: This is referenced as a classname on the Spark command line (`-c spark.sql.catalog.hydrolix=io.hydrolix.spark.connector.HdxTableCatalog`)
-class HdxTableCatalog extends TableCatalog
-                         with SupportsNamespaces
-                         with Logging
+final class HdxTableCatalog
+    extends TableCatalog
+       with SupportsNamespaces
+       with Logging
 {
   var name: String = _
   private var info: HdxConnectionInfo = _
@@ -127,7 +128,7 @@ class HdxTableCatalog extends TableCatalog
   }
 
   // TODO implement if needed
-  override def listNamespaces(namespace: Array[String]): Array[Array[String]] = ???
+  override def listNamespaces(namespace: Array[String]): Array[Array[String]] = Array()
 
   // TODO implement if needed
   override def loadNamespaceMetadata(namespace: Array[String]): ju.Map[String, String] = Collections.emptyMap()

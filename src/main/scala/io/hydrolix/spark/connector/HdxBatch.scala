@@ -11,16 +11,19 @@ import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory}
 import org.apache.spark.sql.types.StructType
 
-class HdxBatch(info: HdxConnectionInfo,
-            storage: HdxStorageSettings,
-              table: HdxTable,
-               cols: StructType,
-        pushedPreds: List[Predicate],
-         pushedAggs: List[AggregateFunc])
+final class HdxBatch(info: HdxConnectionInfo,
+                  storage: HdxStorageSettings,
+                    table: HdxTable,
+                     cols: StructType,
+              pushedPreds: List[Predicate],
+               pushedAggs: List[AggregateFunc])
   extends Batch
-    with Logging
+     with Logging
 {
   private var planned: Array[InputPartition] = _
+  private val hdxCols = table.hdxCols
+    .filterKeys(cols.fieldNames.contains(_))
+    .map(identity) // because Map.filterKeys produces something non-Serializable
 
   override def planInputPartitions(): Array[InputPartition] = {
     if (planned == null) {
@@ -54,8 +57,8 @@ class HdxBatch(info: HdxConnectionInfo,
       val tbl = table.ident.name()
 
       parts.zipWithIndex.flatMap { case (hp, i) =>
-        val max = hp.maxTimestamp
         val min = hp.minTimestamp
+        val max = hp.maxTimestamp
         val sk = hp.shardKey
 
         // pushedPreds is implicitly an AND here
@@ -67,14 +70,25 @@ class HdxBatch(info: HdxConnectionInfo,
         } else {
           log.info(s"Scanning partition ${i + 1}: $hp. Per-predicate results: ${pushedPreds.zip(pushResults).mkString("\n  ", "\n  ", "\n")}")
           // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
+
+          val path = hp.storageId match {
+            case Some(id) if hp.partition.startsWith(id.toString + "/") =>
+              log.info(s"storage_id = ${hp.storageId}, partition = ${hp.partition}")
+              // Remove storage ID prefix if present; it's not there physically
+              "db/hdx/" + hp.partition.drop(id.toString.length + 1)
+            case _ =>
+              // No storage ID or not present in the path, assume the prefix is there
+              info.partitionPrefix.getOrElse("") + hp.partition
+          }
+
           Some(
             HdxScanPartition(
               db,
               tbl,
-              hp.partition,
+              path,
               cols,
               pushedPreds,
-              table.hdxCols)
+              hdxCols)
           )
         }
       }.toArray

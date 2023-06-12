@@ -1,8 +1,8 @@
 package io.hydrolix.spark.model
 
-import com.fasterxml.jackson.annotation.{JsonInclude, JsonSubTypes, JsonTypeInfo}
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonInclude.Include
-import com.fasterxml.jackson.databind.{JsonNode, PropertyNamingStrategies}
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.PropertyNamingStrategies.SnakeCaseStrategy
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 
@@ -14,7 +14,7 @@ import java.util.UUID
  * These are Scala representations of the JSON schema returned by the Hydrolix API.
  *
  * TODO At the moment they're quite fragile, they break when fields are added or removed.
- *  We should fix that before this ships.
+ *  We should fix that.
  */
 
 case class HdxLoginRequest(username: String,
@@ -138,56 +138,6 @@ case class HdxColumnDatatype(             `type`: HdxValueType,
   @JsonInclude(Include.NON_DEFAULT)     catchAll: Boolean = false,
   @JsonInclude(Include.NON_DEFAULT)       ignore: Boolean = false,
   @JsonInclude(Include.NON_ABSENT)      elements: Option[List[HdxColumnDatatype]] = None)
-
-/**
- * TODO sync this with the Elastic project somehow:
- *  https://gitlab.com/hydrolix/interop-kibana/-/blob/main/hydrolix-specific/src/main/kotlin/io/hydrolix/ketchup/model/hdx/Transform.kt
- */
-case class HdxTransform(name: String,
-                 description: Option[String],
-                      `type`: HdxTransformType,
-                       table: String,
-                    settings: HdxTransformSettings)
-
-
-@JsonNaming(classOf[PropertyNamingStrategies.SnakeCaseStrategy])
-case class HdxTransformSettings(isDefault: Boolean,
-                              compression: HdxTransformCompression, // TODO layering
-                             sqlTransform: Option[String] = None,
-                               nullValues: List[String] = Nil,
-                            formatDetails: HdxTransformFormatDetails,
-                            outputColumns: List[HdxOutputColumn])
-
-
-@JsonSubTypes(value = Array(
-  new JsonSubTypes.Type(name = "csv", value = classOf[CsvFormatDetails]),
-  new JsonSubTypes.Type(name = "json", value = classOf[JsonFormatDetails]),
-))
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type")
-trait HdxTransformFormatDetails {}
-
-@JsonNaming(classOf[PropertyNamingStrategies.SnakeCaseStrategy])
-case class CsvFormatDetails(delimiter: String, // TODO can be a number too?
-                               escape: String, // TODO number
-                             skipHead: Option[Int],
-                                quote: Option[String], // TODO number
-                              comment: Option[String], // TODO number
-                         skipComments: Boolean,
-                        windowsEnding: Boolean)
-  extends HdxTransformFormatDetails
-
-
-case class JsonFormatDetails(flattening: JsonFlattening) extends HdxTransformFormatDetails
-
-@JsonNaming(classOf[PropertyNamingStrategies.SnakeCaseStrategy])
-@JsonInclude(JsonInclude.Include.NON_DEFAULT)
-case class JsonFlattening(active: Boolean,
-           mapFlatteningStrategy: Option[FlatteningStrategy],
-         sliceFlatteningStrategy: Option[FlatteningStrategy],
-                           depth: Option[Int])
-
-case class FlatteningStrategy(left: String,
-                             right: String)
 
 case class HdxStorage(name: String,
                        org: UUID,
