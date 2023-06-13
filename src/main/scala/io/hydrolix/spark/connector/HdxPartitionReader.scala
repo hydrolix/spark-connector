@@ -50,6 +50,12 @@ object HdxPartitionReader extends Logging {
 
     f.setExecutable(true)
 
+    spawn(f.getAbsolutePath) match {
+      case (255, "", "No command specified") => // OK
+      case (exit, out, err) =>
+        log.warn(s"turbine_cmd may not work on this OS, it exited with code $exit, stdout: $out, stderr: $err")
+    }
+
     log.info(s"Extracted turbine_cmd binary to ${f.getAbsolutePath}")
 
     f
