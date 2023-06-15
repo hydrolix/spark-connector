@@ -1,6 +1,12 @@
-### WyHash Provenance
+## Notes about this directory
 
-This was built from [wyhash.c](./wyhash.c) in this directory. This version works, many others don't.
+### turbine_cmd
+This binary blob is proprietary, not open source. See the [relevant section](../../../../README.md#proprietary) of the 
+top-level README for more information.
+
+### WyHash
+WyHash is public domain. `libwyhash.so` was built from [wyhash.c](./wyhash.c) in this directory. This version matches
+the behaviour observed in other components; many others don't.
 
 How I built it:
 ```shell

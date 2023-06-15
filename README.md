@@ -91,7 +91,7 @@ equivalents) will result in an error.
 ## Licenses
 
 ### Apache 2.0
-The following are released under the Apache 2.0 license:
+The following are released under the [Apache 2.0 license](./licenses/Apache_License_2.0.txt):
 * All files in [src/main/scala](./src/main/scala)
 * All files in [src/main/java](./src/main/java)
 * All files in [src/test/scala](./src/test/scala)
@@ -100,24 +100,13 @@ The following are released under the Apache 2.0 license:
 * [src/main/resources/logback.xml](src/main/resources/logback.xml)
 * [build.sbt](./build.sbt)
 * [project/plugins.sbt](./project/plugins.sbt)
-* [project/plugins.sbt](./project/build.properties)
+* [project/build.properties](./project/build.properties)
 
 ### Proprietary
-* [turbine_cmd](./src/main/resources/linux-x86-64/turbine_cmd) is ***proprietary***; you may use it in conjunction
-  with the Hydrolix Spark Connector, to query data stored in Hydrolix tables and managed by Hydrolix clusters, and for 
-  no other purpose except as agreed to in writing by Hydrolix Inc. You may not disassemble, reverse-engineer or 
-  sublicense it. Your license to use `turbine_cmd` exists at the sole discretion of Hydrolix Inc. and may be revoked at 
-  any time without notice or compensation. Hydrolix Inc. may modify, rename, move or compile the `turbine_cmd` binary 
-  for additional OS/architecture targets in the future; the same license terms will apply to all such future versions as 
-  well unless otherwise noted explicitly.
-* Any file in this repository not otherwise listed in this [Licenses](#licenses) section is released under the same 
-  proprietary license as `turbine_cmd` described above. If this seems like a mistake, it probably was, please let us 
-  know!
-
-### Other
-* [src/main/resources/linux-x86-64/wyhash.c](src/main/resources/linux-x86-64/wyhash.c) is derived from
-  https://github.com/wangyi-fudan/wyhash/ which was [released under "Unlicense" or public domain](
-  https://github.com/wangyi-fudan/wyhash/commit/1b9d461b437b61140ccdd9318b17a205c48065cf).
+* All files made available in this repository that are not identified above as being licensed under the Apache 2.0 
+  license, including without limitation [`turbine_cmd`](./src/main/resources/linux-x86-64/turbine_cmd), may be used only 
+  by users that have entered into a separate written agreement with us that contains licenses to use our software and 
+  such use is subject to the terms of that separate written agreement.
 
 ## System Requirements
 
