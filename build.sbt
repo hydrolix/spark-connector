@@ -16,6 +16,12 @@
 ThisBuild / organization := "io.hydrolix"
 ThisBuild / version := "1.0.0-SNAPSHOT"
 ThisBuild / scalaVersion := "2.12.17"
+ThisBuild / organizationHomepage := Some(url("https://hydrolix.io/"))
+ThisBuild / homepage := Some(url("https://github.com/hydrolix/spark-connector/"))
+ThisBuild / licenses := List(
+  "Apache 2" -> new URL("http://www.apache.org/licenses/LICENSE-2.0.txt"),
+  "Proprietary" -> new URL("https://github.com/hydrolix/spark-connector/#proprietary"),
+)
 
 name := "hydrolix-spark-connector"
 
@@ -64,3 +70,27 @@ libraryDependencies ++= List(
   "com.github.sbt" % "junit-interface" % "0.13.3" % Test,
   "org.apache.spark" %% "spark-catalyst" % "3.3.2" % Test,
 )
+
+credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials")
+
+ThisBuild / scmInfo := Some(
+  ScmInfo(
+    url("https://github.com/hydrolix/spark-connector"),
+    "scm:git@github.com:hydrolix/spark-connector.git"
+  )
+)
+ThisBuild / developers := List(
+  Developer(
+    id = "acruise",
+    name = "Alex Cruise",
+    email = "alex@hydrolix.io",
+    url = url("https://github.com/acruise")
+  )
+)
+ThisBuild / pomIncludeRepository := { _ => false }
+ThisBuild / publishTo := {
+  val nexus = "https://s01.oss.sonatype.org/"
+  if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
+  else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+}
+ThisBuild / publishMavenStyle := true
