@@ -189,7 +189,6 @@ inspiration.
    spark.sql.catalog.hydrolix io.hydrolix.spark.connector.HdxTableCatalog
    spark.sql.catalog.hydrolix.api_url https://my-hdx-cluster.example.com/config/v1/
    spark.sql.catalog.hydrolix.jdbc_url jdbc:clickhouse://my-hdx-cluster.example.com:8088?ssl=true
-   spark.sql.catalog.hydrolix.org_id <hydrolix org ID>
    spark.sql.catalog.hydrolix.username <hydrolix username>
    spark.sql.catalog.hydrolix.password <hydrolix password>
    spark.sql.catalog.hydrolix.cloud_cred_1 <access key ID>
@@ -211,7 +210,6 @@ or a notebook using `spark.conf.set(<name>, <value>)`, they don't need to be pro
 | Option Name                               | Option Value                                          | Description                                                                                                                                                                           |
 |-------------------------------------------|-------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `spark.sql.catalog.hydrolix`              | `io.hydrolix.spark.connector.HdxTableCatalog`         | The fully qualified name of the class to instantiate when you ask for the `hydrolix` catalog.                                                                                         |
-| `spark.sql.catalog.hydrolix.org_id`       | `<hydrolix organization UUID>`                        | The organization ID you want to authenticate to (see https://docs.hydrolix.io/reference/summary-of-organization)                                                                      |
 | `spark.sql.catalog.hydrolix.jdbc_url`     | `jdbc:clickhouse://<host>:<port>/<database>?ssl=true` | JDBC URL of the Hydrolix query head. Note that the Clickhouse JDBC driver requires a valid database name in the URL, but the connector will read any database the user has access to. |
 | `spark.sql.catalog.hydrolix.username`     | `<hdx user name>`                                     | Username to login to the Hydrolix cluster                                                                                                                                             |
 | `spark.sql.catalog.hydrolix.password`     | `<hdx password>`                                      | Password to login to the Hydrolix cluster                                                                                                                                             |

@@ -16,13 +16,11 @@
 package io.hydrolix.spark.model
 
 import java.net.URI
-import java.util.UUID
 import java.{util => ju}
 
 /**
  * All the information we need to connect to a Hydrolix cluster
  *
- * @param orgId           the UUID of the organization we need to authenticate as
  * @param jdbcUrl         the JDBC URL to connect to the Hydrolix query head,
  *                        e.g. `jdbc:clickhouse://host:port/db?ssl=true`
  * @param user            the username to authenticate to JDBC and the Hydrolix API
@@ -36,20 +34,18 @@ import java.{util => ju}
  *                          - for `gcs`, not required
  *                          - for AWS, the secret key
  */
-case class HdxConnectionInfo(orgId: UUID,
-                           jdbcUrl: String,
-                              user: String,
-                          password: String,
-                            apiUrl: URI,
-                   partitionPrefix: Option[String],
-                        cloudCred1: String,
-                        cloudCred2: Option[String])
+case class HdxConnectionInfo(jdbcUrl: String,
+                                user: String,
+                            password: String,
+                              apiUrl: URI,
+                     partitionPrefix: Option[String],
+                          cloudCred1: String,
+                          cloudCred2: Option[String])
 {
   val asMap: Map[String, String] = {
     import HdxConnectionInfo._
 
     Map(
-      OPT_ORG_ID -> orgId.toString,
       OPT_JDBC_URL -> jdbcUrl,
       OPT_USERNAME -> user,
       OPT_PASSWORD -> password,
@@ -63,7 +59,6 @@ case class HdxConnectionInfo(orgId: UUID,
 
 //noinspection ScalaWeakerAccess
 object HdxConnectionInfo {
-  val OPT_ORG_ID = "org_id"
   val OPT_PROJECT_NAME = "project_name"
   val OPT_TABLE_NAME = "table_name"
   val OPT_JDBC_URL = "jdbc_url"
@@ -89,7 +84,6 @@ object HdxConnectionInfo {
   }
 
   def fromOpts(options: ju.Map[String, String]): HdxConnectionInfo = {
-    val orgId = UUID.fromString(req(options, OPT_ORG_ID))
     val url = req(options, OPT_JDBC_URL)
     val user = req(options, OPT_USERNAME)
     val pass = req(options, OPT_PASSWORD)
@@ -98,6 +92,6 @@ object HdxConnectionInfo {
     val cloudCred1 = req(options, OPT_CLOUD_CRED_1)
     val cloudCred2 = opt(options, OPT_CLOUD_CRED_2)
 
-    HdxConnectionInfo(orgId, url, user, pass, apiUrl, partitionPrefix, cloudCred1, cloudCred2)
+    HdxConnectionInfo(url, user, pass, apiUrl, partitionPrefix, cloudCred1, cloudCred2)
   }
 }
