@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 ThisBuild / organization := "io.hydrolix"
-ThisBuild / version := "1.0.0-SNAPSHOT"
-ThisBuild / scalaVersion := "2.12.17"
+ThisBuild / version := "1.1.0-SNAPSHOT"
 ThisBuild / organizationHomepage := Some(url("https://hydrolix.io/"))
 ThisBuild / homepage := Some(url("https://github.com/hydrolix/spark-connector/"))
 ThisBuild / licenses := List(
   "Apache 2" -> new URL("http://www.apache.org/licenses/LICENSE-2.0.txt"),
   "Proprietary" -> new URL("https://github.com/hydrolix/spark-connector/#proprietary"),
 )
+ThisBuild / crossScalaVersions := List("2.12.18", "2.13.11")
 
 name := "hydrolix-spark-connector"
 
@@ -31,7 +31,7 @@ assemblyShadeRules := Seq(
   ShadeRule.rename("com.github.benmanes.caffeine.**" -> "shadecaffeine.@1").inAll,
   ShadeRule.rename("com.fasterxml.jackson.**" -> "shadejackson.@1").inAll
 )
-
+assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}.jar"
 assembly / assemblyOption ~= {
   _.withIncludeScala(false)
 }
@@ -39,7 +39,6 @@ assembly / assemblyOption ~= {
 assemblyMergeStrategy := {
   case PathList(pl@_*) if pl.last == "module-info.class" => MergeStrategy.discard
   case PathList(pl@_*) if pl.last == "public-suffix-list.txt" => MergeStrategy.discard
-  case PathList("com", "clickhouse", "client", "data", "JsonStreamUtils.class") => MergeStrategy.first
   case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.first
   case PathList("META-INF", "native", _*) => MergeStrategy.first
   case "application.conf" => MergeStrategy.concat
