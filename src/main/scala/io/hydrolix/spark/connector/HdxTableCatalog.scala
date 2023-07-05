@@ -16,7 +16,7 @@
 package io.hydrolix.spark.connector
 
 import io.hydrolix.spark.model.HdxConnectionInfo.{OPT_PROJECT_NAME, OPT_STORAGE_BUCKET_NAME, OPT_STORAGE_BUCKET_PATH, OPT_STORAGE_CLOUD, OPT_STORAGE_REGION, OPT_TABLE_NAME}
-import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxJdbcSession, HdxStorageSettings}
+import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxJdbcSession, HdxStorageSettings, Types}
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
@@ -46,7 +46,19 @@ final class HdxTableCatalog
 
   private def columns(db: String, table: String): List[HdxColumnInfo] = {
     columnsCache.getOrElseUpdate((db, table), {
-      jdbc.collectColumns(db, table)
+      val view = api.defaultView(db, table)
+
+      view.settings.outputColumns.map { col =>
+        val stype = Types.hdxToSpark(col.datatype)
+
+        HdxColumnInfo(
+          col.name,
+          col.datatype,
+          nullable = true,
+          stype,
+          if (col.datatype.index) 2 else 0 // TODO this will sometimes be wrong if the column wasn't always indexed
+        )
+      }
     })
   }
 

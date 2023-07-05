@@ -19,7 +19,7 @@ import io.hydrolix.spark.model._
 
 import com.github.benmanes.caffeine.cache.{CacheLoader, Caffeine, Expiry, LoadingCache}
 import org.apache.hc.client5.http.HttpResponseException
-import org.apache.hc.client5.http.classic.methods.{HttpGet, HttpPost}
+import org.apache.hc.client5.http.classic.methods.{HttpGet, HttpPost, HttpUriRequest}
 import org.apache.hc.client5.http.impl.classic.{BasicHttpClientResponseHandler, HttpClients}
 import org.apache.hc.core5.http.ContentType
 import org.apache.hc.core5.http.io.entity.StringEntity
@@ -52,9 +52,14 @@ final class HdxApiSession(info: HdxConnectionInfo) {
     allTablesCache.get(project.uuid).findSingle(_.name == table)
   }
 
-  private def views(db: String, table: String): List[HdxView] = {
+  def views(db: String, table: String): List[HdxView] = {
     val tbl = this.table(db, table).getOrElse(throw NoSuchTableException(table))
     allViewsByTableCache.get(tbl.project -> tbl.uuid)
+  }
+
+  def defaultView(db: String, table: String): HdxView = {
+    val vs = views(db, table)
+    vs.findExactlyOne(_.settings.isDefault, "default view")
   }
 
   def pk(db: String, table: String): HdxOutputColumn = {
@@ -70,6 +75,11 @@ final class HdxApiSession(info: HdxConnectionInfo) {
       case Nil => sys.error(s"Couldn't find a primary key for $db.$table")
       case other => sys.error(s"Found multiple candidate primary keys for $db.$table: ${other.mkString(", ")}")
     }
+  }
+
+  def version(): String = {
+    val get = new HttpGet(info.apiUrl.resolve("/version")).withAuthToken()
+    client.execute(get, new BasicHttpClientResponseHandler())
   }
 
   private val client = HttpClients.createDefault()
@@ -119,7 +129,7 @@ final class HdxApiSession(info: HdxConnectionInfo) {
 
         orgIds.toList.flatMap { orgId =>
           val projectsGet = new HttpGet(info.apiUrl.resolve(s"orgs/$orgId/projects/"))
-          projectsGet.addHeader("Authorization", s"Bearer ${authRespCache.get(0).authToken.accessToken}")
+            .withAuthToken()
 
           try {
             val projectsResp = client.execute(projectsGet, new BasicHttpClientResponseHandler())
@@ -129,6 +139,13 @@ final class HdxApiSession(info: HdxConnectionInfo) {
           }
         }
       })
+  }
+
+  implicit class HttpRequestGoodies(req: HttpUriRequest) {
+    def withAuthToken(): HttpUriRequest = {
+      req.addHeader("Authorization", s"Bearer ${authRespCache.get(0).authToken.accessToken}")
+      req
+    }
   }
 
   private val allTablesCache: LoadingCache[UUID, List[HdxApiTable]] = {
@@ -141,7 +158,7 @@ final class HdxApiSession(info: HdxConnectionInfo) {
           val project = allProjectsCache.get(0).find(_.uuid == key).getOrElse(throw NoSuchDatabaseException(key.toString))
 
           val tablesGet = new HttpGet(info.apiUrl.resolve(s"orgs/$orgId/projects/${project.uuid}/tables/"))
-          tablesGet.addHeader("Authorization", s"Bearer ${authRespCache.get(0).authToken.accessToken}")
+            .withAuthToken()
 
           try {
             JSON.objectMapper.readValue[List[HdxApiTable]](client.execute(tablesGet, new BasicHttpClientResponseHandler()))
@@ -159,7 +176,7 @@ final class HdxApiSession(info: HdxConnectionInfo) {
         val orgIds = authRespCache.get(0).orgs.map(_.uuid).toSet
         orgIds.toList.flatMap { orgId =>
           val storagesGet = new HttpGet(info.apiUrl.resolve(s"orgs/$orgId/storages/"))
-          storagesGet.addHeader("Authorization", s"Bearer ${authRespCache.get(0).authToken.accessToken}")
+            .withAuthToken()
 
           try {
             val storagesResp = client.execute(storagesGet, new BasicHttpClientResponseHandler())
@@ -180,7 +197,7 @@ final class HdxApiSession(info: HdxConnectionInfo) {
           val orgIds = authRespCache.get(0).orgs.map(_.uuid).toSet
           orgIds.toList.flatMap { orgId =>
             val viewsGet = new HttpGet(info.apiUrl.resolve(s"orgs/$orgId/projects/$projectId/tables/$tableId/views/"))
-            viewsGet.addHeader("Authorization", s"Bearer ${authRespCache.get(0).authToken.accessToken}")
+              .withAuthToken()
 
             try {
               val viewsResp = client.execute(viewsGet, new BasicHttpClientResponseHandler())

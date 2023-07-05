@@ -31,7 +31,7 @@ assemblyShadeRules := Seq(
   ShadeRule.rename("com.github.benmanes.caffeine.**" -> "shadecaffeine.@1").inAll,
   ShadeRule.rename("com.fasterxml.jackson.**" -> "shadejackson.@1").inAll
 )
-assembly / assemblyJarName := s"${name.value}_${scalaBinaryVersion.value}-${version.value}.jar"
+assembly / assemblyJarName := s"${name.value}-assembly_${scalaBinaryVersion.value}-${version.value}.jar"
 assembly / assemblyOption ~= {
   _.withIncludeScala(false)
 }

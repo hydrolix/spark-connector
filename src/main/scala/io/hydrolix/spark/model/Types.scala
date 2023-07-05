@@ -77,4 +77,28 @@ object Types {
         decodeClickhouseType(name)
     }
   }
+
+  def hdxToSpark(htype: HdxColumnDatatype): DataType = {
+    htype.`type` match {
+      case HdxValueType.Int8 => DataTypes.ByteType
+      case HdxValueType.UInt8 => DataTypes.IntegerType
+      case HdxValueType.Int32 => DataTypes.IntegerType
+      case HdxValueType.UInt32 => DataTypes.LongType
+      case HdxValueType.Int64 => DataTypes.LongType
+      case HdxValueType.UInt64 => DataTypes.createDecimalType(20, 0)
+      case HdxValueType.Double => DataTypes.DoubleType
+      case HdxValueType.String => DataTypes.StringType
+      case HdxValueType.Boolean => DataTypes.BooleanType
+      case HdxValueType.DateTime64 => DataTypes.TimestampType
+      case HdxValueType.DateTime => DataTypes.TimestampType
+      case HdxValueType.Epoch => DataTypes.TimestampType
+      case HdxValueType.Array =>
+        val elt = hdxToSpark(htype.elements.get.head)
+        DataTypes.createArrayType(elt)
+      case HdxValueType.Map =>
+        val kt = hdxToSpark(htype.elements.get.apply(0))
+        val vt = hdxToSpark(htype.elements.get.apply(1))
+        DataTypes.createMapType(kt, vt)
+    }
+  }
 }

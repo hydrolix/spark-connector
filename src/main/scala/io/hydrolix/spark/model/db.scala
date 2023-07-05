@@ -34,7 +34,6 @@ import java.util.UUID
  *                - 2: indexed in all partitions
  */
 case class HdxColumnInfo(name: String,
-               clickhouseType: String,
                       hdxType: HdxColumnDatatype,
                      nullable: Boolean,
                     sparkType: DataType,

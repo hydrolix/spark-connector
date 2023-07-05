@@ -265,7 +265,7 @@ object HdxPushdown extends Logging {
           val hcol = cols.getOrElse(field, sys.error(s"No HdxColumnInfo for $field"))
 
           val t = microsToInstant(lit.asInstanceOf[Long])
-          val long = if (hcol.clickhouseType.contains("datetime64")) t.toEpochMilli else t.getEpochSecond
+          val long = if (hcol.hdxType.`type` == HdxValueType.DateTime64) t.toEpochMilli else t.getEpochSecond
 
           if (hcol.indexed == 2) {
             Some(s""""$field" $hdxOp '$long'""")
