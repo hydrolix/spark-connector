@@ -87,7 +87,8 @@ case class HdxTableSettings(stream: HdxTableStreamSettings,
                           shardKey: Option[String],
                      maxFutureDays: Int,
                            summary: Option[HdxTableSettingsSummary],
-                             scale: Option[HdxTableSettingsScale])
+                             scale: Option[HdxTableSettingsScale],
+                   maxRequestBytes: Option[Long])
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxTableSettingsSummary(sql: String, enabled: Boolean)

@@ -37,7 +37,7 @@ fi
 gcpKeyBase64=$(gzip < "$GCS_KEY_PATH" |base64 -w0)
 
 "$SPARK_HOME"/bin/spark-shell \
-        --jars ../target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.1.0-SNAPSHOT.jar \
+        --jars ../target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.1.1-SNAPSHOT.jar \
         -c spark.driver.extraJavaOptions=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 \
         -c spark.sql.catalog.hydrolix=io.hydrolix.spark.connector.HdxTableCatalog \
         -c spark.sql.catalog.hydrolix.jdbc_url="$HDX_JDBC_URL" \

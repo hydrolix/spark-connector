@@ -17,13 +17,14 @@ package io.hydrolix.spark.connector
 
 import io.hydrolix.spark.model._
 
-import com.google.common.io.ByteStreams
+import com.google.common.io.{ByteStreams, MoreFiles}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 
 import java.io._
+import java.nio.file.Files
 import java.util.Base64
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.atomic.AtomicLong
@@ -74,6 +75,17 @@ object HdxPartitionReader extends Logging {
     log.info(s"Extracted turbine_cmd binary to ${f.getAbsolutePath}")
 
     f
+  }
+
+  private lazy val hdxFsTmp = {
+    val path = Files.createTempDirectory("hdxfs")
+    Runtime.getRuntime.addShutdownHook(new Thread() {
+      override def run(): Unit = {
+        log.info(s"Deleting hdxfs tmp directory $path")
+        MoreFiles.deleteRecursively(path)
+      }
+    })
+    path.toFile
   }
 
   /**
@@ -143,7 +155,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     }
   }
 
-  private val turbineIniBefore = TurbineIni(storage, info.cloudCred1, info.cloudCred2)
+  private val turbineIniBefore = TurbineIni(storage, info.cloudCred1, info.cloudCred2, hdxFsTmp)
 
   private val (turbineIniAfter, credsTempFile) = if (storage.cloud == "gcp") {
     val gcsKeyFile = File.createTempFile("turbine_gcs_key_", ".json")

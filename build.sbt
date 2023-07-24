@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 ThisBuild / organization := "io.hydrolix"
-ThisBuild / version := "1.1.0-SNAPSHOT"
+ThisBuild / version := "1.1.1-SNAPSHOT"
 ThisBuild / organizationHomepage := Some(url("https://hydrolix.io/"))
 ThisBuild / homepage := Some(url("https://github.com/hydrolix/spark-connector/"))
 ThisBuild / licenses := List(
