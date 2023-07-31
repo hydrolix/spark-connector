@@ -1,5 +1,22 @@
+/*
+ * Copyright (c) 2023 Hydrolix Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.hydrolix.spark.connector
 
+import io.hydrolix.spark.connector.partitionreader.HdxReaderColumnarJson
 import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
 import org.apache.spark.sql.execution.vectorized.{OnHeapColumnVector, WritableColumnVector}
 import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
@@ -21,6 +38,13 @@ class ColumnarJsonParsingComplexTest {
     StructField("map1", DataTypes.createMapType(DataTypes.StringType, DataTypes.LongType)),
     StructField("map2", DataTypes.createMapType(DataTypes.StringType, DataTypes.StringType)),
     StructField("map3", DataTypes.createMapType(DataTypes.StringType, DataTypes.createArrayType(DataTypes.IntegerType)))
+  ))
+
+  private val complexSchemaNoMaps = StructType(List(
+    StructField("int", DataTypes.IntegerType),
+    StructField("str", DataTypes.StringType),
+    StructField("arr1", DataTypes.createArrayType(DataTypes.IntegerType)),
+    StructField("arr2", DataTypes.createArrayType(DataTypes.StringType))
   ))
 
   private val complexBad = List(
@@ -51,6 +75,28 @@ class ColumnarJsonParsingComplexTest {
       |}""".stripMargin, // not enough values: expected 2, got 1
   )
 
+  private val complexBadNoMaps = List(
+    """{
+      |  "rows":2,
+      |  "cols":{
+      |    "int":[],
+      |    "str":[],
+      |    "arr1":[],
+      |    "arr2":[]
+      |  }
+      |}""".stripMargin, // not enough values: expected 2, got 0
+
+    """{
+      |  "rows":2,
+      |  "cols":{
+      |    "int":[1],
+      |    "str":["one"],
+      |    "arr1":[[1]],
+      |    "arr2":[["one"]]
+      |  }
+      |}""".stripMargin, // not enough values: expected 2, got 1
+  )
+
   private val complexGood = List(
     """{
       |  "rows":2,
@@ -62,6 +108,18 @@ class ColumnarJsonParsingComplexTest {
       |    "map1":[{"k11l":11,"k12l":12},{"k21l":21,"k22l":22,"k23l":23}],
       |    "map2":[{"k11s":"v11","k12s":"v12"},{"k21s":"v21","k22s":"v22","k23s":"v23"}],
       |    "map3":[{"k11a":[110,111],"k12a":[120,121]},{"k21a":[210,211],"k22a":[220,221],"k23a":[230,231]}]
+      |  }
+      |}""".stripMargin,
+  )
+
+  private val complexGoodNoMaps = List(
+    """{
+      |  "rows":2,
+      |  "cols":{
+      |    "int":[1,2],
+      |    "str":["one","two"],
+      |    "arr1":[[1,2],[3,4]],
+      |    "arr2":[["one","two"],["three","four"]]
       |  }
       |}""".stripMargin,
   )
@@ -122,9 +180,9 @@ class ColumnarJsonParsingComplexTest {
       "one",
       Array(1, 2),
       Array("one", "two"),
-      Map("k11l" -> 11L, "k12l" -> 12L),
-      Map("k11s" -> "v11", "k12s" -> "v12"),
-      Map("k11a" -> List(110,111), "k12a" -> List(120,121))
+      Some(Map("k11l" -> 11L, "k12l" -> 12L)),
+      Some(Map("k11s" -> "v11", "k12s" -> "v12")),
+      Some(Map("k11a" -> List(110,111), "k12a" -> List(120,121)))
     )
 
     checkRow(
@@ -133,9 +191,47 @@ class ColumnarJsonParsingComplexTest {
       "two",
       Array(3, 4),
       Array("three", "four"),
-      Map("k21l" -> 21L, "k22l" -> 22L, "k23l" -> 23L),
-      Map("k21s" -> "v21", "k22s" -> "v22", "k23s" -> "v23"),
-      Map("k21a" -> List(210, 211), "k22a" -> List(220, 221), "k23a" -> List(230, 231)),
+      Some(Map("k21l" -> 21L, "k22l" -> 22L, "k23l" -> 23L)),
+      Some(Map("k21s" -> "v21", "k22s" -> "v22", "k23s" -> "v23")),
+      Some(Map("k21a" -> List(210, 211), "k22a" -> List(220, 221), "k23a" -> List(230, 231))),
+    )
+  }
+
+  @Test
+  def goodLinesMultilineNoMaps(): Unit = {
+    val lines = complexGoodNoMaps.mkString("\n")
+    val got = ArrayBuffer[ColumnarBatch]()
+    HdxReaderColumnarJson.batches(
+      complexSchemaNoMaps,
+      new ByteArrayInputStream(lines.getBytes("UTF-8")),
+      {
+        got += _
+      },
+      {
+        ()
+      }
+    )
+
+    assertEquals(got.size, complexGoodNoMaps.size)
+
+    val rows = got(0).rowIterator()
+
+    checkRow(
+      rows.next(),
+      1,
+      "one",
+      Array(1, 2),
+      Array("one", "two"),
+      None, None, None
+    )
+
+    checkRow(
+      rows.next(),
+      2,
+      "two",
+      Array(3, 4),
+      Array("three", "four"),
+      None, None, None
     )
   }
 
@@ -144,18 +240,18 @@ class ColumnarJsonParsingComplexTest {
                        str: String,
                       arr1: Array[Int],
                       arr2: Array[String],
-                      map1: Map[String, Long],
-                      map2: Map[String, String],
-                      map3: Map[String, List[Int]])
+                      map1: Option[Map[String, Long]],
+                      map2: Option[Map[String, String]],
+                      map3: Option[Map[String, List[Int]]])
                           : Unit =
   {
     assertEquals(int, row.get(0, complexSchema.fields(0).dataType))
     assertEquals(UTF8String.fromString(str), row.get(1, complexSchema.fields(1).dataType))
     assertArrayEquals(arr1, row.getArray(2).toIntArray())
     assertArrayEquals(arr2.map(UTF8String.fromString(_): AnyRef), row.getArray(3).toObjectArray(DataTypes.StringType))
-    assertEquals(map1, CatalystTypeConverters.convertToScala(row.getMap(4), complexSchema.fields(4).dataType))
-    assertEquals(map2, CatalystTypeConverters.convertToScala(row.getMap(5), complexSchema.fields(5).dataType))
-    assertEquals(map3, CatalystTypeConverters.convertToScala(row.getMap(6), complexSchema.fields(6).dataType))
+    map1.foreach(assertEquals(_, CatalystTypeConverters.convertToScala(row.getMap(4), complexSchema.fields(4).dataType)))
+    map2.foreach(assertEquals(_, CatalystTypeConverters.convertToScala(row.getMap(5), complexSchema.fields(5).dataType)))
+    map3.foreach(assertEquals(_, CatalystTypeConverters.convertToScala(row.getMap(6), complexSchema.fields(6).dataType)))
   }
 
   @Test

@@ -1,19 +1,86 @@
-package io.hydrolix.spark.connector
+/*
+ * Copyright (c) 2023 Hydrolix Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-import io.hydrolix.spark.model.JSON
+package io.hydrolix.spark.connector.partitionreader
+
+import io.hydrolix.spark.connector.HdxScanPartition
+import io.hydrolix.spark.model._
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node._
+import com.fasterxml.jackson.databind.node.{ArrayNode, BooleanNode, NumericNode, ObjectNode, TextNode}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, DateTimeUtils, GenericArrayData}
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
+import org.apache.spark.sql.types.{ArrayType, BooleanType, DataType, DataTypes, Decimal, DecimalType, DoubleType, FloatType, IntegerType, LongType, MapType, ShortType, StringType, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 
+import java.io._
 import java.time.Instant
 import java.time.format.DateTimeFormatter
-import scala.collection.JavaConverters._
 import scala.sys.error
+import scala.util.Using
+import scala.util.control.Breaks.{break, breakable}
+import scala.collection.JavaConverters._
+
+final class RowPartitionReaderFactory(info: HdxConnectionInfo,
+                                   storage: HdxStorageSettings,
+                                    pkName: String)
+  extends PartitionReaderFactory
+{
+  override def supportColumnarReads(partition: InputPartition) = false
+
+  override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
+    new RowPartitionReader(info, storage, pkName, partition.asInstanceOf[HdxScanPartition])
+  }
+}
+
+/**
+ * TODO:
+ *  - Allow secrets to be retrieved from secret services, not just config parameters
+ */
+final class RowPartitionReader(val           info: HdxConnectionInfo,
+                               val        storage: HdxStorageSettings,
+                               val primaryKeyName: String,
+                               val           scan: HdxScanPartition)
+  extends HdxPartitionReader[InternalRow]
+{
+  override val doneSignal = new GenericInternalRow(0)
+
+  override val outputFormat = "jsonc"
+
+  override def handleStdout(stdout: InputStream): Unit = {
+    Using.Manager { use =>
+      val reader = use(new BufferedReader(new InputStreamReader(stdout)))
+      breakable {
+        while (true) {
+          val line = reader.readLine()
+          if (line == null) {
+            stdoutQueue.put(doneSignal)
+            break()
+          } else {
+            expectedLines.incrementAndGet()
+            stdoutQueue.put(HdxReaderRowJson.row(scan.schema, line))
+          }
+        }
+      }
+    }.get
+  }
+}
 
 object HdxReaderRowJson extends Logging {
   def row(schema: StructType, jsonLine: String): InternalRow = {

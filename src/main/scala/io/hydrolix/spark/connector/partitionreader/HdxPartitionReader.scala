@@ -1,13 +1,27 @@
-package io.hydrolix.spark.connector
+/*
+ * Copyright (c) 2023 Hydrolix Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.hydrolix.spark.connector.partitionreader
 
-import io.hydrolix.spark.model._
+import io.hydrolix.spark.connector.{HdxScanPartition, TurbineIni}
+import io.hydrolix.spark.model.{HdxConnectionInfo, HdxOutputColumn, HdxStorageSettings, JSON}
 
 import com.google.common.io.ByteStreams
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
-import org.apache.spark.sql.vectorized.ColumnarBatch
+import org.apache.spark.sql.connector.read.PartitionReader
 
 import java.io._
 import java.util.Base64
@@ -19,22 +33,6 @@ import scala.sys.process.{Process, ProcessIO}
 import scala.util.Using.resource
 import scala.util.control.Breaks.{break, breakable}
 import scala.util.{Try, Using}
-
-final class HdxPartitionReaderFactory(info: HdxConnectionInfo,
-                                   storage: HdxStorageSettings,
-                                    pkName: String)
-  extends PartitionReaderFactory
-{
-  override def supportColumnarReads(partition: InputPartition) = true
-
-  override def createColumnarReader(partition: InputPartition): PartitionReader[ColumnarBatch] = {
-    new HdxPartitionReader(info, storage, pkName, partition.asInstanceOf[HdxScanPartition])
-  }
-
-  override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
-    sys.error("Row-oriented reads aren't supported anymore")
-  }
-}
 
 object HdxPartitionReader extends Logging {
   /**
@@ -92,46 +90,38 @@ object HdxPartitionReader extends Logging {
   }
 
   private val stderrFilterR = """^read hdx_partition=(.*?) rows=(.*?) values=(.*?) in (.*?)$""".r
-
-  private val doneSignal = new ColumnarBatch(Array())
 }
 
-/**
- * TODO:
- *  - Allow secrets to be retrieved from secret services, not just config parameters
- *  - Make a ColumnarBatch version too (will require deep hdx_reader changes)
- */
-final class HdxPartitionReader(info: HdxConnectionInfo,
-                            storage: HdxStorageSettings,
-                     primaryKeyName: String,
-                               scan: HdxScanPartition)
-  extends PartitionReader[ColumnarBatch]
+trait HdxPartitionReader[T <: AnyRef]
+  extends PartitionReader[T]
     with Logging
 {
+  val info: HdxConnectionInfo
+  val storage: HdxStorageSettings
+  val primaryKeyName: String
+  val scan: HdxScanPartition
+
+  protected val doneSignal: T
+  protected def outputFormat: String
+  protected def handleStdout(stdout: InputStream): Unit
+
   import HdxPartitionReader._
 
+  protected val stdoutQueue = new ArrayBlockingQueue[T](1024)
+  // Cache because PartitionReader says get() should always return the same record if called multiple times per next()
+  @volatile private var data: T = _
+  @volatile private var recordsEmitted = 0
+  protected val expectedLines = new AtomicLong(1) // 1, not 0, to make room for doneSignal
+  private val stderrLines = mutable.ListBuffer[String]()
+
+  // This is done early so it can crash before creating temp files etc.
   private val schema = scan.schema.fields.map { fld =>
     HdxOutputColumn(fld.name, scan.hdxCols.getOrElse(fld.name, sys.error(s"No HdxColumnInfo for ${fld.name}")).hdxType)
   }
 
-  private val schemaStr = JSON.objectMapper.writeValueAsString(schema)
-
-  private val exprArgs = {
-    val renderedPreds = scan.pushed.flatMap { predicate =>
-      HdxPushdown.renderHdxFilterExpr(predicate, primaryKeyName, scan.hdxCols)
-    }
-
-    if (renderedPreds.isEmpty) Nil else {
-      List(
-        "--expr",
-        renderedPreds.mkString("[", " AND ", "]")
-      )
-    }
-  }
-
   private val turbineIniBefore = TurbineIni(storage, info.cloudCred1, info.cloudCred2)
 
-  private val (turbineIniAfter, credsTempFile) = if (storage.cloud == "gcp") {
+  protected lazy val (turbineIniAfter, credsTempFile) = if (storage.cloud == "gcp") {
     val gcsKeyFile = File.createTempFile("turbine_gcs_key_", ".json")
     gcsKeyFile.deleteOnExit()
 
@@ -154,31 +144,35 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
   }
 
   // TODO don't create a duplicate file per partition, use a content hash or something
-  private val turbineIniTmp = File.createTempFile("turbine_ini_", ".ini")
+  protected lazy val turbineIniTmp = File.createTempFile("turbine_ini_", ".ini")
   turbineIniTmp.deleteOnExit()
-  resource(new FileOutputStream(turbineIniTmp)) { _.write(turbineIniAfter.getBytes("UTF-8")) }
+  resource(new FileOutputStream(turbineIniTmp)) {
+    _.write(turbineIniAfter.getBytes("UTF-8"))
+  }
 
   // TODO does anything need to be quoted here?
   //  Note, this relies on a bunch of changes in hdx_reader that may not have been merged to turbine/turbine-core yet,
   //  see https://hydrolix.atlassian.net/browse/HDX-3779
-  private val turbineCmdArgs = List(
-    "hdx_reader",
-    "--config", turbineIniTmp.getAbsolutePath,
-    "--output_format", "jsonc",
-    "--hdx_partition", s"${info.partitionPrefix.getOrElse("")}${scan.path}",
-    "--output_path", "-",
-    "--schema", schemaStr
-  ) ++ exprArgs
-  log.info(s"Running ${turbineCmdTmp.getAbsolutePath} ${turbineCmdArgs.mkString(" ")}")
-  private val expectedLines = new AtomicLong(1) // 1, not 0, to make room for doneSignal
-  private val stdoutQueue = new ArrayBlockingQueue[ColumnarBatch](1024)
-  private val stderrLines = mutable.ListBuffer[String]()
+  protected val hdxReaderProcess = {
+    val schemaStr = JSON.objectMapper.writeValueAsString(schema)
 
-  private val hdxReaderProcess = {
+    val exprArgs = {
+      val renderedPreds = scan.pushed.flatMap { predicate =>
+        HdxPushdown.renderHdxFilterExpr(predicate, primaryKeyName, scan.hdxCols)
+      }
+
+      if (renderedPreds.isEmpty) Nil else {
+        List(
+          "--expr",
+          renderedPreds.mkString("[", " AND ", "]")
+        )
+      }
+    }
+
     val turbineCmdArgs = List(
       "hdx_reader",
       "--config", turbineIniTmp.getAbsolutePath,
-      "--output_format", "json",
+      "--output_format", outputFormat,
       "--output_path", "-",
       "--hdx_partition", s"${scan.path}",
       "--schema", schemaStr
@@ -190,19 +184,10 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
       turbineCmdArgs
     ).run(
       new ProcessIO(
-        { _.close() }, // Don't care about stdin
-        { stdout =>
-          // TODO wrap a GZIPInputStream etc. around stdout once we get that working on the turbine side
-          HdxReaderColumnarJson.batches(
-            scan.schema,
-            stdout,
-            stdoutQueue.put,
-            {
-              stdoutQueue.put(doneSignal)
-              stdout.close()
-            }
-          )
-        },
+        {
+          _.close()
+        }, // Don't care about stdin
+        handleStdout,
         { stderr =>
           readLines(stderr,
             {
@@ -216,12 +201,8 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     )
   }
 
-  @volatile private var recordsEmitted = 0
-  // Cache because PartitionReader says get() should always return the same record if called multiple times per next()
-  @volatile private var batch: ColumnarBatch = _
-
   override def next(): Boolean = {
-    val batch = try {
+    val got = try {
       stdoutQueue.take() // It's OK to block here, we'll always have doneSignal...
     } catch {
       case _: InterruptedException =>
@@ -230,7 +211,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
         return false
     }
 
-    if (batch eq doneSignal) {
+    if (got eq doneSignal) {
       // There are definitely no more records, stdout is closed, now we can wait for the sweet release of death
       val exit = hdxReaderProcess.exitValue()
       val err = stderrLines.mkString("\n  ", "\n  ", "\n")
@@ -241,7 +222,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
         false
       }
     } else {
-      this.batch = batch
+      this.data = got
 
       recordsEmitted += 1
 
@@ -249,7 +230,7 @@ final class HdxPartitionReader(info: HdxConnectionInfo,
     }
   }
 
-  override def get(): ColumnarBatch = batch
+  override def get(): T = data
 
   override def close(): Unit = {
     log.info(s"$recordsEmitted records read from ${scan.path}")

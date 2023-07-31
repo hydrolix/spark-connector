@@ -31,9 +31,9 @@ unifying DataFrame abstraction.
   | [ScanBuilder](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/ScanBuilder.html)                       | [HdxScanBuilder](./src/main/scala/io/hydrolix/spark/connector/HdxScanBuilder.scala)                    |
   | [Scan](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Scan.html)                                     | [HdxScan](./src/main/scala/io/hydrolix/spark/connector/HdxScan.scala)                                  | 
   | [Batch](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Batch.html)                                   | [HdxBatch](./src/main/scala/io/hydrolix/spark/connector/HdxBatch.scala)                                | 
-  | [PartitionReaderFactory](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReaderFactory.html) | [HdxPartitionReaderFactory](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L22) |
+  | [PartitionReaderFactory](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReaderFactory.html) | [HdxPartitionReaderFactory](./src/main/scala/io/hydrolix/spark/connector/ColumnarPartitionReader.scala#L22) |
   | [InputPartition](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/InputPartition.html)                 | [HdxScanPartition](./src/main/scala/io/hydrolix/spark/connector/HdxScanPartition.scala)                |
-  | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxPartitionReader](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L97)        |
+  | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxPartitionReader](./src/main/scala/io/hydrolix/spark/connector/ColumnarPartitionReader.scala#L97)        |
 
 ### hdx_reader
 An operating mode of the `turbine_cmd` binary, launched by `HdxPartitionReader` as a child process to read Hydrolix 
