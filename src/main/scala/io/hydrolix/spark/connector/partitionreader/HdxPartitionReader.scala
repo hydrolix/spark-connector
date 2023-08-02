@@ -15,15 +15,16 @@
  */
 package io.hydrolix.spark.connector.partitionreader
 
-import io.hydrolix.spark.connector.{HdxScanPartition, TurbineIni}
-import io.hydrolix.spark.model.{HdxConnectionInfo, HdxOutputColumn, HdxStorageSettings, JSON}
+import io.hydrolix.spark.connector.{HdxScanPartition, TurbineIni, spawn}
+import io.hydrolix.spark.model._
 
-import com.google.common.io.ByteStreams
+import com.google.common.io.{ByteStreams, MoreFiles}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.connector.read.PartitionReader
 
 import java.io._
+import java.nio.file.Files
 import java.util.Base64
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.atomic.AtomicLong
@@ -55,9 +56,26 @@ object HdxPartitionReader extends Logging {
 
     f.setExecutable(true)
 
+    spawn(f.getAbsolutePath) match {
+      case (255, "", "No command specified") => // OK
+      case (exit, out, err) =>
+        log.warn(s"turbine_cmd may not work on this OS, it exited with code $exit, stdout: $out, stderr: $err")
+    }
+
     log.info(s"Extracted turbine_cmd binary to ${f.getAbsolutePath}")
 
     f
+  }
+
+  private lazy val hdxFsTmp = {
+    val path = Files.createTempDirectory("hdxfs")
+    Runtime.getRuntime.addShutdownHook(new Thread() {
+      override def run(): Unit = {
+        log.info(s"Deleting hdxfs tmp directory $path")
+        MoreFiles.deleteRecursively(path)
+      }
+    })
+    path.toFile
   }
 
   /**
@@ -119,7 +137,7 @@ trait HdxPartitionReader[T <: AnyRef]
     HdxOutputColumn(fld.name, scan.hdxCols.getOrElse(fld.name, sys.error(s"No HdxColumnInfo for ${fld.name}")).hdxType)
   }
 
-  private val turbineIniBefore = TurbineIni(storage, info.cloudCred1, info.cloudCred2)
+  private val turbineIniBefore = TurbineIni(storage, info.cloudCred1, info.cloudCred2, hdxFsTmp)
 
   protected lazy val (turbineIniAfter, credsTempFile) = if (storage.cloud == "gcp") {
     val gcsKeyFile = File.createTempFile("turbine_gcs_key_", ".json")

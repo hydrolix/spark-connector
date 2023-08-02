@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2023 Hydrolix Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.hydrolix.spark.model
 
 import org.apache.spark.sql.types._
@@ -60,6 +75,30 @@ object Types {
       case encodingR(name, _) =>
         // TODO we might want the encoding somewhere but not for Spark per se
         decodeClickhouseType(name)
+    }
+  }
+
+  def hdxToSpark(htype: HdxColumnDatatype): DataType = {
+    htype.`type` match {
+      case HdxValueType.Int8 => DataTypes.ByteType
+      case HdxValueType.UInt8 => DataTypes.IntegerType
+      case HdxValueType.Int32 => DataTypes.IntegerType
+      case HdxValueType.UInt32 => DataTypes.LongType
+      case HdxValueType.Int64 => DataTypes.LongType
+      case HdxValueType.UInt64 => DataTypes.createDecimalType(20, 0)
+      case HdxValueType.Double => DataTypes.DoubleType
+      case HdxValueType.String => DataTypes.StringType
+      case HdxValueType.Boolean => DataTypes.BooleanType
+      case HdxValueType.DateTime64 => DataTypes.TimestampType
+      case HdxValueType.DateTime => DataTypes.TimestampType
+      case HdxValueType.Epoch => DataTypes.TimestampType
+      case HdxValueType.Array =>
+        val elt = hdxToSpark(htype.elements.get.head)
+        DataTypes.createArrayType(elt)
+      case HdxValueType.Map =>
+        val kt = hdxToSpark(htype.elements.get.apply(0))
+        val vt = hdxToSpark(htype.elements.get.apply(1))
+        DataTypes.createMapType(kt, vt)
     }
   }
 }

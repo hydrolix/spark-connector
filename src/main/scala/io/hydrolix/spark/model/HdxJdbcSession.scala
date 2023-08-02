@@ -1,8 +1,22 @@
+/*
+ * Copyright (c) 2023 Hydrolix Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.hydrolix.spark.model
 
 import com.clickhouse.jdbc.ClickHouseDataSource
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
-import org.slf4j.LoggerFactory
 
 import java.time.{Instant, ZoneOffset}
 import java.util.{Properties, UUID}
@@ -26,8 +40,6 @@ object HdxJdbcSession {
  * TODO this uses a single connection for metadata about all databases; maybe there should be one of these per DB
  */
 class HdxJdbcSession private (info: HdxConnectionInfo) {
-  private val log = LoggerFactory.getLogger(getClass)
-
   private lazy val pool = {
     val ds = {
       val props = new Properties()
@@ -46,39 +58,6 @@ class HdxJdbcSession private (info: HdxConnectionInfo) {
     props.put("jdbcUrl", info.jdbcUrl)
     props.put("dataSource", ds)
     new HikariDataSource(new HikariConfig(props))
-  }
-
-  def collectColumns(db: String, table: String): List[HdxColumnInfo] = {
-    Using.Manager { use =>
-      val conn = use(pool.getConnection)
-      val stmt = use(conn.createStatement())
-      val rs = use(stmt.executeQuery(
-        s"""SELECT
-           |column_name,
-           |count(*)                    AS num_partitions, -- how many partitions this column appears in
-           |groupUniqArray(column_type) AS column_types,   -- all distinct types this column ever had
-           |sum(column_index)           AS sum_indexed     -- number of partitions in which this column was indexed
-           |FROM `$db`.`$table#.metadata`
-           |GROUP BY column_name""".stripMargin))
-
-      val cols = ListBuffer[HdxColumnInfo]()
-      while (rs.next()) {
-        val name = rs.getString("column_name")
-        val occurs = rs.getInt("num_partitions")
-        val types = rs.getArray("column_types").getArray.asInstanceOf[Array[String]].toSet
-        val sumIndexed = rs.getInt("sum_indexed")
-
-        if (types.size > 1) {
-          log.warn(s"Column $db.$table.$name had multiple types ($types); arbitrarily picking ${types.head} and hoping for the best!")
-        }
-
-        val (sparkType, hdxType, nullable) = Types.decodeClickhouseType(types.head)
-        val indexed = if (sumIndexed == occurs) 2 else if (sumIndexed == 0) 0 else 1
-
-        cols += HdxColumnInfo(name, types.head, hdxType, nullable, sparkType, indexed)
-      }
-      cols.toList
-    }.get
   }
 
   /**

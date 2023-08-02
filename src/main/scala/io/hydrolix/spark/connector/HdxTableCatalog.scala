@@ -1,7 +1,22 @@
+/*
+ * Copyright (c) 2023 Hydrolix Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.hydrolix.spark.connector
 
 import io.hydrolix.spark.model.HdxConnectionInfo.{OPT_PROJECT_NAME, OPT_STORAGE_BUCKET_NAME, OPT_STORAGE_BUCKET_PATH, OPT_STORAGE_CLOUD, OPT_STORAGE_REGION, OPT_TABLE_NAME}
-import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxJdbcSession, HdxStorageSettings}
+import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxJdbcSession, HdxStorageSettings, Types}
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
@@ -31,7 +46,19 @@ final class HdxTableCatalog
 
   private def columns(db: String, table: String): List[HdxColumnInfo] = {
     columnsCache.getOrElseUpdate((db, table), {
-      jdbc.collectColumns(db, table)
+      val view = api.defaultView(db, table)
+
+      view.settings.outputColumns.map { col =>
+        val stype = Types.hdxToSpark(col.datatype)
+
+        HdxColumnInfo(
+          col.name,
+          col.datatype,
+          nullable = true,
+          stype,
+          if (col.datatype.index) 2 else 0 // TODO this will sometimes be wrong if the column wasn't always indexed
+        )
+      }
     })
   }
 

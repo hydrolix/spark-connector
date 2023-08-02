@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package io.hydrolix.spark.connector
 
 import io.hydrolix.spark.connector.partitionreader.{ColumnarPartitionReaderFactory, RowPartitionReaderFactory}
@@ -38,9 +37,11 @@ final class HdxBatch(info: HdxConnectionInfo,
      with Logging
 {
   private var planned: Array[InputPartition] = _
+  //noinspection RedundantCollectionConversion -- Scala 2.13
   private val hdxCols = table.hdxCols
     .filterKeys(cols.fieldNames.contains(_))
     .map(identity) // because Map.filterKeys produces something non-Serializable
+    .toMap
 
   override def planInputPartitions(): Array[InputPartition] = {
     if (planned == null) {

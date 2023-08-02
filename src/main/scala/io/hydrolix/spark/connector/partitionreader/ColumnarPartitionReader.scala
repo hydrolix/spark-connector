@@ -51,7 +51,7 @@ final class ColumnarPartitionReader(val           info: HdxConnectionInfo,
                                     val           scan: HdxScanPartition)
   extends HdxPartitionReader[ColumnarBatch]
 {
-  override val outputFormat = "jsonc"
+  override def outputFormat = "jsonc"
 
   override val doneSignal = new ColumnarBatch(Array())
 

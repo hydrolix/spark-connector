@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2023 Hydrolix Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.hydrolix.spark.connector
 
 import io.hydrolix.spark.model.HdxStorageSettings
@@ -5,6 +20,7 @@ import io.hydrolix.spark.model.HdxStorageSettings
 import com.google.common.io.ByteStreams
 import org.apache.spark.internal.Logging
 
+import java.io.File
 import scala.util.Using
 
 object TurbineIni extends Logging {
@@ -12,7 +28,7 @@ object TurbineIni extends Logging {
     new String(ByteStreams.toByteArray(stream), "UTF-8")
   }
 
-  def apply(storage: HdxStorageSettings, cloudCred1: String, cloudCred2: Option[String]): String = {
+  def apply(storage: HdxStorageSettings, cloudCred1: String, cloudCred2: Option[String], hdxFsTmp: File): String = {
     val (creds, storageInfo) = storage.cloud match {
       case "gcp" | "gcs" =>
         (
@@ -56,5 +72,6 @@ object TurbineIni extends Logging {
     template
       .replace("%CLOUD_CREDS%", creds)
       .replace("%CLOUD_STORAGE_INFO%", storageInfo)
+      .replace("%TMP_HDXFS%", hdxFsTmp.getAbsolutePath)
   }
 }
