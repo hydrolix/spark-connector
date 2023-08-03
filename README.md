@@ -2,11 +2,12 @@
 
 ## Overview
 
-This is a Spark TableCatalog/"DataSourceV2" implementation that lets customers write Spark 3.3.x and 3.4.x jobs that 
-directly query data stored in [Hydrolix](https://hydrolix.io/) tables, without any ETL process.
+This is a Spark [TableCatalog](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/catalog/TableCatalog.html)/"DataSourceV2" 
+implementation that lets customers write Spark 3.3.x and 3.4.x jobs that directly query data stored in 
+[Hydrolix](https://hydrolix.io/) tables, without any ETL process.
 
-The mainline Hydrolix query engine only supports the Clickhouse SQL dialect, but this connector can execute queries in 
-any of the following:
+The mainline Hydrolix query engine supports the [Clickhouse SQL dialect](https://clickhouse.com/docs/en/sql-reference), 
+but this connector can execute queries in any of the following:
  * Spark SQL
  * Scala
  * PySpark
@@ -21,8 +22,8 @@ unifying DataFrame abstraction.
 ### Hydrolix Spark Catalog
 * Implements the Spark [TableCatalog](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/catalog/TableCatalog.html) 
   interface
-* Makes requests to the Hydrolix query head (via JDBC) and API (via REST client) to collect 
-  metadata about the databases, tables, partitions and columns that are accessible to the authenticated user.
+* Makes requests to the Hydrolix query head (via JDBC) and API (via REST client) to collect metadata about the 
+  databases, tables, partitions and columns that are accessible to the authenticated user.
 * Provides implementations of the Spark types necessary to run queries, including: 
 
   | Spark Type                                                                                                                             | Connector Implementation                                                                               | 
@@ -31,9 +32,9 @@ unifying DataFrame abstraction.
   | [ScanBuilder](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/ScanBuilder.html)                       | [HdxScanBuilder](./src/main/scala/io/hydrolix/spark/connector/HdxScanBuilder.scala)                    |
   | [Scan](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Scan.html)                                     | [HdxScan](./src/main/scala/io/hydrolix/spark/connector/HdxScan.scala)                                  | 
   | [Batch](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Batch.html)                                   | [HdxBatch](./src/main/scala/io/hydrolix/spark/connector/HdxBatch.scala)                                | 
-  | [PartitionReaderFactory](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReaderFactory.html) | [HdxPartitionReaderFactory](./src/main/scala/io/hydrolix/spark/connector/ColumnarPartitionReader.scala#L22) |
+  | [PartitionReaderFactory](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReaderFactory.html) | [HdxPartitionReaderFactory](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L37) |
   | [InputPartition](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/InputPartition.html)                 | [HdxScanPartition](./src/main/scala/io/hydrolix/spark/connector/HdxScanPartition.scala)                |
-  | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxPartitionReader](./src/main/scala/io/hydrolix/spark/connector/ColumnarPartitionReader.scala#L97)        |
+  | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxPartitionReader](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L118)       |
 
 ### hdx_reader
 An operating mode of the `turbine_cmd` binary, launched by `HdxPartitionReader` as a child process to read Hydrolix 
@@ -91,7 +92,7 @@ equivalents) will result in an error.
 ## Licenses
 
 ### Apache 2.0
-The following are released under the Apache 2.0 license:
+The following are released under the [Apache 2.0 license](./licenses/Apache_License_2.0.txt):
 * All files in [src/main/scala](./src/main/scala)
 * All files in [src/main/java](./src/main/java)
 * All files in [src/test/scala](./src/test/scala)
@@ -100,24 +101,16 @@ The following are released under the Apache 2.0 license:
 * [src/main/resources/logback.xml](src/main/resources/logback.xml)
 * [build.sbt](./build.sbt)
 * [project/plugins.sbt](./project/plugins.sbt)
-* [project/plugins.sbt](./project/build.properties)
+* [project/build.properties](./project/build.properties)
 
 ### Proprietary
-* [turbine_cmd](./src/main/resources/linux-x86-64/turbine_cmd) is ***proprietary***; you may use it in conjunction
-  with the Hydrolix Spark Connector, to query data stored in Hydrolix tables and managed by Hydrolix clusters, and for 
-  no other purpose except as agreed to in writing by Hydrolix Inc. You may not disassemble, reverse-engineer or 
-  sublicense it. Your license to use `turbine_cmd` exists at the sole discretion of Hydrolix Inc. and may be revoked at 
-  any time without notice or compensation. Hydrolix Inc. may modify, rename, move or compile the `turbine_cmd` binary 
-  for additional OS/architecture targets in the future; the same license terms will apply to all such future versions as 
-  well unless otherwise noted explicitly.
-* Any file in this repository not otherwise listed in this [Licenses](#licenses) section is released under the same 
-  proprietary license as `turbine_cmd` described above. If this seems like a mistake, it probably was, please let us 
-  know!
+* All files made available in this repository that are not identified above as being licensed under the Apache 2.0 
+  license, including without limitation [`turbine_cmd`](./src/main/resources/linux-x86-64/turbine_cmd), may be used only 
+  by users that have entered into a separate written agreement with us that contains licenses to use our software and 
+  such use is subject to the terms of that separate written agreement.
 
 ### Other
-* [src/main/resources/linux-x86-64/wyhash.c](src/main/resources/linux-x86-64/wyhash.c) is derived from
-  https://github.com/wangyi-fudan/wyhash/ which was [released under "Unlicense" or public domain](
-  https://github.com/wangyi-fudan/wyhash/commit/1b9d461b437b61140ccdd9318b17a205c48065cf).
+Dependencies are used under a variety of open source licenses; see [NOTICE.md](./NOTICE.md)
 
 ## System Requirements
 
@@ -143,9 +136,29 @@ like and use it as-is, no configuration files need to be updated.
 ### Connector Jar
 You’ll need the connector jar, which can be resolved using the usual Maven machinery at the following coordinates:
 
-TODO!
+#### SBT
+```
+  libraryDependencies += "io.hydrolix" %% "hydrolix-spark-connector" % "1.2.0-SNAPSHOT"
+```
+(note that we only build for Scala 2.12 at the moment)
+#### Gradle (Kotlin)
+```
+  implementation("io.hydrolix:hydrolix-spark-connector_2.12:1.2.0-SNAPSHOT")
+```
+#### Gradle (Groovy)
+```
+  implementation 'io.hydrolix:hydrolix-spark-connector_2.12:1.2.0-SNAPSHOT'
+```
+#### Maven
+```
+  <dependency>
+    <groupId>io.hydrolix</groupId>
+    <artifactId>hydrolix-spark-connector_2.12</artifactId>
+    <version>1.2.0-SNAPSHOT</version>
+  </dependency>
+```
 
-Otherwise, if you’re building locally, it will show up at [./target/scala-2.12/hydrolix-spark-connector-assembly-1.2.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar). 
+Otherwise, if you’re building locally, it will show up at [./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar). 
 
 ## Building
 
@@ -154,7 +167,7 @@ Otherwise, if you’re building locally, it will show up at [./target/scala-2.12
    git clone git@github.com:hydrolix/spark-connector.git hydrolix-spark-connector && cd hydrolix-spark-connector
    ```
 3. Run `sbt assembly` to compile and build the connector jar file.
-4. If the build succeeds, the jar can be found at [./target/scala-2.12/hydrolix-spark-connector-assembly-1.2.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar).
+4. If the build succeeds, the jar can be found at [./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly-1.0.0-SNAPSHOT.jar).
 
 ## Running
 
@@ -165,7 +178,7 @@ inspiration.
 ### Deploying on Databricks
 1. Databricks Runtime 13 or higher is required
 2. Upload the [connector jar](./target/scala-2.12/hydrolix-spark-connector-assembly-1.2.0-SNAPSHOT.jar) in the Libraries 
-   tab, or use its Maven coordinates (TODO!) 
+   tab, or use its [Maven coordinates](#connector-jar). 
 3. Select JDK11 by [setting an environment variable](https://docs.databricks.com/release-notes/runtime/10.0.html#cluster-support-for-jdk-11-public-preview) 
    in `Advanced Options > Spark > Environment Variables`
 4. Set `Policy` to `Unrestricted`
@@ -176,7 +189,6 @@ inspiration.
    spark.sql.catalog.hydrolix io.hydrolix.spark.connector.HdxTableCatalog
    spark.sql.catalog.hydrolix.api_url https://my-hdx-cluster.example.com/config/v1/
    spark.sql.catalog.hydrolix.jdbc_url jdbc:clickhouse://my-hdx-cluster.example.com:8088?ssl=true
-   spark.sql.catalog.hydrolix.org_id <hydrolix org ID>
    spark.sql.catalog.hydrolix.username <hydrolix username>
    spark.sql.catalog.hydrolix.password <hydrolix password>
    spark.sql.catalog.hydrolix.cloud_cred_1 <access key ID>
@@ -198,7 +210,6 @@ or a notebook using `spark.conf.set(<name>, <value>)`, they don't need to be pro
 | Option Name                               | Option Value                                          | Description                                                                                                                                                                           |
 |-------------------------------------------|-------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `spark.sql.catalog.hydrolix`              | `io.hydrolix.spark.connector.HdxTableCatalog`         | The fully qualified name of the class to instantiate when you ask for the `hydrolix` catalog.                                                                                         |
-| `spark.sql.catalog.hydrolix.org_id`       | `<hydrolix organization UUID>`                        | The organization ID you want to authenticate to (see https://docs.hydrolix.io/reference/summary-of-organization)                                                                      |
 | `spark.sql.catalog.hydrolix.jdbc_url`     | `jdbc:clickhouse://<host>:<port>/<database>?ssl=true` | JDBC URL of the Hydrolix query head. Note that the Clickhouse JDBC driver requires a valid database name in the URL, but the connector will read any database the user has access to. |
 | `spark.sql.catalog.hydrolix.username`     | `<hdx user name>`                                     | Username to login to the Hydrolix cluster                                                                                                                                             |
 | `spark.sql.catalog.hydrolix.password`     | `<hdx password>`                                      | Password to login to the Hydrolix cluster                                                                                                                                             |
