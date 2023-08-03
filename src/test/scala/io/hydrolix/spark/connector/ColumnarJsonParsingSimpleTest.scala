@@ -61,7 +61,7 @@ class ColumnarJsonParsingSimpleTest {
   def badLinesAllFailIndividually(): Unit = {
     for (line <- simpleBad) {
       try {
-        HdxReaderColumnarJson.batches(
+        HdxReaderColumnarJson(
           simpleSchema,
           new ByteArrayInputStream(line.getBytes("UTF-8")),
           { batch =>
@@ -81,7 +81,7 @@ class ColumnarJsonParsingSimpleTest {
   def goodLinesAllSucceedIndividually(): Unit = {
     for (line <- simpleGood) {
       var got: ColumnarBatch = null
-      HdxReaderColumnarJson.batches(
+      HdxReaderColumnarJson(
         simpleSchema,
         new ByteArrayInputStream(line.getBytes("UTF-8")),
         { got = _ },
@@ -96,7 +96,7 @@ class ColumnarJsonParsingSimpleTest {
   def goodLinesMultiline(): Unit = {
     val lines = simpleGood.mkString("\n")
     val got = ArrayBuffer[ColumnarBatch]()
-    HdxReaderColumnarJson.batches(
+    HdxReaderColumnarJson(
       simpleSchema,
       new ByteArrayInputStream(lines.getBytes("UTF-8")),
       { got += _ },
@@ -117,7 +117,7 @@ class ColumnarJsonParsingSimpleTest {
     )
 
     for (empty <- empties) {
-      HdxReaderColumnarJson.batches(
+      HdxReaderColumnarJson(
         simpleSchema,
         new ByteArrayInputStream(empty.getBytes("UTF-8")),
         { _ => fail("Got unexpected batch") },

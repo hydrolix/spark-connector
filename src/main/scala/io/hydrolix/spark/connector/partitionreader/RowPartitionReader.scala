@@ -61,7 +61,7 @@ final class RowPartitionReader(val           info: HdxConnectionInfo,
 {
   override val doneSignal = new GenericInternalRow(0)
 
-  override val outputFormat = "jsonc"
+  override def outputFormat = "jsonc"
 
   override def handleStdout(stdout: InputStream): Unit = {
     Using.Manager { use =>
@@ -74,7 +74,7 @@ final class RowPartitionReader(val           info: HdxConnectionInfo,
             break()
           } else {
             expectedLines.incrementAndGet()
-            stdoutQueue.put(HdxReaderRowJson.row(scan.schema, line))
+            stdoutQueue.put(HdxReaderRowJson(scan.schema, line))
           }
         }
       }
@@ -83,7 +83,7 @@ final class RowPartitionReader(val           info: HdxConnectionInfo,
 }
 
 object HdxReaderRowJson extends Logging {
-  def row(schema: StructType, jsonLine: String): InternalRow = {
+  def apply(schema: StructType, jsonLine: String): InternalRow = {
     val obj = JSON.objectMapper.readValue[ObjectNode](jsonLine)
 
     val values = schema.map { col =>

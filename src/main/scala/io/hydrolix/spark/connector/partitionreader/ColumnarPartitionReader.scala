@@ -37,7 +37,7 @@ final class ColumnarPartitionReaderFactory(info: HdxConnectionInfo,
   }
 
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
-    sys.error("Row-oriented reads aren't supported anymore")
+    sys.error("This flavour of PartitionReaderFactory doesn't support row-oriented reads")
   }
 }
 
@@ -57,7 +57,7 @@ final class ColumnarPartitionReader(val           info: HdxConnectionInfo,
 
   override def handleStdout(stdout: InputStream): Unit = {
       // TODO wrap a GZIPInputStream etc. around stdout once we get that working on the turbine side
-      HdxReaderColumnarJson.batches(
+      HdxReaderColumnarJson(
         scan.schema,
         stdout,
         { batch =>

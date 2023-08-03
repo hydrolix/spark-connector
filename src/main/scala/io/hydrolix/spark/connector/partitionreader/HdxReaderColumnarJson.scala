@@ -50,11 +50,11 @@ object HdxReaderColumnarJson extends Logging {
    * @param onBatch a callback to send a completed batch
    * @param onDone  a callback when the stream is completely consumed
    */
-  def batches(schema: StructType,
-              stream: InputStream,
-             onBatch: ColumnarBatch => Unit,
-              onDone: => Unit)
-                    : Unit =
+  def apply(schema: StructType,
+            stream: InputStream,
+           onBatch: ColumnarBatch => Unit,
+            onDone: => Unit)
+                  : Unit =
   {
     val parser = JSON.objectMapper.createParser(stream)
 
