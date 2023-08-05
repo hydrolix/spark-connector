@@ -61,7 +61,7 @@ final class RowPartitionReader(val           info: HdxConnectionInfo,
 {
   override val doneSignal = new GenericInternalRow(0)
 
-  override def outputFormat = "jsonc"
+  override def outputFormat = "json"
 
   override def handleStdout(stdout: InputStream): Unit = {
     Using.Manager { use =>
@@ -96,6 +96,7 @@ object HdxReaderRowJson extends Logging {
 
   private def node2Any(node: JsonNode, name: String, dt: DataType): Any = {
     node match {
+      case null => null
       case n if n.isNull => null
       case s: TextNode => str(s, dt)
       case n: NumericNode => num(n, dt)

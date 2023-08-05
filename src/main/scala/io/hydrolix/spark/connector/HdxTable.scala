@@ -15,7 +15,7 @@
  */
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxStorageSettings}
+import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxQueryMode, HdxStorageSettings}
 
 import org.apache.spark.sql.connector.catalog.{Identifier, SupportsRead, Table, TableCapability}
 import org.apache.spark.sql.connector.read.ScanBuilder
@@ -32,7 +32,8 @@ case class HdxTable(info: HdxConnectionInfo,
          primaryKeyField: String,
            shardKeyField: Option[String],
            sortKeyFields: List[String],
-                 hdxCols: Map[String, HdxColumnInfo])
+                 hdxCols: Map[String, HdxColumnInfo],
+               queryMode: HdxQueryMode)
   extends Table
      with SupportsRead
 {

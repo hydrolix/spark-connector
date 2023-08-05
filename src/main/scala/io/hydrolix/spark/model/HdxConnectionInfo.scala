@@ -72,6 +72,7 @@ object HdxConnectionInfo {
   val OPT_STORAGE_REGION = "storage_region"
   val OPT_STORAGE_BUCKET_NAME = "storage_bucket_name"
   val OPT_STORAGE_BUCKET_PATH = "storage_bucket_path"
+  val OPT_QUERY_MODE = "query_mode"
 
   def req(options: ju.Map[String, String], name: String): String = {
     val s = options.get(name)

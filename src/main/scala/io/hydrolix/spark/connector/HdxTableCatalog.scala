@@ -15,8 +15,8 @@
  */
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.HdxConnectionInfo.{OPT_PROJECT_NAME, OPT_STORAGE_BUCKET_NAME, OPT_STORAGE_BUCKET_PATH, OPT_STORAGE_CLOUD, OPT_STORAGE_REGION, OPT_TABLE_NAME}
-import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxJdbcSession, HdxStorageSettings, Types}
+import io.hydrolix.spark.model.HdxConnectionInfo.{OPT_PROJECT_NAME, OPT_QUERY_MODE, OPT_STORAGE_BUCKET_NAME, OPT_STORAGE_BUCKET_PATH, OPT_STORAGE_CLOUD, OPT_STORAGE_REGION, OPT_TABLE_NAME, opt}
+import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxJdbcSession, HdxQueryMode, HdxStorageSettings, Types}
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
@@ -41,6 +41,7 @@ final class HdxTableCatalog
   private var api: HdxApiSession = _
   private var jdbc: HdxJdbcSession = _
   private var storageSettings: HdxStorageSettings = _
+  private var queryMode: HdxQueryMode = _
 
   private val columnsCache = mutable.HashMap[(String, String), List[HdxColumnInfo]]()
 
@@ -67,6 +68,7 @@ final class HdxTableCatalog
     this.info = HdxConnectionInfo.fromOpts(opts)
     this.api = new HdxApiSession(info)
     this.jdbc = HdxJdbcSession(info)
+    this.queryMode = opt(opts, OPT_QUERY_MODE).map(HdxQueryMode.of).getOrElse(HdxQueryMode.AUTO)
 
     val bn = HdxConnectionInfo.opt(opts, OPT_STORAGE_BUCKET_NAME)
     val bp = HdxConnectionInfo.opt(opts, OPT_STORAGE_BUCKET_PATH)
@@ -118,7 +120,8 @@ final class HdxTableCatalog
       primaryKey.name,
       apiTable.settings.shardKey,
       apiTable.settings.sortKeys,
-      columns(db, table).map(col => col.name -> col).toMap
+      columns(db, table).map(col => col.name -> col).toMap,
+      queryMode
     )
   }
 

@@ -16,7 +16,7 @@
 package io.hydrolix.spark.connector
 
 import io.hydrolix.spark.connector.partitionreader.{ColumnarPartitionReaderFactory, RowPartitionReaderFactory}
-import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession, HdxStorageSettings}
+import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession, HdxQueryMode, HdxStorageSettings}
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
@@ -42,6 +42,8 @@ final class HdxBatch(info: HdxConnectionInfo,
     .filterKeys(cols.fieldNames.contains(_))
     .map(identity) // because Map.filterKeys produces something non-Serializable
     .toMap
+
+  private lazy val schemaContainsMap = cols.exists(col => hasMap(col.dataType))
 
   override def planInputPartitions(): Array[InputPartition] = {
     if (planned == null) {
@@ -116,12 +118,26 @@ final class HdxBatch(info: HdxConnectionInfo,
   override def createReaderFactory(): PartitionReaderFactory = {
     if (pushedAggs.nonEmpty) {
       new PushedAggsPartitionReaderFactory()
-    } else if (cols.exists(col => hasMap(col.dataType))) {
-      log.info("Schema includes at least one Map type; falling back to row-oriented reader")
-      new RowPartitionReaderFactory(info, storage, table.primaryKeyField)
     } else {
-      log.info("Schema does not include a Map type; using columnar reader")
-      new ColumnarPartitionReaderFactory(info, storage, table.primaryKeyField)
+      val useRowOriented = if (table.queryMode == HdxQueryMode.FORCE_ROW) {
+        log.info("Forcing row-oriented query mode")
+        true
+      } else if (table.queryMode == HdxQueryMode.AUTO && schemaContainsMap) {
+        log.info("Schema includes at least one Map type; using row-oriented reader")
+        true
+      } else if (table.queryMode == HdxQueryMode.AUTO && !schemaContainsMap) {
+        log.info("Schema does not include a Map type; using columnar reader")
+        false
+      } else {
+        log.info("Forcing columnar query mode")
+        false
+      }
+
+      if (useRowOriented) {
+        new RowPartitionReaderFactory(info, storage, table.primaryKeyField)
+      } else {
+        new ColumnarPartitionReaderFactory(info, storage, table.primaryKeyField)
+      }
     }
   }
 
