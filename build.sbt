@@ -67,7 +67,7 @@ libraryDependencies ++= List(
 
   // Testing...
   "com.github.sbt" % "junit-interface" % "0.13.3" % Test,
-  "org.apache.spark" %% "spark-catalyst" % "3.3.2" % Test,
+  "org.apache.spark" %% "spark-sql" % "3.3.2" % Test,
 )
 
 credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials")

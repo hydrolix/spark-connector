@@ -16,14 +16,14 @@
 
 package io.hydrolix.spark.connector.partitionreader
 
-import io.hydrolix.spark.connector.HdxScanPartition
-import io.hydrolix.spark.model._
+import java.io._
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
-import java.io._
+import io.hydrolix.spark.connector.HdxScanPartition
+import io.hydrolix.spark.model._
 
 final class ColumnarPartitionReaderFactory(info: HdxConnectionInfo,
                                         storage: HdxStorageSettings,
@@ -41,10 +41,6 @@ final class ColumnarPartitionReaderFactory(info: HdxConnectionInfo,
   }
 }
 
-/**
- * TODO:
- *  - Allow secrets to be retrieved from secret services, not just config parameters
- */
 final class ColumnarPartitionReader(val           info: HdxConnectionInfo,
                                     val        storage: HdxStorageSettings,
                                     val primaryKeyName: String,

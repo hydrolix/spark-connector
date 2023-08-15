@@ -15,14 +15,6 @@
  */
 package io.hydrolix.spark.connector.partitionreader
 
-import io.hydrolix.spark.connector.{HdxScanPartition, TurbineIni, spawn}
-import io.hydrolix.spark.model._
-
-import com.google.common.io.{ByteStreams, MoreFiles}
-import org.apache.spark.internal.Logging
-import org.apache.spark.sql.HdxPushdown
-import org.apache.spark.sql.connector.read.PartitionReader
-
 import java.io._
 import java.nio.file.Files
 import java.util.Base64
@@ -35,7 +27,30 @@ import scala.util.Using.resource
 import scala.util.control.Breaks.{break, breakable}
 import scala.util.{Try, Using}
 
+import com.google.common.io.{ByteStreams, MoreFiles, RecursiveDeleteOption}
+import org.apache.spark.internal.Logging
+import org.apache.spark.sql.HdxPushdown
+import org.apache.spark.sql.connector.read.PartitionReader
+
+import io.hydrolix.spark.connector.{Etc, HdxScanPartition, TurbineIni, spawn}
+import io.hydrolix.spark.model._
+
 object HdxPartitionReader extends Logging {
+  /**
+   * A private parent directory for all temp files belonging to a single instance
+   */
+  private lazy val hdxReaderTmp =
+    Files.createTempDirectory("hdx_reader")
+      .also { path =>
+              Runtime.getRuntime.addShutdownHook(new Thread() {
+                override def run(): Unit = {
+                  log.info(s"Deleting hdx_reader tmp directory $path")
+                  MoreFiles.deleteRecursively(path, RecursiveDeleteOption.ALLOW_INSECURE)
+                }
+              })
+            }
+      .toFile
+
   /**
    * This is done early before any work needs to be done because of https://bugs.openjdk.org/browse/JDK-8068370 -- we
    * spawn child processes too fast and they accidentally clobber each other's temp files
@@ -43,40 +58,31 @@ object HdxPartitionReader extends Logging {
    * TODO try not to recreate these files every time if they're unchanged... Maybe name them according to a git hash
    *  or a sha256sum of the contents?
    */
-  private lazy val turbineCmdTmp = {
-    val f = File.createTempFile("turbine_cmd_", ".exe")
-    f.deleteOnExit()
+  private lazy val turbineCmdTmp =
+    new File(hdxReaderTmp, "turbine_cmd.exe")
+      .also { f =>
+        Using.Manager { use =>
+          ByteStreams.copy(
+            use(getClass.getResourceAsStream("/linux-x86-64/turbine_cmd")),
+            use(new FileOutputStream(f))
+          )
+        }.get
 
-    Using.Manager { use =>
-      ByteStreams.copy(
-        use(getClass.getResourceAsStream("/linux-x86-64/turbine_cmd")),
-        use(new FileOutputStream(f))
-      )
-    }.get
+        f.setExecutable(true)
 
-    f.setExecutable(true)
+        spawn(f.getAbsolutePath) match {
+          case (255, "", "No command specified") => // OK
+          case (exit, out, err) =>
+            // TODO suppress this warning when in docker mode
+            log.warn(s"turbine_cmd may not work on this OS, it exited with code $exit, stdout: $out, stderr: $err")
+        }
 
-    spawn(f.getAbsolutePath) match {
-      case (255, "", "No command specified") => // OK
-      case (exit, out, err) =>
-        log.warn(s"turbine_cmd may not work on this OS, it exited with code $exit, stdout: $out, stderr: $err")
-    }
-
-    log.info(s"Extracted turbine_cmd binary to ${f.getAbsolutePath}")
-
-    f
-  }
-
-  private lazy val hdxFsTmp = {
-    val path = Files.createTempDirectory("hdxfs")
-    Runtime.getRuntime.addShutdownHook(new Thread() {
-      override def run(): Unit = {
-        log.info(s"Deleting hdxfs tmp directory $path")
-        MoreFiles.deleteRecursively(path)
+        log.info(s"Extracted turbine_cmd binary to ${f.getAbsolutePath}")
       }
-    })
-    path.toFile
-  }
+
+  private lazy val hdxFsTmp =
+    new File(hdxReaderTmp, HdxFs)
+      .also(_.mkdir())
 
   /**
    * Read lines from `stream`, calling `onLine` when a line is read, then `onDone` when EOF is reached.
@@ -107,9 +113,15 @@ object HdxPartitionReader extends Logging {
     }
   }
 
-  private val stderrFilterR = """^read hdx_partition=(.*?) rows=(.*?) values=(.*?) in (.*?)$""".r
+  private val StderrFilterR = """^read hdx_partition=(.*?) rows=(.*?) values=(.*?) in (.*?)$""".r
+  private val DockerPathPrefix = "/hdx-reader"
+  private val HdxFs = "hdxfs"
 }
 
+/**
+ * TODO:
+ *  - Allow secrets to be retrieved from secret services, not just config parameters
+ */
 trait HdxPartitionReader[T <: AnyRef]
   extends PartitionReader[T]
     with Logging
@@ -137,11 +149,10 @@ trait HdxPartitionReader[T <: AnyRef]
     HdxOutputColumn(fld.name, scan.hdxCols.getOrElse(fld.name, sys.error(s"No HdxColumnInfo for ${fld.name}")).hdxType)
   }
 
-  private val turbineIniBefore = TurbineIni(storage, info.cloudCred1, info.cloudCred2, hdxFsTmp)
+  private val turbineIniBefore = TurbineIni(storage, info.cloudCred1, info.cloudCred2, if (info.turbineCmdDockerName.isDefined) s"$DockerPathPrefix/$HdxFs" else hdxFsTmp.getAbsolutePath)
 
-  protected lazy val (turbineIniAfter, credsTempFile) = if (storage.cloud == "gcp") {
-    val gcsKeyFile = File.createTempFile("turbine_gcs_key_", ".json")
-    gcsKeyFile.deleteOnExit()
+  private lazy val (turbineIniAfter, credsTempFile) = if (storage.cloud == "gcp") {
+    val gcsKeyFile = new File(hdxReaderTmp, "turbine_gcs_key.json")
 
     val turbineIni = Using.Manager { use =>
       // For gcs, cloudCred1 is a base64(gzip(gcs_service_account_key.json)) and cloudCred2 is unused
@@ -150,7 +161,12 @@ trait HdxPartitionReader[T <: AnyRef]
       val gcsKeyBytes = ByteStreams.toByteArray(use(new GZIPInputStream(new ByteArrayInputStream(gcsKeyB64))))
       use(new FileOutputStream(gcsKeyFile)).write(gcsKeyBytes)
 
-      val turbineIniWithGcsCredsPath = turbineIniBefore.replace("%CREDS_FILE%", gcsKeyFile.getAbsolutePath)
+      val gcsKeyPath = if (info.turbineCmdDockerName.isDefined) {
+        s"$DockerPathPrefix/${gcsKeyFile.getName}"
+      } else {
+        gcsKeyFile.getAbsolutePath
+      }
+      val turbineIniWithGcsCredsPath = turbineIniBefore.replace("%CREDS_FILE%", gcsKeyPath)
 
       turbineIniWithGcsCredsPath
     }.get
@@ -162,8 +178,7 @@ trait HdxPartitionReader[T <: AnyRef]
   }
 
   // TODO don't create a duplicate file per partition, use a content hash or something
-  protected lazy val turbineIniTmp = File.createTempFile("turbine_ini_", ".ini")
-  turbineIniTmp.deleteOnExit()
+  private lazy val turbineIniTmp = new File(hdxReaderTmp, "turbine.ini")
   resource(new FileOutputStream(turbineIniTmp)) {
     _.write(turbineIniAfter.getBytes("UTF-8"))
   }
@@ -171,7 +186,7 @@ trait HdxPartitionReader[T <: AnyRef]
   // TODO does anything need to be quoted here?
   //  Note, this relies on a bunch of changes in hdx_reader that may not have been merged to turbine/turbine-core yet,
   //  see https://hydrolix.atlassian.net/browse/HDX-3779
-  protected val hdxReaderProcess = {
+  private val hdxReaderProcess = {
     val schemaStr = JSON.objectMapper.writeValueAsString(schema)
 
     val exprArgs = {
@@ -187,19 +202,44 @@ trait HdxPartitionReader[T <: AnyRef]
       }
     }
 
+    val turbineIniPath = if (info.turbineCmdDockerName.isDefined) {
+      s"$DockerPathPrefix/${turbineIniTmp.getName}"
+    } else {
+      turbineIniTmp.getAbsolutePath
+    }
+
     val turbineCmdArgs = List(
       "hdx_reader",
-      "--config", turbineIniTmp.getAbsolutePath,
+      "--config", turbineIniPath,
       "--output_format", outputFormat,
       "--output_path", "-",
       "--hdx_partition", s"${scan.path}",
       "--schema", schemaStr
     ) ++ exprArgs
-    log.info(s"Running ${turbineCmdTmp.getAbsolutePath} ${turbineCmdArgs.mkString(" ")}")
+
+    val (cmd, args) = info.turbineCmdDockerName match {
+      case Some(imageName) =>
+        // docker run -v ~/dev/hydrolix/hdx-spark/src/main/resources/linux-x86-64:/hdx-spark -w /hdx-spark ubuntu:22.04 ./turbine_cmd -a hdx_reader ...
+        (
+          "docker", // TODO this assumes docker is on the PATH
+          List(
+            "run",
+            "-a", "STDOUT",
+            "-a", "STDERR",
+            "-v", s"${hdxReaderTmp.getAbsolutePath}:$DockerPathPrefix",
+            imageName,
+            s"$DockerPathPrefix/${turbineCmdTmp.getName}"
+          ) ++ turbineCmdArgs
+        )
+      case None =>
+        (turbineCmdTmp.getAbsolutePath, turbineCmdArgs)
+    }
+
+    log.info(s"Running $cmd ${args.mkString(" ")}")
 
     Process(
-      turbineCmdTmp.getAbsolutePath,
-      turbineCmdArgs
+      cmd,
+      args
     ).run(
       new ProcessIO(
         {
@@ -209,7 +249,7 @@ trait HdxPartitionReader[T <: AnyRef]
         { stderr =>
           readLines(stderr,
             {
-              case stderrFilterR(_*) => () // Ignore expected output
+              case StderrFilterR(_*) => () // Ignore expected output
               case l => stderrLines += l // Capture unexpected output
             },
             () // No need to do anything special when stderr drains

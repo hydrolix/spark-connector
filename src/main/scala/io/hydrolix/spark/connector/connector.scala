@@ -15,9 +15,9 @@
  */
 package io.hydrolix.spark
 
-import com.google.common.io.ByteStreams
-
 import scala.sys.process.{Process, ProcessIO}
+
+import com.google.common.io.ByteStreams
 
 package object connector {
   def nope() = throw new UnsupportedOperationException("Hydrolix connector is read-only")
@@ -46,5 +46,33 @@ package object connector {
     ))
 
     (proc.exitValue(), new String(stdout).trim, new String(stderr).trim)
+  }
+
+  implicit class Etc[T](underlying: T) {
+    /**
+     * Like Kotlin, lets you replace this:
+     *
+     * {{{
+     * val x = {
+     *   val tmp = expr()
+     *   doStuffWith(tmp)
+     *   tmp
+     * }
+     * }}}
+     * with this:
+     * {{{
+     *   val x = expr().also { tmp =>
+     *     doStuffWith(tmp)
+     *   }
+     * }}}
+     * or even:
+     * {{{
+     *   val x = expr().also(doStuffWith(_))
+     * }}}
+     */
+    def also(f: T => Unit): T = {
+      f(underlying)
+      underlying
+    }
   }
 }

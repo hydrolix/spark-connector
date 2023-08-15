@@ -15,9 +15,6 @@
  */
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.connector.partitionreader.{ColumnarPartitionReaderFactory, RowPartitionReaderFactory}
-import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession, HdxQueryMode, HdxStorageSettings}
-
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.catalyst.InternalRow
@@ -27,8 +24,10 @@ import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory}
 import org.apache.spark.sql.types.{ArrayType, DataType, MapType, StructType}
 
+import io.hydrolix.spark.connector.partitionreader.{ColumnarPartitionReaderFactory, RowPartitionReaderFactory}
+import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession, HdxQueryMode}
+
 final class HdxBatch(info: HdxConnectionInfo,
-                  storage: HdxStorageSettings,
                     table: HdxTable,
                      cols: StructType,
               pushedPreds: List[Predicate],
@@ -88,12 +87,12 @@ final class HdxBatch(info: HdxConnectionInfo,
           log.debug(s"Skipping partition ${i + 1}: $hp")
           None
         } else {
-          log.info(s"Scanning partition ${i + 1}: $hp. Per-predicate results: ${pushedPreds.zip(pushResults).mkString("\n  ", "\n  ", "\n")}")
+          log.debug(s"Scanning partition ${i + 1}: $hp. Per-predicate results: ${pushedPreds.zip(pushResults).mkString("\n  ", "\n  ", "\n")}")
           // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
 
           val path = hp.storageId match {
             case Some(id) if hp.partition.startsWith(id.toString + "/") =>
-              log.info(s"storage_id = ${hp.storageId}, partition = ${hp.partition}")
+              log.debug(s"storage_id = ${hp.storageId}, partition = ${hp.partition}")
               // Remove storage ID prefix if present; it's not there physically
               "db/hdx/" + hp.partition.drop(id.toString.length + 1)
             case _ =>
@@ -134,9 +133,9 @@ final class HdxBatch(info: HdxConnectionInfo,
       }
 
       if (useRowOriented) {
-        new RowPartitionReaderFactory(info, storage, table.primaryKeyField)
+        new RowPartitionReaderFactory(info, table.storage, table.primaryKeyField)
       } else {
-        new ColumnarPartitionReaderFactory(info, storage, table.primaryKeyField)
+        new ColumnarPartitionReaderFactory(info, table.storage, table.primaryKeyField)
       }
     }
   }

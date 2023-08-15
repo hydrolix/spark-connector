@@ -40,7 +40,8 @@ case class HdxConnectionInfo(jdbcUrl: String,
                               apiUrl: URI,
                      partitionPrefix: Option[String],
                           cloudCred1: String,
-                          cloudCred2: Option[String])
+                          cloudCred2: Option[String],
+                turbineCmdDockerName: Option[String])
 {
   val asMap: Map[String, String] = {
     import HdxConnectionInfo._
@@ -51,9 +52,11 @@ case class HdxConnectionInfo(jdbcUrl: String,
       OPT_PASSWORD -> password,
       OPT_API_URL -> apiUrl.toString,
       OPT_CLOUD_CRED_1 -> cloudCred1,
-    ) ++
-      cloudCred2.map(OPT_CLOUD_CRED_2 -> _) ++
+    ) ++ List(
+      turbineCmdDockerName.map(OPT_TURBINE_CMD_DOCKER -> _),
+      cloudCred2.map(OPT_CLOUD_CRED_2 -> _),
       partitionPrefix.map(OPT_PARTITION_PREFIX -> _)
+    ).flatten
   }
 }
 
@@ -73,6 +76,7 @@ object HdxConnectionInfo {
   val OPT_STORAGE_BUCKET_NAME = "storage_bucket_name"
   val OPT_STORAGE_BUCKET_PATH = "storage_bucket_path"
   val OPT_QUERY_MODE = "query_mode"
+  val OPT_TURBINE_CMD_DOCKER = "turbine_cmd_docker"
 
   def req(options: ju.Map[String, String], name: String): String = {
     val s = options.get(name)
@@ -92,7 +96,8 @@ object HdxConnectionInfo {
     val partitionPrefix = opt(options, OPT_PARTITION_PREFIX)
     val cloudCred1 = req(options, OPT_CLOUD_CRED_1)
     val cloudCred2 = opt(options, OPT_CLOUD_CRED_2)
+    val turbineCmdDocker = opt(options, OPT_TURBINE_CMD_DOCKER)
 
-    HdxConnectionInfo(url, user, pass, apiUrl, partitionPrefix, cloudCred1, cloudCred2)
+    HdxConnectionInfo(url, user, pass, apiUrl, partitionPrefix, cloudCred1, cloudCred2, turbineCmdDocker)
   }
 }

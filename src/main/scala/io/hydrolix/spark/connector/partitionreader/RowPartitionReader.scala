@@ -16,26 +16,26 @@
 
 package io.hydrolix.spark.connector.partitionreader
 
-import io.hydrolix.spark.connector.HdxScanPartition
-import io.hydrolix.spark.model._
+import java.io._
+import java.time.Instant
+import java.time.format.DateTimeFormatter
+import scala.collection.JavaConverters._
+import scala.sys.error
+import scala.util.Using
+import scala.util.control.Breaks.{break, breakable}
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.{ArrayNode, BooleanNode, NumericNode, ObjectNode, TextNode}
+import com.fasterxml.jackson.databind.node._
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, DateTimeUtils, GenericArrayData}
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
-import org.apache.spark.sql.types.{ArrayType, BooleanType, DataType, DataTypes, Decimal, DecimalType, DoubleType, FloatType, IntegerType, LongType, MapType, ShortType, StringType, StructType}
+import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
-import java.io._
-import java.time.Instant
-import java.time.format.DateTimeFormatter
-import scala.sys.error
-import scala.util.Using
-import scala.util.control.Breaks.{break, breakable}
-import scala.collection.JavaConverters._
+import io.hydrolix.spark.connector.HdxScanPartition
+import io.hydrolix.spark.model._
 
 final class RowPartitionReaderFactory(info: HdxConnectionInfo,
                                    storage: HdxStorageSettings,
@@ -49,10 +49,6 @@ final class RowPartitionReaderFactory(info: HdxConnectionInfo,
   }
 }
 
-/**
- * TODO:
- *  - Allow secrets to be retrieved from secret services, not just config parameters
- */
 final class RowPartitionReader(val           info: HdxConnectionInfo,
                                val        storage: HdxStorageSettings,
                                val primaryKeyName: String,
