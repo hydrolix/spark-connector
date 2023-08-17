@@ -18,6 +18,7 @@ package io.hydrolix.spark.connector
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+//noinspection SpellCheckingInspection
 class WyHashTest {
   private val testValues = Map(
    "New Jersey" -> "01e4006cfe326967",

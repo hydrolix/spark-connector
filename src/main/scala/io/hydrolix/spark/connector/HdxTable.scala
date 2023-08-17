@@ -15,14 +15,14 @@
  */
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxStorageSettings}
+import java.{util => ju}
 
 import org.apache.spark.sql.connector.catalog.{Identifier, SupportsRead, Table, TableCapability}
 import org.apache.spark.sql.connector.read.ScanBuilder
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-import java.{util => ju}
+import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxQueryMode, HdxStorageSettings}
 
 case class HdxTable(info: HdxConnectionInfo,
                  storage: HdxStorageSettings,
@@ -32,7 +32,8 @@ case class HdxTable(info: HdxConnectionInfo,
          primaryKeyField: String,
            shardKeyField: Option[String],
            sortKeyFields: List[String],
-                 hdxCols: Map[String, HdxColumnInfo])
+                 hdxCols: Map[String, HdxColumnInfo],
+               queryMode: HdxQueryMode)
   extends Table
      with SupportsRead
 {
@@ -41,6 +42,6 @@ case class HdxTable(info: HdxConnectionInfo,
   override def capabilities(): ju.Set[TableCapability] = ju.EnumSet.of(TableCapability.BATCH_READ)
 
   override def newScanBuilder(options: CaseInsensitiveStringMap): ScanBuilder = {
-    new HdxScanBuilder(info, storage, this)
+    new HdxScanBuilder(info, this)
   }
 }

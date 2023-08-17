@@ -16,3 +16,4 @@
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "2.1.1")
 addSbtPlugin("com.github.sbt" % "sbt-release" % "1.1.0")
 addSbtPlugin("com.github.sbt" % "sbt-license-report" % "1.5.0")
+addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.1.2")

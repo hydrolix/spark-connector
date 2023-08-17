@@ -15,8 +15,6 @@
  */
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession, HdxStorageSettings}
-
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.catalyst.InternalRow
@@ -24,10 +22,12 @@ import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, CountStar, Max, Min}
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory}
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{ArrayType, DataType, MapType, StructType}
+
+import io.hydrolix.spark.connector.partitionreader.{ColumnarPartitionReaderFactory, RowPartitionReaderFactory}
+import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession, HdxQueryMode}
 
 final class HdxBatch(info: HdxConnectionInfo,
-                  storage: HdxStorageSettings,
                     table: HdxTable,
                      cols: StructType,
               pushedPreds: List[Predicate],
@@ -36,9 +36,13 @@ final class HdxBatch(info: HdxConnectionInfo,
      with Logging
 {
   private var planned: Array[InputPartition] = _
+  //noinspection RedundantCollectionConversion -- Scala 2.13
   private val hdxCols = table.hdxCols
     .filterKeys(cols.fieldNames.contains(_))
     .map(identity) // because Map.filterKeys produces something non-Serializable
+    .toMap
+
+  private lazy val schemaContainsMap = cols.exists(col => hasMap(col.dataType))
 
   override def planInputPartitions(): Array[InputPartition] = {
     if (planned == null) {
@@ -83,12 +87,12 @@ final class HdxBatch(info: HdxConnectionInfo,
           log.debug(s"Skipping partition ${i + 1}: $hp")
           None
         } else {
-          log.info(s"Scanning partition ${i + 1}: $hp. Per-predicate results: ${pushedPreds.zip(pushResults).mkString("\n  ", "\n  ", "\n")}")
+          log.debug(s"Scanning partition ${i + 1}: $hp. Per-predicate results: ${pushedPreds.zip(pushResults).mkString("\n  ", "\n  ", "\n")}")
           // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
 
           val path = hp.storageId match {
             case Some(id) if hp.partition.startsWith(id.toString + "/") =>
-              log.info(s"storage_id = ${hp.storageId}, partition = ${hp.partition}")
+              log.debug(s"storage_id = ${hp.storageId}, partition = ${hp.partition}")
               // Remove storage ID prefix if present; it's not there physically
               "db/hdx/" + hp.partition.drop(id.toString.length + 1)
             case _ =>
@@ -114,7 +118,34 @@ final class HdxBatch(info: HdxConnectionInfo,
     if (pushedAggs.nonEmpty) {
       new PushedAggsPartitionReaderFactory()
     } else {
-      new HdxPartitionReaderFactory(info, storage, table.primaryKeyField)
+      val useRowOriented = if (table.queryMode == HdxQueryMode.FORCE_ROW) {
+        log.info("Forcing row-oriented query mode")
+        true
+      } else if (table.queryMode == HdxQueryMode.AUTO && schemaContainsMap) {
+        log.info("Schema includes at least one Map type; using row-oriented reader")
+        true
+      } else if (table.queryMode == HdxQueryMode.AUTO && !schemaContainsMap) {
+        log.info("Schema does not include a Map type; using columnar reader")
+        false
+      } else {
+        log.info("Forcing columnar query mode")
+        false
+      }
+
+      if (useRowOriented) {
+        new RowPartitionReaderFactory(info, table.storage, table.primaryKeyField)
+      } else {
+        new ColumnarPartitionReaderFactory(info, table.storage, table.primaryKeyField)
+      }
+    }
+  }
+
+  private def hasMap(typ: DataType): Boolean = {
+    typ match {
+      case MapType(_, _, _) => true
+      case ArrayType(elt, _) => hasMap(elt)
+      case StructType(fields) => fields.exists(fld => hasMap(fld.dataType))
+      case _ => false
     }
   }
 }

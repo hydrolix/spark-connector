@@ -51,7 +51,9 @@ case class HdxLoginResponse(uuid: UUID,
                            email: String,
                             orgs: List[HdxLoginRespOrg],
                           groups: List[String],
-                       authToken: HdxLoginRespAuthToken)
+                       authToken: HdxLoginRespAuthToken,
+                     isSuperuser: Option[Boolean],
+                           roles: List[String])
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxTableStreamSettings(tokenList: List[String],
@@ -85,7 +87,8 @@ case class HdxTableSettings(stream: HdxTableStreamSettings,
                           shardKey: Option[String],
                      maxFutureDays: Int,
                            summary: Option[HdxTableSettingsSummary],
-                             scale: Option[HdxTableSettingsScale])
+                             scale: Option[HdxTableSettingsScale],
+                   maxRequestBytes: Option[Long])
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxTableSettingsSummary(sql: String, enabled: Boolean)

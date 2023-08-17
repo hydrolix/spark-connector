@@ -15,8 +15,6 @@
  */
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.{HdxConnectionInfo, HdxStorageSettings}
-
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, Aggregation}
@@ -24,8 +22,9 @@ import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read._
 import org.apache.spark.sql.types.{StructField, StructType}
 
+import io.hydrolix.spark.model.HdxConnectionInfo
+
 final class HdxScanBuilder(info: HdxConnectionInfo,
-                        storage: HdxStorageSettings,
                           table: HdxTable)
   extends ScanBuilder
      with SupportsPushDownV2Filters
@@ -82,6 +81,6 @@ final class HdxScanBuilder(info: HdxConnectionInfo,
   }
 
   override def build(): Scan = {
-    new HdxScan(info, storage, table, cols, pushedPreds, pushedAggs)
+    new HdxScan(info, table, cols, pushedPreds, pushedAggs)
   }
 }

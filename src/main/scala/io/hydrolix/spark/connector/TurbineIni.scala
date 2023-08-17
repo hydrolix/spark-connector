@@ -15,19 +15,19 @@
  */
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.HdxStorageSettings
+import scala.util.Using
 
 import com.google.common.io.ByteStreams
 import org.apache.spark.internal.Logging
 
-import scala.util.Using
+import io.hydrolix.spark.model.HdxStorageSettings
 
 object TurbineIni extends Logging {
   private val template = Using.resource(getClass.getResourceAsStream("/turbine_template.ini")) { stream =>
     new String(ByteStreams.toByteArray(stream), "UTF-8")
   }
 
-  def apply(storage: HdxStorageSettings, cloudCred1: String, cloudCred2: Option[String]): String = {
+  def apply(storage: HdxStorageSettings, cloudCred1: String, cloudCred2: Option[String], hdxFsPath: String): String = {
     val (creds, storageInfo) = storage.cloud match {
       case "gcp" | "gcs" =>
         (
@@ -71,5 +71,6 @@ object TurbineIni extends Logging {
     template
       .replace("%CLOUD_CREDS%", creds)
       .replace("%CLOUD_STORAGE_INFO%", storageInfo)
+      .replace("%TMP_HDXFS%", hdxFsPath)
   }
 }
