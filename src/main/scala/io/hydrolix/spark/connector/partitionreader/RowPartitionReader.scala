@@ -20,6 +20,7 @@ import java.io._
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import scala.collection.JavaConverters._
+import scala.collection.{BitSet, mutable}
 import scala.sys.error
 import scala.util.Using
 import scala.util.control.Breaks.{break, breakable}
@@ -34,6 +35,7 @@ import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, Par
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
+import io.hydrolix.connectors.types.{ArrayType, MapType, StructType}
 import io.hydrolix.spark.connector.HdxScanPartition
 import io.hydrolix.spark.model._
 
