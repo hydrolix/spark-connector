@@ -116,7 +116,6 @@ final class HdxTableCatalog
       storageSettings,
       Identifier.of(Array(db), table),
       schema,
-      CaseInsensitiveStringMap.empty(),
       primaryKey.name,
       apiTable.settings.shardKey,
       apiTable.settings.sortKeys,

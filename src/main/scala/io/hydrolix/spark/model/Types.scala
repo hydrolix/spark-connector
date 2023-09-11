@@ -15,6 +15,8 @@
  */
 package io.hydrolix.spark.model
 
+import io.hydrolix.connectors
+import io.hydrolix.connectors.{types => coretypes}
 import org.apache.spark.sql.types._
 
 object Types {
@@ -81,7 +83,7 @@ object Types {
   def hdxToSpark(htype: HdxColumnDatatype): DataType = {
     htype.`type` match {
       case HdxValueType.Int8 => DataTypes.ByteType
-      case HdxValueType.UInt8 => DataTypes.IntegerType
+      case HdxValueType.UInt8 => DataTypes.ShortType
       case HdxValueType.Int32 => DataTypes.IntegerType
       case HdxValueType.UInt32 => DataTypes.LongType
       case HdxValueType.Int64 => DataTypes.LongType
@@ -99,6 +101,36 @@ object Types {
         val kt = hdxToSpark(htype.elements.get.apply(0))
         val vt = hdxToSpark(htype.elements.get.apply(1))
         DataTypes.createMapType(kt, vt)
+    }
+  }
+
+  /**
+   * TODO this is lossy
+   */
+  def sparkToCore(stype: DataType): connectors.types.ValueType = {
+    stype match {
+      case DataTypes.BooleanType   => coretypes.BooleanType
+      case DataTypes.StringType    => coretypes.StringType
+      case DataTypes.ByteType      => coretypes.Int8Type
+      case DataTypes.ShortType     => coretypes.Int16Type
+      case DataTypes.IntegerType   => coretypes.Int32Type
+      case DataTypes.LongType      => coretypes.Int64Type
+      case DataTypes.FloatType     => coretypes.Float32Type
+      case DataTypes.DoubleType    => coretypes.Float64Type
+      case DataTypes.TimestampType => coretypes.TimestampType(6)
+      case dt: DecimalType if dt.precision == 20 && dt.scale == 0 => coretypes.UInt64Type
+      case ArrayType(elementType, containsNull) =>
+        val el = sparkToCore(elementType)
+        coretypes.ArrayType(el, containsNull)
+      case MapType(keyType, valueType, valuesNull) =>
+        val kt = sparkToCore(keyType)
+        val vt = sparkToCore(valueType)
+        coretypes.MapType(kt, vt, valuesNull)
+      case StructType(fields) =>
+        coretypes.StructType(fields.map { sf =>
+          coretypes.StructField(sf.name, sparkToCore(sf.dataType), sf.nullable)
+        }: _*)
+      case other => sys.error(s"Can't translate Spark type $other to connectors-core equivalent")
     }
   }
 }

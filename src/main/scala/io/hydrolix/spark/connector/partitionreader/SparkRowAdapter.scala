@@ -16,18 +16,17 @@ import org.apache.spark.unsafe.types.UTF8String
 import io.hydrolix.connectors.types._
 import io.hydrolix.connectors.instantToMicros
 
-final class SparkRowBuilder(override val `type`: StructType) extends RowBuilder[InternalRow, GenericArrayData, ArrayBasedMapData] {
-  private val data = mutable.HashMap[String, Any]()
+final class SparkRowAdapter extends RowAdapter[InternalRow, GenericArrayData, ArrayBasedMapData] {
 
+  type RB = SparkRowBuilder
   type AB = SparkArrayBuilder
   type MB = SparkMapBuilder
+
+  override def newRowBuilder(`type`: StructType): SparkRowBuilder = new SparkRowBuilder(`type`)
 
   override def newArrayBuilder(`type`: ArrayType): SparkArrayBuilder = new SparkArrayBuilder(`type`)
 
   override def newMapBuilder(`type`: MapType): SparkMapBuilder = new SparkMapBuilder(`type`)
-
-  override def setField(name: String, value: Any) = data(name) = value
-  override def setNull(name: String): Unit = ()
 
   private def node2Any(node: JsonNode, name: Option[String], dt: ValueType): Any = {
     node match {
@@ -93,10 +92,18 @@ final class SparkRowBuilder(override val `type`: StructType) extends RowBuilder[
     node2Any(jvalue, None, `type`)
   }
 
-  override def build: InternalRow = {
-    val values = for (field <- `type`.fields) yield data.get(field.name).orNull
+  final class SparkRowBuilder(val `type`: StructType) extends RowBuilder {
+    private val data = mutable.HashMap[String, Any]()
 
-    new GenericInternalRow(values.toArray)
+    override def setNull(name: String): Unit = ()
+
+    override def setField(name: String, value: Any): Unit = data(name) = value
+
+    override def build: InternalRow = {
+      val values = for (field <- `type`.fields) yield data.get(field.name).orNull
+
+      new GenericInternalRow(values.toArray)
+    }
   }
 
   final class SparkArrayBuilder(val `type`: ArrayType) extends ArrayBuilder {
@@ -134,4 +141,20 @@ final class SparkRowBuilder(override val `type`: StructType) extends RowBuilder[
 
     override def build: ArrayBasedMapData = new ArrayBasedMapData(new GenericArrayData(keys), new GenericArrayData(values))
   }
+
+  override def row(`type`: StructType, obj: ObjectNode): InternalRow = {
+    val rb = newRowBuilder(`type`)
+
+    for (sf <- `type`.fields) {
+      val node = obj.get(sf.name)
+      val value = node2Any(node, Some(sf.name), sf.`type`)
+      if (value == null) {
+        rb.setNull(sf.name)
+      } else {
+        rb.setField(sf.name, value)
+      }
+    }
+    rb.build
+  }
 }
+

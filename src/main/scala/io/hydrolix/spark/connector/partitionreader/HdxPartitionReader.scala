@@ -26,16 +26,17 @@ import scala.sys.process.{Process, ProcessIO}
 import scala.util.Using.resource
 import scala.util.control.Breaks.{break, breakable}
 import scala.util.{Try, Using}
-
 import com.google.common.io.{ByteStreams, MoreFiles, RecursiveDeleteOption}
-import org.apache.spark.internal.Logging
-import org.apache.spark.sql.HdxPushdown
+import io.hydrolix.connectors
+import io.hydrolix.connectors.{HdxPartitionScanPlan, HdxPushdown}
 import org.apache.spark.sql.connector.read.PartitionReader
-
-import io.hydrolix.spark.connector.{Etc, HdxScanPartition, TurbineIni, spawn}
+import io.hydrolix.spark.connector.{Etc, HdxScan, HdxScanPartition, TurbineIni, spawn}
 import io.hydrolix.spark.model._
+import org.slf4j.LoggerFactory
 
-object HdxPartitionReader extends Logging {
+object HdxPartitionReader {
+  private val log = LoggerFactory.getLogger(getClass)
+
   /**
    * A private parent directory for all temp files belonging to a single instance
    */
@@ -124,12 +125,13 @@ object HdxPartitionReader extends Logging {
  */
 trait HdxPartitionReader[T <: AnyRef]
   extends PartitionReader[T]
-    with Logging
 {
-  val info: HdxConnectionInfo
+  private val log = LoggerFactory.getLogger(getClass)
+
+  val info: connectors.HdxConnectionInfo
   val storage: HdxStorageSettings
   val primaryKeyName: String
-  val scan: HdxScanPartition
+  val scan: HdxPartitionScanPlan
 
   protected val doneSignal: T
   protected def outputFormat: String

@@ -24,9 +24,9 @@ import scala.collection.{BitSet, mutable}
 import scala.sys.error
 import scala.util.Using
 import scala.util.control.Breaks.{break, breakable}
-
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node._
+import io.hydrolix.connectors.types
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
@@ -34,8 +34,7 @@ import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, DateTimeUtils, Gen
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-
-import io.hydrolix.connectors.types.{ArrayType, MapType, StructType}
+import io.hydrolix.connectors.types.{ArrayType, MapType, StructType, ValueType}
 import io.hydrolix.spark.connector.HdxScanPartition
 import io.hydrolix.spark.model._
 
@@ -57,6 +56,8 @@ final class RowPartitionReader(val           info: HdxConnectionInfo,
                                val           scan: HdxScanPartition)
   extends HdxPartitionReader[InternalRow]
 {
+  private val coreschema = Types.sparkToCore(scan.schema).asInstanceOf[StructType]
+
   override val doneSignal = new GenericInternalRow(0)
 
   override def outputFormat = "json"
@@ -72,7 +73,7 @@ final class RowPartitionReader(val           info: HdxConnectionInfo,
             break()
           } else {
             expectedLines.incrementAndGet()
-            stdoutQueue.put(HdxReaderRowJson(scan.schema, line))
+            stdoutQueue.put(HdxReaderRowJson(coreschema, line))
           }
         }
       }
@@ -84,15 +85,15 @@ object HdxReaderRowJson extends Logging {
   def apply(schema: StructType, jsonLine: String): InternalRow = {
     val obj = JSON.objectMapper.readValue[ObjectNode](jsonLine)
 
-    val values = schema.map { col =>
+    val values = schema.fields.map { col =>
       val node = obj.get(col.name) // TODO can we be sure the names match exactly?
-      node2Any(node, col.name, col.dataType)
+      node2Any(node, col.name, col.`type`)
     }
 
     InternalRow.fromSeq(values)
   }
 
-  private def node2Any(node: JsonNode, name: String, dt: DataType): Any = {
+  private def node2Any(node: JsonNode, name: String, dt: ValueType): Any = {
     node match {
       case null => null
       case n if n.isNull => null
