@@ -59,6 +59,20 @@ object TurbineIni extends Logging {
               |fs.id.default.aws.s3.bucket_path = ${storage.bucketPath}
               |""".stripMargin
         )
+      case "azure" =>
+        (
+          s"""# Azure credentials
+              |fs.azure.credentials.account_name = ${cloudCred1}
+              |fs.azure.credentials.shared_key = ${cloudCred2.getOrElse(sys.error("cloud_cred_2 is required for Azure"))}
+              |
+              |""".stripMargin,
+          s"""# Azure storage info
+              |fs.id.default.type = azure
+              |fs.id.default.azure.storage.container_name = ${storage.bucketName}
+              |fs.id.default.azure.storage.container_path = ${storage.bucketPath}
+              |
+              |""".stripMargin
+        )
 
       case other =>
         log.warn(s"Don't know how to generate turbine.ini for storage type $other; leaving it blank and hoping for the best")
