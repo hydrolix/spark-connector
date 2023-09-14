@@ -24,7 +24,7 @@ class ConnectorSmokeTest {
     val pass = System.getenv("HDX_PASSWORD")
     val cloudCred1 = System.getenv("HDX_SPARK_CLOUD_CRED_1")
     val cloudCred2 = Option(System.getenv("HDX_SPARK_CLOUD_CRED_2"))
-    val info = HdxConnectionInfo(jdbcUrl, user, pass, new URI(apiUrl), None, cloudCred1, cloudCred2, Some("myubuntu"))
+    val info = HdxConnectionInfo(jdbcUrl, user, pass, new URI(apiUrl), None, cloudCred1, cloudCred2, None)
     val catalog = new HdxTableCatalog()
     catalog.initialize("hdx-test", new CaseInsensitiveStringMap(info.asMap.asJava))
     val table = catalog.loadTable(Identifier.of(Array("hydro"), "logs")).asInstanceOf[HdxTable]
@@ -44,7 +44,7 @@ class ConnectorSmokeTest {
     val partitions = batch.planInputPartitions()
     println(partitions.size)
 
-    val reader = new RowPartitionReader(info, table.storage, table.primaryKeyField, partitions.head.asInstanceOf[HdxScanPartition])
+    val reader = new RowPartitionReader(info, table.storages.values.head, table.primaryKeyField, partitions.head.asInstanceOf[HdxScanPartition])
     while (reader.next()) {
       val row = reader.get()
       println(row)

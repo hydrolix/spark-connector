@@ -16,14 +16,6 @@
 
 package io.hydrolix.spark.connector.partitionreader
 
-import java.io._
-import java.time.Instant
-import java.time.format.DateTimeFormatter
-import scala.collection.JavaConverters._
-import scala.sys.error
-import scala.util.Using
-import scala.util.control.Breaks.{break, breakable}
-
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node._
 import org.apache.spark.internal.Logging
@@ -34,17 +26,28 @@ import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, Par
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
+import java.io._
+import java.time.Instant
+import java.time.format.DateTimeFormatter
+import java.util.UUID
+import scala.collection.JavaConverters._
+import scala.sys.error
+import scala.util.Using
+import scala.util.control.Breaks.{break, breakable}
+
 import io.hydrolix.spark.connector.HdxScanPartition
 import io.hydrolix.spark.model._
 
 final class RowPartitionReaderFactory(info: HdxConnectionInfo,
-                                   storage: HdxStorageSettings,
+                                  storages: Map[UUID, HdxStorageSettings],
                                     pkName: String)
   extends PartitionReaderFactory
 {
   override def supportColumnarReads(partition: InputPartition) = false
 
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
+    val hdxPart = partition.asInstanceOf[HdxScanPartition]
+    val storage = storages.getOrElse(hdxPart.storageId, sys.error(s"Partition ${hdxPart.path} refers to unknown storage #${hdxPart.storageId}"))
     new RowPartitionReader(info, storage, pkName, partition.asInstanceOf[HdxScanPartition])
   }
 }

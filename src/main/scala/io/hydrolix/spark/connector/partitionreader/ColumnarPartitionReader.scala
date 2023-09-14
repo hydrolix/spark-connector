@@ -16,23 +16,26 @@
 
 package io.hydrolix.spark.connector.partitionreader
 
-import java.io._
-
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 import org.apache.spark.sql.vectorized.ColumnarBatch
+
+import java.io._
+import java.util.UUID
 
 import io.hydrolix.spark.connector.HdxScanPartition
 import io.hydrolix.spark.model._
 
 final class ColumnarPartitionReaderFactory(info: HdxConnectionInfo,
-                                        storage: HdxStorageSettings,
+                                       storages: Map[UUID, HdxStorageSettings],
                                          pkName: String)
   extends PartitionReaderFactory
 {
   override def supportColumnarReads(partition: InputPartition) = true
 
   override def createColumnarReader(partition: InputPartition): ColumnarPartitionReader = {
+    val hdxPart = partition.asInstanceOf[HdxScanPartition]
+    val storage = storages.getOrElse(hdxPart.storageId, sys.error(s"Partition ${hdxPart.path} refers to unknown storage #${hdxPart.storageId}"))
     new ColumnarPartitionReader(info, storage, pkName, partition.asInstanceOf[HdxScanPartition])
   }
 

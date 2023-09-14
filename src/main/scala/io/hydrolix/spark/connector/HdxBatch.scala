@@ -90,14 +90,30 @@ final class HdxBatch(info: HdxConnectionInfo,
           log.debug(s"Scanning partition ${i + 1}: $hp. Per-predicate results: ${pushedPreds.zip(pushResults).mkString("\n  ", "\n  ", "\n")}")
           // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
 
-          val path = hp.storageId match {
+          val (path, storageId) = hp.storageId match {
             case Some(id) if hp.partition.startsWith(id.toString + "/") =>
               log.debug(s"storage_id = ${hp.storageId}, partition = ${hp.partition}")
               // Remove storage ID prefix if present; it's not there physically
-              "db/hdx/" + hp.partition.drop(id.toString.length + 1)
+              ("db/hdx/" + hp.partition.drop(id.toString.length + 1), id)
             case _ =>
-              // No storage ID or not present in the path, assume the prefix is there
-              info.partitionPrefix.getOrElse("") + hp.partition
+              // No storage ID from catalog or not present in the path, assume the prefix is there
+              val defaults = table.storages.filter(_._2.isDefault)
+              if (defaults.isEmpty) {
+                if (table.storages.isEmpty) {
+                  // Note: this won't be empty if the storage settings override is used
+                  sys.error(s"No storage found for partition ${hp.partition}")
+                } else {
+                  val firstId = table.storages.head._1
+                  log.warn(s"Partition ${hp.partition} had no `storage_id`, and cluster has no default storage; using the first (#$firstId)")
+                  (info.partitionPrefix.getOrElse("") + hp.partition, firstId)
+                }
+              } else {
+                val firstDefault = defaults.head._1
+                if (defaults.size > 1) {
+                  log.warn(s"Partition ${hp.partition} had no `storage_id`, and cluster has multiple default storages; using the first (#$firstDefault)")
+                }
+                (info.partitionPrefix.getOrElse("") + hp.partition, firstDefault)
+              }
           }
 
           Some(
@@ -105,6 +121,7 @@ final class HdxBatch(info: HdxConnectionInfo,
               db,
               tbl,
               path,
+              storageId,
               cols,
               pushedPreds,
               hdxCols)
@@ -133,9 +150,9 @@ final class HdxBatch(info: HdxConnectionInfo,
       }
 
       if (useRowOriented) {
-        new RowPartitionReaderFactory(info, table.storage, table.primaryKeyField)
+        new RowPartitionReaderFactory(info, table.storages, table.primaryKeyField)
       } else {
-        new ColumnarPartitionReaderFactory(info, table.storage, table.primaryKeyField)
+        new ColumnarPartitionReaderFactory(info, table.storages, table.primaryKeyField)
       }
     }
   }
