@@ -104,6 +104,9 @@ final class HdxTableCatalog
 
     val apiTable = api.table(db, table)
                       .getOrElse(throw NoSuchTableException(s"$db.$table"))
+
+    // Note: We have HdxApiTable.primaryKey now, but it just gives us the name, not the data type, so we still need
+    //  to look at the view
     val primaryKey = api.pk(db, table)
 
     HdxTable(

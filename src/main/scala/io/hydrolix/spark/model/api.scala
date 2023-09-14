@@ -112,6 +112,7 @@ case class HdxTableSettingsAutoIngest(enabled: Boolean,
                                        dryRun: Boolean,
                                     transform: Option[UUID])
 
+@JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxApiTable(project: UUID,
                           name: String,
                    description: Option[String],
@@ -120,7 +121,8 @@ case class HdxApiTable(project: UUID,
                       modified: Instant,
                       settings: HdxTableSettings,
                            url: URL,
-                        `type`: String)
+                        `type`: String,
+                    primaryKey: Option[String])
 
 case class HdxProject(uuid: UUID,
                       name: String,
