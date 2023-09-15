@@ -88,7 +88,13 @@ case class HdxTableSettings(stream: HdxTableStreamSettings,
                      maxFutureDays: Int,
                            summary: Option[HdxTableSettingsSummary],
                              scale: Option[HdxTableSettingsScale],
-                   maxRequestBytes: Option[Long])
+                   maxRequestBytes: Option[Long],
+                        storageMap: Option[HdxTableSettingsStorageMap])
+
+@JsonNaming(classOf[SnakeCaseStrategy])
+case class HdxTableSettingsStorageMap(defaultStorageId: UUID,
+                                            columnName: String,
+                                    columnValueMapping: Map[UUID, List[JsonNode]])
 
 @JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxTableSettingsSummary(sql: String, enabled: Boolean)
@@ -106,6 +112,7 @@ case class HdxTableSettingsAutoIngest(enabled: Boolean,
                                        dryRun: Boolean,
                                     transform: Option[UUID])
 
+@JsonNaming(classOf[SnakeCaseStrategy])
 case class HdxApiTable(project: UUID,
                           name: String,
                    description: Option[String],
@@ -114,7 +121,8 @@ case class HdxApiTable(project: UUID,
                       modified: Instant,
                       settings: HdxTableSettings,
                            url: URL,
-                        `type`: String)
+                        `type`: String,
+                    primaryKey: Option[String])
 
 case class HdxProject(uuid: UUID,
                       name: String,

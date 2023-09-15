@@ -15,9 +15,6 @@
  */
 package io.hydrolix.spark.connector
 
-import io.hydrolix.spark.model.HdxConnectionInfo.{OPT_PROJECT_NAME, OPT_QUERY_MODE, OPT_STORAGE_BUCKET_NAME, OPT_STORAGE_BUCKET_PATH, OPT_STORAGE_CLOUD, OPT_STORAGE_REGION, OPT_TABLE_NAME, opt}
-import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxJdbcSession, HdxQueryMode, HdxStorageSettings, Types}
-
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.analysis.NoSuchTableException
 import org.apache.spark.sql.connector.catalog._
@@ -26,9 +23,12 @@ import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Implicits._
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-import java.util.Collections
+import java.util.{Collections, UUID}
 import java.{util => ju}
 import scala.collection.mutable
+
+import io.hydrolix.spark.model.HdxConnectionInfo._
+import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxJdbcSession, HdxQueryMode, HdxStorageSettings, Types}
 
 //noinspection ScalaUnusedSymbol: This is referenced as a classname on the Spark command line (`-c spark.sql.catalog.hydrolix=io.hydrolix.spark.connector.HdxTableCatalog`)
 final class HdxTableCatalog
@@ -40,7 +40,7 @@ final class HdxTableCatalog
   private var info: HdxConnectionInfo = _
   private var api: HdxApiSession = _
   private var jdbc: HdxJdbcSession = _
-  private var storageSettings: HdxStorageSettings = _
+  private var storageSettings: Map[UUID, HdxStorageSettings] = _
   private var queryMode: HdxQueryMode = _
 
   private val columnsCache = mutable.HashMap[(String, String), List[HdxColumnInfo]]()
@@ -77,19 +77,14 @@ final class HdxTableCatalog
 
     // TODO this is ugly
     if ((bn ++ bp ++ r ++ c).size == 4) {
-      this.storageSettings = HdxStorageSettings(true, bn.get, bp.get, r.get, c.get)
+
+      this.storageSettings = Map(uuid0 -> HdxStorageSettings(true, bn.get, bp.get, r.get, c.get))
     } else {
-      val storages = api.storages()
+      val storages = api.storages().map(storage => storage.uuid -> storage.settings).toMap
       if (storages.isEmpty) {
         sys.error("No storages available from API, and no storage settings provided in configuration")
       } else {
-        val defaults = storages.find(_.settings.isDefault)
-        if (defaults.size == 1) {
-          this.storageSettings = defaults.head.settings
-        } else {
-          log.warn(s"${defaults.size} default storages in API; arbitrarily using the first non-default one")
-          this.storageSettings = storages.head.settings
-        }
+        this.storageSettings = storages
       }
     }
   }
@@ -109,6 +104,9 @@ final class HdxTableCatalog
 
     val apiTable = api.table(db, table)
                       .getOrElse(throw NoSuchTableException(s"$db.$table"))
+
+    // Note: We have HdxApiTable.primaryKey now, but it just gives us the name, not the data type, so we still need
+    //  to look at the view
     val primaryKey = api.pk(db, table)
 
     HdxTable(

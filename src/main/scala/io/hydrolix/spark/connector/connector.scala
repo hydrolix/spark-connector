@@ -16,11 +16,13 @@
 package io.hydrolix.spark
 
 import scala.sys.process.{Process, ProcessIO}
-
 import com.google.common.io.ByteStreams
+
+import java.util.UUID
 
 package object connector {
   def nope() = throw new UnsupportedOperationException("Hydrolix connector is read-only")
+  val uuid0 = UUID.fromString("00000000-0000-0000-0000-000000000000")
 
   implicit class SeqStuff[A](underlying: Seq[A]) {
     def findSingle(f: A => Boolean, what: String = ""): Option[A] = {
