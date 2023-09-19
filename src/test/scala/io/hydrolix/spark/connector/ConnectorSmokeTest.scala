@@ -12,7 +12,7 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import org.junit.Test
 
-import io.hydrolix.spark.connector.partitionreader.RowPartitionReader
+import io.hydrolix.spark.connector.partitionreader.SparkRowPartitionReader
 import io.hydrolix.spark.model.HdxConnectionInfo
 
 class ConnectorSmokeTest {
@@ -44,7 +44,7 @@ class ConnectorSmokeTest {
     val partitions = batch.planInputPartitions()
     println(partitions.size)
 
-    val reader = new RowPartitionReader(info, table.storages.values.head, table.primaryKeyField, partitions.head.asInstanceOf[HdxScanPartition])
+    val reader = new SparkRowPartitionReader(info, table.storages.values.head, table.primaryKeyField, partitions.head.asInstanceOf[SparkScanPartition])
     while (reader.next()) {
       val row = reader.get()
       println(row)

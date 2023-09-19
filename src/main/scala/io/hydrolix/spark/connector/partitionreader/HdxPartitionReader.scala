@@ -16,7 +16,6 @@
 package io.hydrolix.spark.connector.partitionreader
 
 import com.google.common.io.{ByteStreams, MoreFiles, RecursiveDeleteOption}
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.connector.read.PartitionReader
 
@@ -32,9 +31,12 @@ import scala.util.Using.resource
 import scala.util.control.Breaks.{break, breakable}
 import scala.util.{Try, Using}
 
-import io.hydrolix.spark.connector.{Etc, HdxScanPartition, TurbineIni, spawn}
-import io.hydrolix.spark.model._
+import io.hydrolix.spark.connector.{Etc, SparkScanPartition, spawn}
 import org.slf4j.LoggerFactory
+
+import io.hydrolix.connectors
+import io.hydrolix.connectors.partitionreader.TurbineIni
+import io.hydrolix.connectors.{HdxOutputColumn, HdxPartitionScanPlan, HdxStorageSettings, JSON}
 
 object HdxPartitionReader {
   private val log = LoggerFactory.getLogger(getClass)
@@ -218,7 +220,7 @@ trait HdxPartitionReader[T <: AnyRef]
       "--config", turbineIniPath,
       "--output_format", outputFormat,
       "--output_path", "-",
-      "--hdx_partition", s"${scan.path}",
+      "--hdx_partition", s"${scan.partitionPath}",
       "--schema", schemaStr
     ) ++ exprArgs
 
@@ -296,7 +298,7 @@ trait HdxPartitionReader[T <: AnyRef]
   override def get(): T = data
 
   override def close(): Unit = {
-    log.info(s"$recordsEmitted records read from ${scan.path}")
+    log.info(s"$recordsEmitted records read from ${scan.partitionPath}")
     Try(turbineIniTmp.delete())
     credsTempFile.foreach(f => Try(f.delete()))
   }

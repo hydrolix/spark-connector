@@ -18,6 +18,7 @@ package io.hydrolix.spark.connector.partitionreader
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node._
+
 import io.hydrolix.connectors.types
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.InternalRow
@@ -36,7 +37,8 @@ import scala.sys.error
 import scala.util.Using
 import scala.util.control.Breaks.{break, breakable}
 
-import io.hydrolix.spark.connector.HdxScanPartition
+import io.hydrolix.connectors.partitionreader.RowPartitionReader
+import io.hydrolix.spark.connector.SparkScanPartition
 import io.hydrolix.spark.model._
 
 final class RowPartitionReaderFactory(info: HdxConnectionInfo,
@@ -47,17 +49,17 @@ final class RowPartitionReaderFactory(info: HdxConnectionInfo,
   override def supportColumnarReads(partition: InputPartition) = false
 
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
-    val hdxPart = partition.asInstanceOf[HdxScanPartition]
-    val storage = storages.getOrElse(hdxPart.storageId, sys.error(s"Partition ${hdxPart.path} refers to unknown storage #${hdxPart.storageId}"))
-    new RowPartitionReader(info, storage, pkName, partition.asInstanceOf[HdxScanPartition])
+    val hdxPart = partition.asInstanceOf[SparkScanPartition]
+    val storage = storages.getOrElse(hdxPart.coreScan.table, sys.error(s"Partition ${hdxPart.path} refers to unknown storage #${hdxPart.storageId}"))
+    new SparkRowPartitionReader(info, storage, pkName, partition.asInstanceOf[SparkScanPartition])
   }
 }
 
-final class RowPartitionReader(val           info: HdxConnectionInfo,
-                               val        storage: HdxStorageSettings,
-                               val primaryKeyName: String,
-                               val           scan: HdxScanPartition)
-  extends HdxPartitionReader[InternalRow]
+final class SparkRowPartitionReader(val           info: HdxConnectionInfo,
+                                    val        storage: HdxStorageSettings,
+                                    val primaryKeyName: String,
+                                    val           scan: SparkScanPartition)
+  extends RowPartitionReader[InternalRow] with PartitionReader[InternalRow]
 {
   private val coreschema = Types.sparkToCore(scan.schema).asInstanceOf[StructType]
 

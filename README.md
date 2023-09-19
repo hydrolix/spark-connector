@@ -28,12 +28,12 @@ unifying DataFrame abstraction.
 
   | Spark Type                                                                                                                             | Connector Implementation                                                                               | 
   |----------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
-  | [Table](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/catalog/Table.html)                                | [HdxTable](./src/main/scala/io/hydrolix/spark/connector/HdxTable.scala)                                |
+  | [Table](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/catalog/Table.html)                                | [HdxTable](./src/main/scala/io/hydrolix/spark/connector/SparkTable.scala)                                |
   | [ScanBuilder](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/ScanBuilder.html)                       | [HdxScanBuilder](./src/main/scala/io/hydrolix/spark/connector/HdxScanBuilder.scala)                    |
   | [Scan](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Scan.html)                                     | [HdxScan](./src/main/scala/io/hydrolix/spark/connector/HdxScan.scala)                                  | 
   | [Batch](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Batch.html)                                   | [HdxBatch](./src/main/scala/io/hydrolix/spark/connector/HdxBatch.scala)                                | 
   | [PartitionReaderFactory](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReaderFactory.html) | [HdxPartitionReaderFactory](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L37) |
-  | [InputPartition](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/InputPartition.html)                 | [HdxScanPartition](./src/main/scala/io/hydrolix/spark/connector/HdxScanPartition.scala)                |
+  | [InputPartition](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/InputPartition.html)                 | [HdxScanPartition](./src/main/scala/io/hydrolix/spark/connector/SparkScanPartition.scala)                |
   | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxPartitionReader](./src/main/scala/io/hydrolix/spark/connector/HdxPartitionReader.scala#L118)       |
 
 ### hdx_reader

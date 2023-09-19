@@ -26,19 +26,20 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import java.util.{Collections, UUID}
 import java.{util => ju}
 import scala.collection.mutable
+import scala.collection.JavaConverters._
 
-import io.hydrolix.spark.model.HdxConnectionInfo._
-import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxJdbcSession, HdxQueryMode, HdxStorageSettings, Types}
+import io.hydrolix.connectors
+import io.hydrolix.connectors.HdxConnectionInfo.{OPT_PROJECT_NAME, OPT_QUERY_MODE, OPT_STORAGE_BUCKET_NAME, OPT_STORAGE_BUCKET_PATH, OPT_STORAGE_CLOUD, OPT_STORAGE_REGION, OPT_TABLE_NAME}
+import io.hydrolix.connectors.{HdxColumnInfo, HdxConnectionInfo, HdxJdbcSession, HdxQueryMode, HdxStorageSettings, HdxTableCatalog, Types, types}
 
 //noinspection ScalaUnusedSymbol: This is referenced as a classname on the Spark command line (`-c spark.sql.catalog.hydrolix=io.hydrolix.spark.connector.HdxTableCatalog`)
-final class HdxTableCatalog
-    extends TableCatalog
+final class SparkTableCatalog
+    extends HdxTableCatalog
        with SupportsNamespaces
        with Logging
 {
-  var name: String = _
   private var info: HdxConnectionInfo = _
-  private var api: HdxApiSession = _
+  private var api: connectors.HdxApiSession = _
   private var jdbc: HdxJdbcSession = _
   private var storageSettings: Map[UUID, HdxStorageSettings] = _
   private var queryMode: HdxQueryMode = _
@@ -50,7 +51,7 @@ final class HdxTableCatalog
       val view = api.defaultView(db, table)
 
       view.settings.outputColumns.map { col =>
-        val stype = Types.hdxToSpark(col.datatype)
+        val stype = Types.hdxToValueType(col.datatype)
 
         HdxColumnInfo(
           col.name,
@@ -65,15 +66,16 @@ final class HdxTableCatalog
 
   def initialize(name: String, opts: CaseInsensitiveStringMap): Unit = {
     this.name = name
-    this.info = HdxConnectionInfo.fromOpts(opts)
-    this.api = new HdxApiSession(info)
+    val m = opts.asScala.toMap
+    this.info = connectors.HdxConnectionInfo.fromOpts(m)
+    this.api = new connectors.HdxApiSession(info)
     this.jdbc = HdxJdbcSession(info)
-    this.queryMode = opt(opts, OPT_QUERY_MODE).map(HdxQueryMode.of).getOrElse(HdxQueryMode.AUTO)
+    this.queryMode = HdxConnectionInfo.opt(m, OPT_QUERY_MODE).map(HdxQueryMode.of).getOrElse(HdxQueryMode.AUTO)
 
-    val bn = HdxConnectionInfo.opt(opts, OPT_STORAGE_BUCKET_NAME)
-    val bp = HdxConnectionInfo.opt(opts, OPT_STORAGE_BUCKET_PATH)
-    val r = HdxConnectionInfo.opt(opts, OPT_STORAGE_REGION)
-    val c = HdxConnectionInfo.opt(opts, OPT_STORAGE_CLOUD)
+    val bn = HdxConnectionInfo.opt(m, OPT_STORAGE_BUCKET_NAME)
+    val bp = HdxConnectionInfo.opt(m, OPT_STORAGE_BUCKET_PATH)
+    val r = HdxConnectionInfo.opt(m, OPT_STORAGE_REGION)
+    val c = HdxConnectionInfo.opt(m, OPT_STORAGE_CLOUD)
 
     // TODO this is ugly
     if ((bn ++ bp ++ r ++ c).size == 4) {
@@ -89,13 +91,13 @@ final class HdxTableCatalog
     }
   }
 
-  private def inferSchema(options: CaseInsensitiveStringMap): StructType = {
+  private def inferSchema(options: CaseInsensitiveStringMap): types.StructType = {
     val db = options.get(OPT_PROJECT_NAME)
     val table = options.get(OPT_TABLE_NAME)
 
     val cols = columns(db, table)
 
-    StructType(cols.map(col => StructField(col.name, col.sparkType, col.nullable)))
+    types.StructType(cols.map(col => types.StructField(col.name, col.`type`, col.nullable)))
   }
 
   private def getTable(schema: StructType, properties: ju.Map[String, String]): Table = {

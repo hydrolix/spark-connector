@@ -17,15 +17,18 @@ package io.hydrolix.spark.connector
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.HdxPushdown
+import org.apache.spark.sql.connector.expressions.GeneralScalarExpression
 import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, Aggregation}
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read._
-import org.apache.spark.sql.types.{StructField, StructType}
+import org.apache.spark.sql.types.StructType
 
-import io.hydrolix.spark.model.HdxConnectionInfo
+import io.hydrolix.connectors
+import io.hydrolix.connectors.expr.{Expr, GreaterThan, Literal}
+import io.hydrolix.connectors.{HdxTable, types}
 
-final class HdxScanBuilder(info: HdxConnectionInfo,
-                          table: HdxTable)
+final class HdxScanBuilder(info: connectors.HdxConnectionInfo,
+                           table: HdxTable)
   extends ScanBuilder
      with SupportsPushDownV2Filters
      with SupportsPushDownRequiredColumns
@@ -38,7 +41,9 @@ final class HdxScanBuilder(info: HdxConnectionInfo,
   private val pkField = table.hdxCols.getOrElse(table.primaryKeyField, sys.error("No PK field"))
 
   override def pushPredicates(predicates: Array[Predicate]): Array[Predicate] = {
-    val pushable = predicates.toList.groupBy(HdxPushdown.pushable(table.primaryKeyField, table.shardKeyField, _, table.hdxCols))
+    val pushable = predicates.toList.groupBy { pred =>
+      connectors.HdxPushdown.pushable(table.primaryKeyField, table.shardKeyField, convertPredicate(pred), table.hdxCols)
+    }
 
     val type1 = pushable.getOrElse(1, Nil)
     val type2 = pushable.getOrElse(2, Nil)
@@ -60,7 +65,7 @@ final class HdxScanBuilder(info: HdxConnectionInfo,
 
   override def pruneColumns(requiredSchema: StructType): Unit = {
     if (requiredSchema.isEmpty) {
-      cols = StructType(List(StructField(table.primaryKeyField, pkField.sparkType)))
+      cols = types.StructType(types.StructField(table.primaryKeyField, pkField.`type`))
     } else {
       cols = requiredSchema
     }
@@ -82,5 +87,17 @@ final class HdxScanBuilder(info: HdxConnectionInfo,
 
   override def build(): Scan = {
     new HdxScan(info, table, cols, pushedPreds, pushedAggs)
+  }
+
+  private def convertPredicate(core: Expr[Boolean]): Predicate = {
+    core match {
+      case GreaterThan(l, r) => new GeneralScalarExpression(">", Array(convertPredicate(l), convertPredicate(r)))
+    }
+  }
+
+  private def convertExpr(core: Expr[Any]): GeneralScalarExpression = {
+    core match {
+      case Literal(t, valueType)
+    }
   }
 }

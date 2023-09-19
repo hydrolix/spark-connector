@@ -15,6 +15,7 @@
  */
 package io.hydrolix.spark.connector
 
+import org.apache.spark.sql.catalyst.util.quoteIfNeeded
 import org.apache.spark.sql.connector.catalog.{Identifier, SupportsRead, Table, TableCapability}
 import org.apache.spark.sql.connector.read.ScanBuilder
 import org.apache.spark.sql.types.StructType
@@ -23,25 +24,18 @@ import org.apache.spark.sql.util.CaseInsensitiveStringMap
 import java.util.UUID
 import java.{util => ju}
 
+import io.hydrolix.connectors.HdxTable
 import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxQueryMode, HdxStorageSettings}
 
-case class HdxTable(info: HdxConnectionInfo,
-                storages: Map[UUID, HdxStorageSettings],
-                   ident: Identifier,
-                  schema: StructType,
-         primaryKeyField: String,
-           shardKeyField: Option[String],
-           sortKeyFields: List[String],
-                 hdxCols: Map[String, HdxColumnInfo],
-               queryMode: HdxQueryMode)
+case class SparkTable(val coreTable: HdxTable)
   extends Table
      with SupportsRead
 {
-  override def name(): String = ident.toString
+  override def name(): String = coreTable.ident.map(quoteIfNeeded).mkString(".")
 
   override def capabilities(): ju.Set[TableCapability] = ju.EnumSet.of(TableCapability.BATCH_READ)
 
   override def newScanBuilder(options: CaseInsensitiveStringMap): ScanBuilder = {
-    new HdxScanBuilder(info, this)
+    new HdxScanBuilder(coreTable.info, this)
   }
 }
