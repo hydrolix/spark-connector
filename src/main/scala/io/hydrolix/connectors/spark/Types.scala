@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.hydrolix.spark.model
+package io.hydrolix.connectors.spark
 
 import org.apache.spark.sql.types.{DataType, DataTypes}
 import org.apache.spark.sql.{types => sparktypes}
 
 import io.hydrolix.connectors
+import io.hydrolix.connectors.types._
 import io.hydrolix.connectors.{types => coretypes}
-import io.hydrolix.connectors.types.{Int16Type, Int32Type, Int64Type, Int8Type, UInt16Type, UInt32Type, UInt64Type, UInt8Type, ValueType}
 
 object Types {
   /**

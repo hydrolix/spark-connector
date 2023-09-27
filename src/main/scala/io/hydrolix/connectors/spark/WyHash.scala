@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.hydrolix.spark.connector
+package io.hydrolix.connectors.spark
 
 import com.sun.jna.{Library, Native}
 

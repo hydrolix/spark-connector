@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.hydrolix.spark
+package io.hydrolix.connectors.spark
 
-package object model {
-  implicit class StringStuff(underlying: String) {
-    def noneIfEmpty: Option[String] = {
-      if (underlying.isEmpty) None else Some(underlying)
-    }
-  }
-}
+import org.apache.spark.sql.connector.read.InputPartition
+
+import io.hydrolix.connectors.HdxPartitionScanPlan
+
+case class SparkScanPartition(coreScan: HdxPartitionScanPlan) extends InputPartition

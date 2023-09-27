@@ -14,19 +14,23 @@
  * limitations under the License.
  */
 
-package io.hydrolix.spark.connector.partitionreader
-
-import io.hydrolix.spark.model.JSON
+package io.hydrolix.connectors.spark.partitionreader
 
 import com.fasterxml.jackson.core.{JsonParser, JsonToken}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.execution.vectorized.{OnHeapColumnVector, WritableColumnVector}
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.{DataType, DataTypes}
+import org.apache.spark.sql.{types => sparktypes}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 
 import java.io.InputStream
 import java.time.{LocalDate, OffsetDateTime}
+
+import io.hydrolix.connectors
+import io.hydrolix.connectors.{types => coretypes}
+import io.hydrolix.connectors.model
+import io.hydrolix.connectors.spark.Types
 
 object HdxReaderColumnarJson extends Logging {
   private val scalarTypes = Set(
@@ -45,23 +49,24 @@ object HdxReaderColumnarJson extends Logging {
   /**
    * Must be called in its own thread, because it does blocking reads from `stream`! Doesn't close the stream.
    *
-   * @param schema  the column names and types expected
-   * @param stream  the input stream to read
-   * @param onBatch a callback to send a completed batch
-   * @param onDone  a callback when the stream is completely consumed
+   * @param coreSchema the column names and types expected
+   * @param stream     the input stream to read
+   * @param onBatch    a callback to send a completed batch
+   * @param onDone     a callback when the stream is completely consumed
    */
-  def apply(schema: StructType,
-            stream: InputStream,
-           onBatch: ColumnarBatch => Unit,
-            onDone: => Unit)
-                  : Unit =
+  def apply(coreSchema: coretypes.StructType,
+                stream: InputStream,
+               onBatch: ColumnarBatch => Unit,
+                onDone: => Unit)
+                      : Unit =
   {
-    val parser = JSON.objectMapper.createParser(stream)
+    val parser = connectors.JSON.objectMapper.createParser(stream)
+    val sparkSchema = Types.coreToSpark(coreSchema).asInstanceOf[sparktypes.StructType]
 
     parser.nextToken() // Advance to start object if present, or null if empty stream
 
-    val cols = OnHeapColumnVector.allocateColumns(8192, schema) // TODO make the batch size configurable maybe
-    val colsByName = schema.zip(cols).map {
+    val cols = OnHeapColumnVector.allocateColumns(8192, sparkSchema) // TODO make the batch size configurable maybe
+    val colsByName = sparkSchema.zip(cols).map {
       case (field, col) =>
         field.name -> (field, col)
     }.toMap
@@ -84,7 +89,7 @@ object HdxReaderColumnarJson extends Logging {
    * Reads a single columnar batch from the parser into `cols`. The parser must be positioned on a START_OBJECT,
    * and will be left '''after''' the corresponding END_OBJECT on successful completion.
    */
-  private def block(parser: JsonParser, colsByName: Map[String, (StructField, WritableColumnVector)]): Int = {
+  private def block(parser: JsonParser, colsByName: Map[String, (sparktypes.StructField, WritableColumnVector)]): Int = {
     if (!parser.isExpectedStartObjectToken) sys.error(s"Expected object start, got ${parser.currentToken()}")
 
     // TODO this expects `rows` to come before `cols` and it would be tricky to change that, maybe document it
@@ -115,7 +120,7 @@ object HdxReaderColumnarJson extends Logging {
     rows
   }
 
-  private def scalarType(typ: DataType) = scalarTypes.contains(typ) || typ.isInstanceOf[DecimalType]
+  private def scalarType(typ: DataType) = scalarTypes.contains(typ) || typ.isInstanceOf[sparktypes.DecimalType]
 
   private def readValue(parser: JsonParser, name: String, valueType: DataType, col: WritableColumnVector, rowId: Int, offset: Int): Int = {
     try {
@@ -129,12 +134,12 @@ object HdxReaderColumnarJson extends Logging {
           readScalar(parser, valueType, name, col, offset)
           1
 
-        case ArrayType(elementType, _) =>
+        case sparktypes.ArrayType(elementType, _) =>
           if (!parser.isExpectedStartArrayToken) sys.error("Expected array start")
 
           readArray(parser, name + "[]", elementType, col, offset)
 
-        case MapType(DataTypes.StringType, valueType, _) =>
+        case sparktypes.MapType(DataTypes.StringType, valueType, _) =>
           if (!parser.isExpectedStartObjectToken) sys.error("Expected object start")
 
           readMap(parser, name + "{}", valueType, col, rowId, offset)
@@ -175,7 +180,7 @@ object HdxReaderColumnarJson extends Logging {
         case typ if scalarType(typ) =>
           readScalar(parser, elementType, name, col.getChild(0), offset + pos)
 
-        case at@ArrayType(_, _) =>
+        case at@sparktypes.ArrayType(_, _) =>
           // Array of arrays
 
           val elements = col.getChild(0)
@@ -192,7 +197,7 @@ object HdxReaderColumnarJson extends Logging {
           // Bump the offset for the next write
           valuesWritten += len
 
-        case MapType(DataTypes.StringType, valueType, _) =>
+        case sparktypes.MapType(DataTypes.StringType, valueType, _) =>
           // Array of maps
 
           val len = readMap(parser, s"$name[$pos]{}", valueType, col, pos, offset + valuesWritten)
@@ -275,9 +280,9 @@ object HdxReaderColumnarJson extends Logging {
         case DataTypes.LongType if tok == JsonToken.VALUE_NUMBER_INT =>
           col.putLong(pos, parser.getLongValue)
 
-        case dt: DecimalType if dt.scale == 0 && tok == JsonToken.VALUE_NUMBER_INT =>
+        case dt: sparktypes.DecimalType if dt.scale == 0 && tok == JsonToken.VALUE_NUMBER_INT =>
           val bd = parser.getDecimalValue
-          col.putDecimal(pos, Decimal(bd), bd.precision())
+          col.putDecimal(pos, sparktypes.Decimal(bd), bd.precision())
 
         case DataTypes.FloatType if tok.isNumeric =>
           col.putFloat(pos, parser.getFloatValue)
@@ -285,9 +290,9 @@ object HdxReaderColumnarJson extends Logging {
         case DataTypes.DoubleType if tok.isNumeric =>
           col.putDouble(pos, parser.getDoubleValue)
 
-        case _: DecimalType if tok.isNumeric =>
+        case _: sparktypes.DecimalType if tok.isNumeric =>
           val bd = parser.getDecimalValue
-          col.putDecimal(pos, Decimal(bd), bd.precision())
+          col.putDecimal(pos, sparktypes.Decimal(bd), bd.precision())
 
         case DataTypes.TimestampType =>
           val time = OffsetDateTime.parse(parser.getText)

@@ -13,22 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.hydrolix.spark.connector
+package io.hydrolix.connectors.spark
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.HdxPushdown
-import org.apache.spark.sql.connector.expressions.GeneralScalarExpression
 import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, Aggregation}
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read._
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{HdxExpressions, HdxPushdown, types => sparktypes}
 
 import io.hydrolix.connectors
-import io.hydrolix.connectors.expr.{Expr, GreaterThan, Literal}
-import io.hydrolix.connectors.{HdxTable, types}
+import io.hydrolix.connectors.{HdxConnectionInfo, HdxTable, model}
+import io.hydrolix.connectors.expr.Expr
 
-final class HdxScanBuilder(info: connectors.HdxConnectionInfo,
-                           table: HdxTable)
+final class SparkScanBuilder(info: HdxConnectionInfo,
+                            table: HdxTable)
   extends ScanBuilder
      with SupportsPushDownV2Filters
      with SupportsPushDownRequiredColumns
@@ -37,12 +35,17 @@ final class HdxScanBuilder(info: connectors.HdxConnectionInfo,
 {
   private var pushedPreds: List[Predicate] = Nil
   private var pushedAggs: List[AggregateFunc] = Nil
-  private var cols: StructType = _
+  private var cols: sparktypes.StructType = _
   private val pkField = table.hdxCols.getOrElse(table.primaryKeyField, sys.error("No PK field"))
 
   override def pushPredicates(predicates: Array[Predicate]): Array[Predicate] = {
     val pushable = predicates.toList.groupBy { pred =>
-      connectors.HdxPushdown.pushable(table.primaryKeyField, table.shardKeyField, convertPredicate(pred), table.hdxCols)
+      connectors.HdxPushdown.pushable(
+        table.primaryKeyField,
+        table.shardKeyField,
+        HdxExpressions.sparkToCore(pred).asInstanceOf[Expr[Boolean]],
+        table.hdxCols
+      )
     }
 
     val type1 = pushable.getOrElse(1, Nil)
@@ -63,9 +66,10 @@ final class HdxScanBuilder(info: connectors.HdxConnectionInfo,
     pushedPreds.toArray
   }
 
-  override def pruneColumns(requiredSchema: StructType): Unit = {
+  override def pruneColumns(requiredSchema: sparktypes.StructType): Unit = {
     if (requiredSchema.isEmpty) {
-      cols = types.StructType(types.StructField(table.primaryKeyField, pkField.`type`))
+      val pkf = sparktypes.StructField(table.primaryKeyField, Types.coreToSpark(pkField.`type`))
+      cols = sparktypes.DataTypes.createStructType(Array(pkf))
     } else {
       cols = requiredSchema
     }
@@ -78,7 +82,7 @@ final class HdxScanBuilder(info: connectors.HdxConnectionInfo,
     val funcs = HdxPushdown.pushableAggs(aggregation, table.primaryKeyField)
     if (funcs.nonEmpty && funcs.size == aggregation.aggregateExpressions().length) {
       pushedAggs = funcs.map(_._1)
-      cols = StructType(funcs.map(_._2))
+      cols = sparktypes.StructType(funcs.map(_._2))
       true
     } else {
       false
@@ -86,18 +90,6 @@ final class HdxScanBuilder(info: connectors.HdxConnectionInfo,
   }
 
   override def build(): Scan = {
-    new HdxScan(info, table, cols, pushedPreds, pushedAggs)
-  }
-
-  private def convertPredicate(core: Expr[Boolean]): Predicate = {
-    core match {
-      case GreaterThan(l, r) => new GeneralScalarExpression(">", Array(convertPredicate(l), convertPredicate(r)))
-    }
-  }
-
-  private def convertExpr(core: Expr[Any]): GeneralScalarExpression = {
-    core match {
-      case Literal(t, valueType)
-    }
+    new SparkScan(info, table, cols, pushedPreds, pushedAggs)
   }
 }

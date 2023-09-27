@@ -20,7 +20,7 @@ clang -shared wyhash.c -o darwin-x86-64/libwyhash.so
 
 We might prefer for this to be statically linked, but it's extremely dependency-light anyway.
 
-See [WyHashTest.scala](../scala/io/hydrolix/spark/connector/WyHashTest.scala) for some test cases.
+See [WyHashTest.scala](../scala/io/hydrolix/connectors/spark/WyHashTest.scala) for some test cases.
 
 We could cross-build this for other OS's and architectures too, but at the moment [turbine_cmd](linux-x86-64/turbine_cmd) is 
 `linux-x86-64`-only anyway so there's not much point at the moment.

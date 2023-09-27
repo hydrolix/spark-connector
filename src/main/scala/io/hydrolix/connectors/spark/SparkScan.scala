@@ -13,24 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.hydrolix.spark.connector
+package io.hydrolix.connectors.spark
 
 import org.apache.spark.sql.connector.expressions.aggregate.AggregateFunc
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Batch, Scan}
 import org.apache.spark.sql.types.StructType
 
-import io.hydrolix.spark.model.HdxConnectionInfo
+import io.hydrolix.connectors
+import io.hydrolix.connectors.HdxTable
 
-final class HdxScan(info: HdxConnectionInfo,
-                   table: HdxTable,
-                    cols: StructType,
-             pushedPreds: List[Predicate],
-              pushedAggs: List[AggregateFunc])
+final class SparkScan(info: connectors.HdxConnectionInfo,
+                     table: HdxTable,
+                      cols: StructType,
+               pushedPreds: List[Predicate],
+                pushedAggs: List[AggregateFunc])
   extends Scan
 {
   // TODO consider adding SupportsRuntimeFiltering
-  private val batch = new HdxBatch(info, table, cols, pushedPreds, pushedAggs)
+  private val batch = new SparkBatch(info, table, cols, pushedPreds, pushedAggs)
 
   override def toBatch: Batch = batch
 

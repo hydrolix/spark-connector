@@ -51,7 +51,7 @@ assemblyMergeStrategy := {
 libraryDependencies ++= List(
   "org.apache.spark" %% "spark-sql" % "3.3.2" % Provided,
 
-  "io.hydrolix" %% "hydrolix-connectors-core" % "0.1.0-SNAPSHOT",
+  "io.hydrolix" %% "hydrolix-connectors-core" % "0.2.1-SNAPSHOT",
 
   "com.clickhouse" % "clickhouse-jdbc" % "0.4.6",
   "com.zaxxer" % "HikariCP" % "5.0.1",

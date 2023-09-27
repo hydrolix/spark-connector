@@ -13,16 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.hydrolix.spark
+package io.hydrolix.connectors
 
 import scala.sys.process.{Process, ProcessIO}
 import com.google.common.io.ByteStreams
 
 import java.util.UUID
 
-package object connector {
+package object spark {
   def nope() = throw new UnsupportedOperationException("Hydrolix connector is read-only")
-  val uuid0 = UUID.fromString("00000000-0000-0000-0000-000000000000")
 
   implicit class SeqStuff[A](underlying: Seq[A]) {
     def findSingle(f: A => Boolean, what: String = ""): Option[A] = {

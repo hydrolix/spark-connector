@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.hydrolix.spark.connector.partitionreader
+package io.hydrolix.connectors.spark.partitionreader
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
@@ -23,20 +23,22 @@ import org.apache.spark.sql.vectorized.ColumnarBatch
 import java.io._
 import java.util.UUID
 
-import io.hydrolix.spark.connector.SparkScanPartition
-import io.hydrolix.spark.model._
+import io.hydrolix.connectors
+import io.hydrolix.connectors.HdxPartitionScanPlan
+import io.hydrolix.connectors.partitionreader.HdxPartitionReader
+import io.hydrolix.connectors.spark.SparkScanPartition
 
-final class ColumnarPartitionReaderFactory(info: HdxConnectionInfo,
-                                       storages: Map[UUID, HdxStorageSettings],
-                                         pkName: String)
+final class ColumnarPartitionReaderFactory(info: connectors.HdxConnectionInfo,
+                                           storages: Map[UUID, connectors.HdxStorageSettings],
+                                           pkName: String)
   extends PartitionReaderFactory
 {
   override def supportColumnarReads(partition: InputPartition) = true
 
-  override def createColumnarReader(partition: InputPartition): ColumnarPartitionReader = {
+  override def createColumnarReader(partition: InputPartition): SparkColumnarPartitionReader = {
     val hdxPart = partition.asInstanceOf[SparkScanPartition]
-    val storage = storages.getOrElse(hdxPart.storageId, sys.error(s"Partition ${hdxPart.path} refers to unknown storage #${hdxPart.storageId}"))
-    new ColumnarPartitionReader(info, storage, pkName, partition.asInstanceOf[SparkScanPartition])
+    val storage = storages.getOrElse(hdxPart.coreScan.storageId, sys.error(s"Partition ${hdxPart.coreScan.partitionPath} refers to unknown storage #${hdxPart.coreScan.storageId}"))
+    new SparkColumnarPartitionReader(info, storage, pkName, hdxPart.coreScan)
   }
 
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
@@ -44,10 +46,13 @@ final class ColumnarPartitionReaderFactory(info: HdxConnectionInfo,
   }
 }
 
-final class ColumnarPartitionReader(val           info: HdxConnectionInfo,
-                                    val        storage: HdxStorageSettings,
-                                    val primaryKeyName: String,
-                                    val           scan: SparkScanPartition)
+/**
+ * TODO port this to connectors-core
+ */
+final class SparkColumnarPartitionReader(val           info: connectors.HdxConnectionInfo,
+                                         val        storage: connectors.HdxStorageSettings,
+                                         val primaryKeyName: String,
+                                         val           scan: HdxPartitionScanPlan)
   extends HdxPartitionReader[ColumnarBatch]
 {
   override def outputFormat = "jsonc"

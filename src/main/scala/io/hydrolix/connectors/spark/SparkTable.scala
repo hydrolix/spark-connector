@@ -13,29 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.hydrolix.spark.connector
+package io.hydrolix.connectors.spark
 
 import org.apache.spark.sql.catalyst.util.quoteIfNeeded
-import org.apache.spark.sql.connector.catalog.{Identifier, SupportsRead, Table, TableCapability}
+import org.apache.spark.sql.connector.catalog.{SupportsRead, Table, TableCapability}
 import org.apache.spark.sql.connector.read.ScanBuilder
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-import java.util.UUID
 import java.{util => ju}
 
 import io.hydrolix.connectors.HdxTable
-import io.hydrolix.spark.model.{HdxColumnInfo, HdxConnectionInfo, HdxQueryMode, HdxStorageSettings}
 
 case class SparkTable(val coreTable: HdxTable)
   extends Table
      with SupportsRead
 {
+  val schema = Types.coreToSpark(coreTable.schema).asInstanceOf[StructType]
+
   override def name(): String = coreTable.ident.map(quoteIfNeeded).mkString(".")
 
   override def capabilities(): ju.Set[TableCapability] = ju.EnumSet.of(TableCapability.BATCH_READ)
 
   override def newScanBuilder(options: CaseInsensitiveStringMap): ScanBuilder = {
-    new HdxScanBuilder(coreTable.info, this)
+    new SparkScanBuilder(coreTable.info, coreTable)
   }
 }

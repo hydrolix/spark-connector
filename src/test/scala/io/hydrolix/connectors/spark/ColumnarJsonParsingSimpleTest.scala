@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package io.hydrolix.spark.connector
+package io.hydrolix.connectors.spark
 
-import io.hydrolix.spark.connector.partitionreader.HdxReaderColumnarJson
+import io.hydrolix.connectors.spark.partitionreader.HdxReaderColumnarJson
 import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.junit.Assert.{assertEquals, assertNotNull, fail}

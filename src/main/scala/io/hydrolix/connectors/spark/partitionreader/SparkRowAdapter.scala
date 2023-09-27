@@ -1,11 +1,5 @@
-package io.hydrolix.spark.connector.partitionreader
+package io.hydrolix.connectors.spark.partitionreader
 
-import java.time.Instant
-import java.time.format.DateTimeFormatter
-import scala.collection.JavaConverters._
-import scala.collection.mutable
-
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
@@ -13,11 +7,14 @@ import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
 import org.apache.spark.sql.types.Decimal
 import org.apache.spark.unsafe.types.UTF8String
 
+import java.time.Instant
+import java.time.format.DateTimeFormatter
+import scala.collection.mutable
+
 import io.hydrolix.connectors.types._
-import io.hydrolix.connectors.instantToMicros
+import io.hydrolix.connectors.{instantToMicros, partitionreader}
 
-final class SparkRowAdapter extends RowAdapter[InternalRow, GenericArrayData, ArrayBasedMapData] {
-
+object SparkRowAdapter extends partitionreader.RowAdapter[InternalRow, GenericArrayData, ArrayBasedMapData] {
   type RB = SparkRowBuilder
   type AB = SparkArrayBuilder
   type MB = SparkMapBuilder
@@ -28,35 +25,10 @@ final class SparkRowAdapter extends RowAdapter[InternalRow, GenericArrayData, Ar
 
   override def newMapBuilder(`type`: MapType): SparkMapBuilder = new SparkMapBuilder(`type`)
 
-  private def node2Any(node: JsonNode, name: Option[String], dt: ValueType): Any = {
-    node match {
-      case null => null
-      case n if n.isNull => null
-      case s: TextNode => str(s, dt)
-      case n: NumericNode => num(n, dt)
-      case b: BooleanNode => bool(b, dt)
-      case a: ArrayNode =>
-        dt match {
-          case ArrayType(elementType, _) =>
-            val values = a.asScala.map(node2Any(_, name, elementType)).toList
-            new GenericArrayData(values)
 
-          case other => sys.error(s"TODO JSON array field $name needs conversion from $other to $dt")
-        }
-      case obj: ObjectNode =>
-        dt match {
-          case MapType(keyType, valueType, _) =>
-            if (keyType != StringType) sys.error(s"TODO JSON map field $name keys are $keyType, not strings")
-            val keys = obj.fieldNames().asScala.map(UTF8String.fromString).toArray
-            val values = obj.fields().asScala.map(entry => node2Any(entry.getValue, name, valueType)).toArray
-            new ArrayBasedMapData(new GenericArrayData(keys), new GenericArrayData(values))
+  override def string(value: String): Any = UTF8String.fromString(value)
 
-          case other => sys.error(s"TODO JSON map field $name needs conversion from $other to $dt")
-        }
-    }
-  }
-
-  private def str(s: TextNode, dt: ValueType): Any = {
+  override def jsonString(s: TextNode, dt: ValueType): Any = {
     dt match {
       case StringType => UTF8String.fromString(s.textValue())
       case TimestampType(_) =>
@@ -66,7 +38,7 @@ final class SparkRowAdapter extends RowAdapter[InternalRow, GenericArrayData, Ar
     }
   }
 
-  private def num(n: NumericNode, dt: ValueType): Any = {
+  override def jsonNumber(n: NumericNode, dt: ValueType): Any = {
     dt match {
       case DecimalType(_, _) => Decimal(n.decimalValue()) // TODO do we care to preserve the precision and scale here?
       case Int64Type => n.longValue()
@@ -78,7 +50,7 @@ final class SparkRowAdapter extends RowAdapter[InternalRow, GenericArrayData, Ar
     }
   }
 
-  private def bool(n: BooleanNode, dt: ValueType) = {
+  override def jsonBoolean(n: BooleanNode, dt: ValueType): Any = {
     dt match {
       case BooleanType => n.booleanValue()
       case Int32Type => if (n.booleanValue()) 1 else 0
@@ -86,10 +58,6 @@ final class SparkRowAdapter extends RowAdapter[InternalRow, GenericArrayData, Ar
       case Float64Type => if (n.booleanValue()) 1.0 else 0.0
       case other => sys.error(s"TODO make a $other from JSON value '$n'")
     }
-  }
-
-  override def convertJsonValue(`type`: ValueType, jvalue: JsonNode): Any = {
-    node2Any(jvalue, None, `type`)
   }
 
   final class SparkRowBuilder(val `type`: StructType) extends RowBuilder {
@@ -147,7 +115,7 @@ final class SparkRowAdapter extends RowAdapter[InternalRow, GenericArrayData, Ar
 
     for (sf <- `type`.fields) {
       val node = obj.get(sf.name)
-      val value = node2Any(node, Some(sf.name), sf.`type`)
+      val value = node2Any(node, sf.`type`)
       if (value == null) {
         rb.setNull(sf.name)
       } else {

@@ -13,36 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.hydrolix.spark.connector
+package io.hydrolix.connectors.spark
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.HdxPushdown
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, CountStar, Max, Min}
-import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory}
 import org.apache.spark.sql.types.{ArrayType, DataType, MapType, StructType}
 
-import io.hydrolix.spark.connector.partitionreader.{ColumnarPartitionReaderFactory, RowPartitionReaderFactory}
-import io.hydrolix.spark.model.{HdxConnectionInfo, HdxJdbcSession, HdxQueryMode}
+import io.hydrolix.connectors
+import io.hydrolix.connectors.expr.Expr
+import io.hydrolix.connectors.{HdxConnectionInfo, HdxJdbcSession, HdxPartitionScanPlan, HdxQueryMode, HdxTable, types => coretypes}
+import io.hydrolix.connectors.spark.partitionreader.{ColumnarPartitionReaderFactory, SparkRowPartitionReaderFactory}
 
-final class HdxBatch(info: HdxConnectionInfo,
-                    table: HdxTable,
-                     cols: StructType,
-              pushedPreds: List[Predicate],
-               pushedAggs: List[AggregateFunc])
+final class SparkBatch(info: HdxConnectionInfo,
+                       table: HdxTable,
+                       cols: StructType,
+                       pushedPreds: List[Expr[Boolean]],
+                       pushedAggs: List[AggregateFunc])
   extends Batch
      with Logging
 {
   private var planned: Array[InputPartition] = _
   //noinspection RedundantCollectionConversion -- Scala 2.13
   private val hdxCols = table.hdxCols
-    .filterKeys(cols.fieldNames.contains(_))
+    .filterKeys(col => cols.fields.exists(_.name == col))
     .map(identity) // because Map.filterKeys produces something non-Serializable
     .toMap
 
-  private lazy val schemaContainsMap = cols.exists(col => hasMap(col.dataType))
+  private lazy val schemaContainsMap = cols.fields.exists(col => hasMap(col.dataType))
 
   override def planInputPartitions(): Array[InputPartition] = {
     if (planned == null) {
@@ -57,7 +57,7 @@ final class HdxBatch(info: HdxConnectionInfo,
 
     if (pushedAggs.nonEmpty) {
       // TODO make agg pushdown work when the GROUP BY is the shard key, and perhaps a primary timestamp derivation?
-      val (rows, min, max) = jdbc.collectPartitionAggs(table.ident.namespace().head, table.ident.name())
+      val (rows, min, max) = jdbc.collectPartitionAggs(table.ident.head, table.ident(1))
 
       // Build a row containing only the values of the pushed aggregates
       val row = InternalRow(
@@ -71,9 +71,9 @@ final class HdxBatch(info: HdxConnectionInfo,
       Array(HdxPushedAggsPartition(row))
     } else {
       // TODO we have `pushedPreds`, we can make this query a lot more selective (carefully!)
-      val parts = jdbc.collectPartitions(table.ident.namespace().head, table.ident.name())
-      val db = table.ident.namespace().head
-      val tbl = table.ident.name()
+      val parts = jdbc.collectPartitions(table.ident.head, table.ident(1))
+      val db = table.ident.head
+      val tbl = table.ident(1)
 
       parts.zipWithIndex.flatMap { case (hp, i) =>
         val min = hp.minTimestamp
@@ -81,7 +81,7 @@ final class HdxBatch(info: HdxConnectionInfo,
         val sk = hp.shardKey
 
         // pushedPreds is implicitly an AND here
-        val pushResults = pushedPreds.map(HdxPushdown.prunePartition(table.primaryKeyField, table.shardKeyField, _, min, max, sk))
+        val pushResults = pushedPreds.map(connectors.HdxPushdown.prunePartition(table.primaryKeyField, table.shardKeyField, _, min, max, sk))
         if (pushedPreds.nonEmpty && pushResults.contains(true)) {
           // At least one pushed predicate said we could skip this partition
           log.debug(s"Skipping partition ${i + 1}: $hp")
@@ -116,16 +116,14 @@ final class HdxBatch(info: HdxConnectionInfo,
               }
           }
 
-          Some(
-            HdxScanPartition(
-              db,
-              tbl,
-              path,
-              storageId,
-              cols,
-              pushedPreds,
-              hdxCols)
-          )
+          Some(SparkScanPartition(HdxPartitionScanPlan(
+            db,
+            tbl,
+            storageId,
+            path,
+            cols,
+            pushedPreds,
+            hdxCols)))
         }
       }.toArray
     }
@@ -150,7 +148,7 @@ final class HdxBatch(info: HdxConnectionInfo,
       }
 
       if (useRowOriented) {
-        new RowPartitionReaderFactory(info, table.storages, table.primaryKeyField)
+        new SparkRowPartitionReaderFactory(info, table.storages, table.primaryKeyField)
       } else {
         new ColumnarPartitionReaderFactory(info, table.storages, table.primaryKeyField)
       }
