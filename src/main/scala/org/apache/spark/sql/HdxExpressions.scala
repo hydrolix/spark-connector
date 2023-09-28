@@ -7,6 +7,7 @@ import org.apache.spark.sql.types.DataTypes
 import org.apache.spark.unsafe.types.UTF8String
 
 import io.hydrolix.connectors.expr._
+import io.hydrolix.connectors.types.AnyType
 import io.hydrolix.connectors.{types => coretypes}
 
 object HdxExpressions {
@@ -29,11 +30,13 @@ object HdxExpressions {
     }
   }
 
-  def sparkToCore(expr: Expression): Expr[Any] = {
+  def sparkToCore(expr: Expression, schema: coretypes.StructType): Expr[Any] = {
     expr match {
-      case FieldReference(parts) => GetField(parts.map(quoteIfNeeded).mkString("."), coretypes.AnyType)
+      case FieldReference(parts) =>
+        val name = parts.map(quoteIfNeeded).mkString(".")
+        GetField(name, schema.byName.get(name).map(_.`type`).getOrElse(AnyType))
 
-      case pred: Predicate => HdxPredicates.sparkToCore(pred)
+      case pred: Predicate => HdxPredicates.sparkToCore(pred, schema)
 
       case LiteralValue(value: Boolean,    DataTypes.BooleanType)   => BooleanLiteral(value)
       case LiteralValue(value: String,     DataTypes.StringType)    => StringLiteral(value)
@@ -69,19 +72,19 @@ object HdxPredicates {
     }
   }
 
-  def sparkToCore(pred: Predicate): Expr[Boolean] = {
+  def sparkToCore(pred: Predicate, schema: coretypes.StructType): Expr[Boolean] = {
     pred match {
       case pred: Predicate if ComparisonOp.bySymbol.keySet.contains(pred.name()) && pred.children().length == 2 =>
         Comparison(
-          HdxExpressions.sparkToCore(pred.children()(0)),
+          HdxExpressions.sparkToCore(pred.children()(0), schema),
           ComparisonOp.bySymbol.get(pred.name()),
-          HdxExpressions.sparkToCore(pred.children()(1))
+          HdxExpressions.sparkToCore(pred.children()(1), schema)
         )
-      case pred: Predicate if pred.name() == "IS_NULL" => IsNull(HdxExpressions.sparkToCore(pred.children()(0)))
-      case pred: Predicate if pred.name() == "IS_NOT_NULL" => Not(IsNull(HdxExpressions.sparkToCore(pred.children()(0))))
-      case and: sparkfilter.And => And(List(sparkToCore(and.left()), sparkToCore(and.right())))
-      case or: sparkfilter.Or => Or(List(sparkToCore(or.left()), sparkToCore(or.right())))
-      case not: sparkfilter.Not => Not(sparkToCore(not.child()))
+      case pred: Predicate if pred.name() == "IS_NULL" => IsNull(HdxExpressions.sparkToCore(pred.children()(0), schema))
+      case pred: Predicate if pred.name() == "IS_NOT_NULL" => Not(IsNull(HdxExpressions.sparkToCore(pred.children()(0), schema)))
+      case and: sparkfilter.And => And(List(sparkToCore(and.left(), schema), sparkToCore(and.right(), schema)))
+      case or: sparkfilter.Or => Or(List(sparkToCore(or.left(), schema), sparkToCore(or.right(), schema)))
+      case not: sparkfilter.Not => Not(sparkToCore(not.child(), schema))
       case other => sys.error(s"Can't convert predicate from spark to core: $other")
     }
   }

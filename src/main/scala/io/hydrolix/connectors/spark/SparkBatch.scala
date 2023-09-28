@@ -42,8 +42,8 @@ final class SparkBatch(info: HdxConnectionInfo,
     .filterKeys(col => cols.fields.exists(_.name == col))
     .map(identity) // because Map.filterKeys produces something non-Serializable
     .toMap
-  private val pushedCore = pushedPreds.map(HdxPredicates.sparkToCore)
   private val colsCore = HdxTypes.sparkToCore(cols).asInstanceOf[types.StructType]
+  private val pushedCore = pushedPreds.map(HdxPredicates.sparkToCore(_, table.schema))
 
   private lazy val schemaContainsMap = cols.fields.exists(col => hasMap(col.dataType))
 

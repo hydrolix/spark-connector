@@ -43,7 +43,7 @@ final class SparkScanBuilder(info: HdxConnectionInfo,
       connectors.HdxPushdown.pushable(
         table.primaryKeyField,
         table.shardKeyField,
-        HdxExpressions.sparkToCore(pred).asInstanceOf[Expr[Boolean]],
+        HdxExpressions.sparkToCore(pred, table.schema).asInstanceOf[Expr[Boolean]],
         table.hdxCols
       )
     }
