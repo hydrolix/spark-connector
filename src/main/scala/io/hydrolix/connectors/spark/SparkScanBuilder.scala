@@ -68,7 +68,7 @@ final class SparkScanBuilder(info: HdxConnectionInfo,
 
   override def pruneColumns(requiredSchema: sparktypes.StructType): Unit = {
     if (requiredSchema.isEmpty) {
-      val pkf = sparktypes.StructField(table.primaryKeyField, Types.coreToSpark(pkField.`type`))
+      val pkf = sparktypes.StructField(table.primaryKeyField, HdxTypes.coreToSpark(pkField.`type`))
       cols = sparktypes.DataTypes.createStructType(Array(pkf))
     } else {
       cols = requiredSchema

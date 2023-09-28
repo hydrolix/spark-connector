@@ -22,7 +22,7 @@ import io.hydrolix.connectors
 import io.hydrolix.connectors.types._
 import io.hydrolix.connectors.{types => coretypes}
 
-object Types {
+object HdxTypes {
   /**
    * TODO this is lossy
    */
@@ -66,6 +66,8 @@ object Types {
       case Int64Type => DataTypes.LongType
       case UInt32Type => DataTypes.LongType
       case UInt64Type => DataTypes.createDecimalType(20, 0)
+      case Float32Type => DataTypes.FloatType
+      case Float64Type => DataTypes.DoubleType
       case coretypes.ArrayType(elementType, nulls) =>
         DataTypes.createArrayType(coreToSpark(elementType), nulls)
       case coretypes.MapType(keyType, valueType, nulls) =>

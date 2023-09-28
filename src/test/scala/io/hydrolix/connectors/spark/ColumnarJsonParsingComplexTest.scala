@@ -41,7 +41,7 @@ class ColumnarJsonParsingComplexTest {
     StructField("map2", DataTypes.createMapType(DataTypes.StringType, DataTypes.StringType)),
     StructField("map3", DataTypes.createMapType(DataTypes.StringType, DataTypes.createArrayType(DataTypes.IntegerType)))
   ))
-  private val complexSchemaCore = Types.sparkToCore(complexSchema).asInstanceOf[types.StructType]
+  private val complexSchemaCore = HdxTypes.sparkToCore(complexSchema).asInstanceOf[types.StructType]
 
   private val complexSchemaNoMaps = StructType(List(
     StructField("int", DataTypes.IntegerType),
@@ -49,7 +49,7 @@ class ColumnarJsonParsingComplexTest {
     StructField("arr1", DataTypes.createArrayType(DataTypes.IntegerType)),
     StructField("arr2", DataTypes.createArrayType(DataTypes.StringType))
   ))
-  private val complexSchemaNoMapsCore = Types.sparkToCore(complexSchemaNoMaps).asInstanceOf[types.StructType]
+  private val complexSchemaNoMapsCore = HdxTypes.sparkToCore(complexSchemaNoMaps).asInstanceOf[types.StructType]
 
   private val complexBad = List(
     """{

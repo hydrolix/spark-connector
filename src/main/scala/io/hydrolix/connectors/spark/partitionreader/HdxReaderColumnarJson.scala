@@ -29,7 +29,7 @@ import java.time.{LocalDate, OffsetDateTime}
 
 import io.hydrolix.connectors
 import io.hydrolix.connectors.{types => coretypes}
-import io.hydrolix.connectors.spark.Types
+import io.hydrolix.connectors.spark.HdxTypes
 
 object HdxReaderColumnarJson extends Logging {
   private val scalarTypes = Set(
@@ -60,7 +60,7 @@ object HdxReaderColumnarJson extends Logging {
                       : Unit =
   {
     val parser = connectors.JSON.objectMapper.createParser(stream)
-    val sparkSchema = Types.coreToSpark(coreSchema).asInstanceOf[sparktypes.StructType]
+    val sparkSchema = HdxTypes.coreToSpark(coreSchema).asInstanceOf[sparktypes.StructType]
 
     parser.nextToken() // Advance to start object if present, or null if empty stream
 
