@@ -16,20 +16,23 @@
 
 package io.hydrolix.connectors.spark
 
-import io.hydrolix.connectors.spark.partitionreader.HdxReaderColumnarJson
+import java.io.ByteArrayInputStream
+import scala.collection.mutable.ArrayBuffer
+
 import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.junit.Assert.{assertEquals, assertNotNull, fail}
 import org.junit.Test
 
-import java.io.ByteArrayInputStream
-import scala.collection.mutable.ArrayBuffer
+import io.hydrolix.connectors.spark.partitionreader.HdxReaderColumnarJson
+import io.hydrolix.connectors.types
 
 class ColumnarJsonParsingSimpleTest {
   private val simpleSchema = StructType(List(
     StructField("col1", DataTypes.IntegerType),
     StructField("col2", DataTypes.StringType)
   ))
+  private val simpleSchemaCore = Types.sparkToCore(simpleSchema).asInstanceOf[types.StructType]
 
   private val simpleBad = List(
     """{}""",                                                          // Empty object
@@ -62,7 +65,7 @@ class ColumnarJsonParsingSimpleTest {
     for (line <- simpleBad) {
       try {
         HdxReaderColumnarJson(
-          simpleSchema,
+          simpleSchemaCore,
           new ByteArrayInputStream(line.getBytes("UTF-8")),
           { batch =>
             fail(s"Expected no batches from $line but got $batch")
@@ -82,7 +85,7 @@ class ColumnarJsonParsingSimpleTest {
     for (line <- simpleGood) {
       var got: ColumnarBatch = null
       HdxReaderColumnarJson(
-        simpleSchema,
+        simpleSchemaCore,
         new ByteArrayInputStream(line.getBytes("UTF-8")),
         { got = _ },
         { () } // OK!
@@ -97,7 +100,7 @@ class ColumnarJsonParsingSimpleTest {
     val lines = simpleGood.mkString("\n")
     val got = ArrayBuffer[ColumnarBatch]()
     HdxReaderColumnarJson(
-      simpleSchema,
+      simpleSchemaCore,
       new ByteArrayInputStream(lines.getBytes("UTF-8")),
       { got += _ },
       { () }
@@ -118,7 +121,7 @@ class ColumnarJsonParsingSimpleTest {
 
     for (empty <- empties) {
       HdxReaderColumnarJson(
-        simpleSchema,
+        simpleSchemaCore,
         new ByteArrayInputStream(empty.getBytes("UTF-8")),
         { _ => fail("Got unexpected batch") },
         { () }

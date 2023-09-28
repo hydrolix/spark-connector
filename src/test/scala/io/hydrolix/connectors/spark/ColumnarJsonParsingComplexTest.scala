@@ -16,7 +16,9 @@
 
 package io.hydrolix.connectors.spark
 
-import io.hydrolix.connectors.spark.partitionreader.HdxReaderColumnarJson
+import java.io.ByteArrayInputStream
+import scala.collection.mutable.ArrayBuffer
+import scala.reflect.{ClassTag, classTag}
 
 import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
 import org.apache.spark.sql.execution.vectorized.{OnHeapColumnVector, WritableColumnVector}
@@ -26,9 +28,8 @@ import org.apache.spark.unsafe.types.UTF8String
 import org.junit.Assert.{assertArrayEquals, assertEquals, assertNotNull, fail}
 import org.junit.{Ignore, Test}
 
-import java.io.ByteArrayInputStream
-import scala.collection.mutable.ArrayBuffer
-import scala.reflect.{ClassTag, classTag}
+import io.hydrolix.connectors.spark.partitionreader.HdxReaderColumnarJson
+import io.hydrolix.connectors.types
 
 class ColumnarJsonParsingComplexTest {
   private val complexSchema = StructType(List(
@@ -40,6 +41,7 @@ class ColumnarJsonParsingComplexTest {
     StructField("map2", DataTypes.createMapType(DataTypes.StringType, DataTypes.StringType)),
     StructField("map3", DataTypes.createMapType(DataTypes.StringType, DataTypes.createArrayType(DataTypes.IntegerType)))
   ))
+  private val complexSchemaCore = Types.sparkToCore(complexSchema).asInstanceOf[types.StructType]
 
   private val complexSchemaNoMaps = StructType(List(
     StructField("int", DataTypes.IntegerType),
@@ -47,6 +49,7 @@ class ColumnarJsonParsingComplexTest {
     StructField("arr1", DataTypes.createArrayType(DataTypes.IntegerType)),
     StructField("arr2", DataTypes.createArrayType(DataTypes.StringType))
   ))
+  private val complexSchemaNoMapsCore = Types.sparkToCore(complexSchemaNoMaps).asInstanceOf[types.StructType]
 
   private val complexBad = List(
     """{
@@ -130,7 +133,7 @@ class ColumnarJsonParsingComplexTest {
     for (line <- complexBad) {
       try {
         HdxReaderColumnarJson(
-          complexSchema,
+          complexSchemaCore,
           new ByteArrayInputStream(line.getBytes("UTF-8")),
           { batch =>
             fail(s"Expected no batches from $line but got $batch")
@@ -150,7 +153,7 @@ class ColumnarJsonParsingComplexTest {
     for (line <- complexGood) {
       var got: ColumnarBatch = null
       HdxReaderColumnarJson(
-        complexSchema,
+        complexSchemaCore,
         new ByteArrayInputStream(line.getBytes("UTF-8")),
         { got = _ },
         { () } // OK!
@@ -166,7 +169,7 @@ class ColumnarJsonParsingComplexTest {
     val lines = complexGood.mkString("\n")
     val got = ArrayBuffer[ColumnarBatch]()
     HdxReaderColumnarJson(
-      complexSchema,
+      complexSchemaCore,
       new ByteArrayInputStream(lines.getBytes("UTF-8")),
       { got += _ },
       { () }
@@ -204,7 +207,7 @@ class ColumnarJsonParsingComplexTest {
     val lines = complexGoodNoMaps.mkString("\n")
     val got = ArrayBuffer[ColumnarBatch]()
     HdxReaderColumnarJson(
-      complexSchemaNoMaps,
+      complexSchemaNoMapsCore,
       new ByteArrayInputStream(lines.getBytes("UTF-8")),
       {
         got += _

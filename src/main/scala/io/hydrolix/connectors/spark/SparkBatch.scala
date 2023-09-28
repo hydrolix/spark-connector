@@ -16,22 +16,23 @@
 package io.hydrolix.connectors.spark
 
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.HdxPredicates
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, CountStar, Max, Min}
+import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory}
 import org.apache.spark.sql.types.{ArrayType, DataType, MapType, StructType}
 
 import io.hydrolix.connectors
-import io.hydrolix.connectors.expr.Expr
-import io.hydrolix.connectors.{HdxConnectionInfo, HdxJdbcSession, HdxPartitionScanPlan, HdxQueryMode, HdxTable, types => coretypes}
 import io.hydrolix.connectors.spark.partitionreader.{ColumnarPartitionReaderFactory, SparkRowPartitionReaderFactory}
+import io.hydrolix.connectors.{HdxConnectionInfo, HdxJdbcSession, HdxPartitionScanPlan, HdxQueryMode, HdxTable, types}
 
 final class SparkBatch(info: HdxConnectionInfo,
-                       table: HdxTable,
+                      table: HdxTable,
                        cols: StructType,
-                       pushedPreds: List[Expr[Boolean]],
-                       pushedAggs: List[AggregateFunc])
+                pushedPreds: List[Predicate],
+                 pushedAggs: List[AggregateFunc])
   extends Batch
      with Logging
 {
@@ -41,6 +42,8 @@ final class SparkBatch(info: HdxConnectionInfo,
     .filterKeys(col => cols.fields.exists(_.name == col))
     .map(identity) // because Map.filterKeys produces something non-Serializable
     .toMap
+  private val pushedCore = pushedPreds.map(HdxPredicates.sparkToCore)
+  private val colsCore = Types.sparkToCore(cols).asInstanceOf[types.StructType]
 
   private lazy val schemaContainsMap = cols.fields.exists(col => hasMap(col.dataType))
 
@@ -81,7 +84,7 @@ final class SparkBatch(info: HdxConnectionInfo,
         val sk = hp.shardKey
 
         // pushedPreds is implicitly an AND here
-        val pushResults = pushedPreds.map(connectors.HdxPushdown.prunePartition(table.primaryKeyField, table.shardKeyField, _, min, max, sk))
+        val pushResults = pushedCore.map(connectors.HdxPushdown.prunePartition(table.primaryKeyField, table.shardKeyField, _, min, max, sk))
         if (pushedPreds.nonEmpty && pushResults.contains(true)) {
           // At least one pushed predicate said we could skip this partition
           log.debug(s"Skipping partition ${i + 1}: $hp")
@@ -121,8 +124,8 @@ final class SparkBatch(info: HdxConnectionInfo,
             tbl,
             storageId,
             path,
-            cols,
-            pushedPreds,
+            colsCore,
+            pushedCore,
             hdxCols)))
         }
       }.toArray

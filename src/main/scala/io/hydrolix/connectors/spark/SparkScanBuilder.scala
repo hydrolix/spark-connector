@@ -22,8 +22,8 @@ import org.apache.spark.sql.connector.read._
 import org.apache.spark.sql.{HdxExpressions, HdxPushdown, types => sparktypes}
 
 import io.hydrolix.connectors
-import io.hydrolix.connectors.{HdxConnectionInfo, HdxTable, model}
 import io.hydrolix.connectors.expr.Expr
+import io.hydrolix.connectors.{HdxConnectionInfo, HdxTable}
 
 final class SparkScanBuilder(info: HdxConnectionInfo,
                             table: HdxTable)

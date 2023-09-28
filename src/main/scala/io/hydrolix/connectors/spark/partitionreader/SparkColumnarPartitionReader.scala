@@ -54,6 +54,7 @@ final class SparkColumnarPartitionReader(val           info: connectors.HdxConne
                                          val primaryKeyName: String,
                                          val           scan: HdxPartitionScanPlan)
   extends HdxPartitionReader[ColumnarBatch]
+     with PartitionReader[ColumnarBatch]
 {
   override def outputFormat = "jsonc"
 

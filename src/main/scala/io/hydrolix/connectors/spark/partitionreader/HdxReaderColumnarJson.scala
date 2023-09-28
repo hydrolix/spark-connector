@@ -29,7 +29,6 @@ import java.time.{LocalDate, OffsetDateTime}
 
 import io.hydrolix.connectors
 import io.hydrolix.connectors.{types => coretypes}
-import io.hydrolix.connectors.model
 import io.hydrolix.connectors.spark.Types
 
 object HdxReaderColumnarJson extends Logging {
