@@ -24,9 +24,8 @@ import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory}
 import org.apache.spark.sql.types.{ArrayType, DataType, MapType, StructType}
 
-import io.hydrolix.connectors
 import io.hydrolix.connectors.spark.partitionreader.{ColumnarPartitionReaderFactory, SparkRowPartitionReaderFactory}
-import io.hydrolix.connectors.{HdxConnectionInfo, HdxJdbcSession, HdxPartitionScanPlan, HdxQueryMode, HdxTable, types}
+import io.hydrolix.connectors.{HdxConnectionInfo, HdxJdbcSession, HdxPushdown, HdxQueryMode, HdxTable, types}
 
 final class SparkBatch(info: HdxConnectionInfo,
                       table: HdxTable,
@@ -38,10 +37,6 @@ final class SparkBatch(info: HdxConnectionInfo,
 {
   private var planned: Array[InputPartition] = _
   //noinspection RedundantCollectionConversion -- Scala 2.13
-  private val hdxCols = table.hdxCols
-    .filterKeys(col => cols.fields.exists(_.name == col))
-    .map(identity) // because Map.filterKeys produces something non-Serializable
-    .toMap
   private val colsCore = HdxTypes.sparkToCore(cols).asInstanceOf[types.StructType]
   private val pushedCore = pushedPreds.map(HdxPredicates.sparkToCore(_, table.schema))
 
@@ -73,62 +68,10 @@ final class SparkBatch(info: HdxConnectionInfo,
 
       Array(HdxPushedAggsPartition(row))
     } else {
-      // TODO we have `pushedPreds`, we can make this query a lot more selective (carefully!)
-      val parts = jdbc.collectPartitions(table.ident.head, table.ident(1))
-      val db = table.ident.head
-      val tbl = table.ident(1)
-
-      parts.zipWithIndex.flatMap { case (hp, i) =>
-        val min = hp.minTimestamp
-        val max = hp.maxTimestamp
-        val sk = hp.shardKey
-
-        // pushedPreds is implicitly an AND here
-        val pushResults = pushedCore.map(connectors.HdxPushdown.prunePartition(table.primaryKeyField, table.shardKeyField, _, min, max, sk))
-        if (pushedPreds.nonEmpty && pushResults.contains(true)) {
-          // At least one pushed predicate said we could skip this partition
-          log.debug(s"Skipping partition ${i + 1}: $hp")
-          None
-        } else {
-          log.debug(s"Scanning partition ${i + 1}: $hp. Per-predicate results: ${pushedPreds.zip(pushResults).mkString("\n  ", "\n  ", "\n")}")
-          // Either nothing was pushed, or at least one predicate didn't want to prune this partition; scan it
-
-          val (path, storageId) = hp.storageId match {
-            case Some(id) if hp.partition.startsWith(id.toString + "/") =>
-              log.debug(s"storage_id = ${hp.storageId}, partition = ${hp.partition}")
-              // Remove storage ID prefix if present; it's not there physically
-              ("db/hdx/" + hp.partition.drop(id.toString.length + 1), id)
-            case _ =>
-              // No storage ID from catalog or not present in the path, assume the prefix is there
-              val defaults = table.storages.filter(_._2.isDefault)
-              if (defaults.isEmpty) {
-                if (table.storages.isEmpty) {
-                  // Note: this won't be empty if the storage settings override is used
-                  sys.error(s"No storage found for partition ${hp.partition}")
-                } else {
-                  val firstId = table.storages.head._1
-                  log.warn(s"Partition ${hp.partition} had no `storage_id`, and cluster has no default storage; using the first (#$firstId)")
-                  (info.partitionPrefix.getOrElse("") + hp.partition, firstId)
-                }
-              } else {
-                val firstDefault = defaults.head._1
-                if (defaults.size > 1) {
-                  log.warn(s"Partition ${hp.partition} had no `storage_id`, and cluster has multiple default storages; using the first (#$firstDefault)")
-                }
-                (info.partitionPrefix.getOrElse("") + hp.partition, firstDefault)
-              }
-          }
-
-          Some(SparkScanPartition(HdxPartitionScanPlan(
-            db,
-            tbl,
-            storageId,
-            path,
-            colsCore,
-            pushedCore,
-            hdxCols)))
-        }
-      }.toArray
+      HdxPushdown
+        .planPartitions(info, jdbc, table, colsCore, pushedCore)
+        .map(SparkScanPartition)
+        .toArray
     }
   }
 
