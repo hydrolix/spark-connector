@@ -26,7 +26,7 @@ import org.apache.spark.sql.types.{DataTypes, StructField}
  *  - see if multi-part names will ever show up (e.g. in a join?); that would break GetField but hopefully only
  *    in a way that would allow fewer pushdown opportunities rather than incorrect results.
  */
-object HdxPushdown extends Logging {
+object SparkPushdown extends Logging {
   // TODO port this to connectors-core
   def pushableAggs(aggregation: Aggregation, primaryKeyField: String): List[(AggregateFunc, StructField)] = {
     if (aggregation.groupByExpressions().nonEmpty) return Nil

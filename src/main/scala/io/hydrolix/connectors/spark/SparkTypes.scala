@@ -22,7 +22,7 @@ import io.hydrolix.connectors
 import io.hydrolix.connectors.types._
 import io.hydrolix.connectors.{types => coretypes}
 
-object HdxTypes {
+object SparkTypes {
   /**
    * TODO this is lossy
    */

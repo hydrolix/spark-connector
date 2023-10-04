@@ -29,7 +29,7 @@ case class SparkTable(val coreTable: HdxTable)
   extends Table
      with SupportsRead
 {
-  val schema = HdxTypes.coreToSpark(coreTable.schema).asInstanceOf[StructType]
+  val schema = SparkTypes.coreToSpark(coreTable.schema).asInstanceOf[StructType]
 
   override def name(): String = coreTable.ident.map(quoteIfNeeded).mkString(".")
 

@@ -32,7 +32,7 @@ class ColumnarJsonParsingSimpleTest {
     StructField("col1", DataTypes.IntegerType),
     StructField("col2", DataTypes.StringType)
   ))
-  private val simpleSchemaCore = HdxTypes.sparkToCore(simpleSchema).asInstanceOf[types.StructType]
+  private val simpleSchemaCore = SparkTypes.sparkToCore(simpleSchema).asInstanceOf[types.StructType]
 
   private val simpleBad = List(
     """{}""",                                                          // Empty object

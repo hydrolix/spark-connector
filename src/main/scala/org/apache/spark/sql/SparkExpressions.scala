@@ -10,10 +10,10 @@ import io.hydrolix.connectors.expr._
 import io.hydrolix.connectors.types.AnyType
 import io.hydrolix.connectors.{types => coretypes}
 
-object HdxExpressions {
+object SparkExpressions {
   def coreToSpark(expr: Expr[Any]): Expression = {
     expr match {
-      case expr if expr.`type` == coretypes.BooleanType => HdxPredicates.coreToSpark(expr.asInstanceOf[Expr[Boolean]])
+      case expr if expr.`type` == coretypes.BooleanType => SparkPredicates.coreToSpark(expr.asInstanceOf[Expr[Boolean]])
       case GetField(name, _)       => FieldReference(name)
       case BooleanLiteral(value)   => LiteralValue(value, DataTypes.BooleanType)
       case StringLiteral(value)    => LiteralValue(UTF8String.fromString(value), DataTypes.StringType)
@@ -36,7 +36,7 @@ object HdxExpressions {
         val name = parts.map(quoteIfNeeded).mkString(".")
         GetField(name, schema.byName.get(name).map(_.`type`).getOrElse(AnyType))
 
-      case pred: Predicate => HdxPredicates.sparkToCore(pred, schema)
+      case pred: Predicate => SparkPredicates.sparkToCore(pred, schema)
 
       case LiteralValue(value: Boolean,    DataTypes.BooleanType)   => BooleanLiteral(value)
       case LiteralValue(value: String,     DataTypes.StringType)    => StringLiteral(value)
@@ -50,42 +50,6 @@ object HdxExpressions {
       case LiteralValue(value: Long,       DataTypes.TimestampType) => TimestampLiteral(DateTimeUtils.microsToInstant(value))
       // TODO array literals?
       case other => sys.error(s"Can't convert expression from spark to core: $other")
-    }
-  }
-}
-
-object HdxPredicates {
-  def coreToSpark(expr: Expr[Boolean]): Predicate = {
-    expr match {
-      case Comparison(l, op, r) =>
-        val sl = HdxExpressions.coreToSpark(l)
-        val sr = HdxExpressions.coreToSpark(r)
-
-        new Predicate(op.getSymbol, Array(sl, sr)) // This assumes our symbols are the same as Spark's
-
-      case IsNull(expr)      => new Predicate("IS_NULL", Array(HdxExpressions.coreToSpark(expr)))
-      case Not(IsNull(expr)) => new Predicate("IS_NOT_NULL", Array(HdxExpressions.coreToSpark(expr)))
-      case And(kids)         => new Predicate("AND", kids.map(coreToSpark).toArray)
-      case Or(kids)          => new Predicate("OR", kids.map(coreToSpark).toArray)
-      case Not(expr)         => new Predicate("NOT", Array(coreToSpark(expr)))
-      case other             => sys.error(s"Can't convert predicate from core to spark: $other")
-    }
-  }
-
-  def sparkToCore(pred: Predicate, schema: coretypes.StructType): Expr[Boolean] = {
-    pred match {
-      case pred: Predicate if ComparisonOp.bySymbol.keySet.contains(pred.name()) && pred.children().length == 2 =>
-        Comparison(
-          HdxExpressions.sparkToCore(pred.children()(0), schema),
-          ComparisonOp.bySymbol.get(pred.name()),
-          HdxExpressions.sparkToCore(pred.children()(1), schema)
-        )
-      case pred: Predicate if pred.name() == "IS_NULL" => IsNull(HdxExpressions.sparkToCore(pred.children()(0), schema))
-      case pred: Predicate if pred.name() == "IS_NOT_NULL" => Not(IsNull(HdxExpressions.sparkToCore(pred.children()(0), schema)))
-      case and: sparkfilter.And => And(List(sparkToCore(and.left(), schema), sparkToCore(and.right(), schema)))
-      case or: sparkfilter.Or => Or(List(sparkToCore(or.left(), schema), sparkToCore(or.right(), schema)))
-      case not: sparkfilter.Not => Not(sparkToCore(not.child(), schema))
-      case other => sys.error(s"Can't convert predicate from spark to core: $other")
     }
   }
 }

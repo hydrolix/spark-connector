@@ -16,7 +16,7 @@
 package io.hydrolix.connectors.spark
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.HdxPredicates
+import org.apache.spark.sql.SparkPredicates
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, CountStar, Max, Min}
@@ -37,8 +37,8 @@ final class SparkBatch(info: HdxConnectionInfo,
 {
   private var planned: Array[InputPartition] = _
   //noinspection RedundantCollectionConversion -- Scala 2.13
-  private val colsCore = HdxTypes.sparkToCore(cols).asInstanceOf[types.StructType]
-  private val pushedCore = pushedPreds.map(HdxPredicates.sparkToCore(_, table.schema))
+  private val colsCore = SparkTypes.sparkToCore(cols).asInstanceOf[types.StructType]
+  private val pushedCore = pushedPreds.map(SparkPredicates.sparkToCore(_, table.schema))
 
   private lazy val schemaContainsMap = cols.fields.exists(col => hasMap(col.dataType))
 

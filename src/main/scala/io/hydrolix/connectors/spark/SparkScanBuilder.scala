@@ -19,7 +19,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, Aggregation}
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read._
-import org.apache.spark.sql.{HdxExpressions, HdxPushdown, types => sparktypes}
+import org.apache.spark.sql.{SparkExpressions, SparkPushdown, types => sparktypes}
 
 import io.hydrolix.connectors
 import io.hydrolix.connectors.expr.Expr
@@ -43,7 +43,7 @@ final class SparkScanBuilder(info: HdxConnectionInfo,
       connectors.HdxPushdown.pushable(
         table.primaryKeyField,
         table.shardKeyField,
-        HdxExpressions.sparkToCore(pred, table.schema).asInstanceOf[Expr[Boolean]],
+        SparkExpressions.sparkToCore(pred, table.schema).asInstanceOf[Expr[Boolean]],
         table.hdxCols
       )
     }
@@ -68,7 +68,7 @@ final class SparkScanBuilder(info: HdxConnectionInfo,
 
   override def pruneColumns(requiredSchema: sparktypes.StructType): Unit = {
     if (requiredSchema.isEmpty) {
-      val pkf = sparktypes.StructField(table.primaryKeyField, HdxTypes.coreToSpark(pkField.`type`))
+      val pkf = sparktypes.StructField(table.primaryKeyField, SparkTypes.coreToSpark(pkField.`type`))
       cols = sparktypes.DataTypes.createStructType(Array(pkf))
     } else {
       cols = requiredSchema
@@ -79,7 +79,7 @@ final class SparkScanBuilder(info: HdxConnectionInfo,
 
   override def pushAggregation(aggregation: Aggregation): Boolean = {
     // TODO make agg pushdown work when the GROUP BY is the shard key, and perhaps a primary timestamp derivation?
-    val funcs = HdxPushdown.pushableAggs(aggregation, table.primaryKeyField)
+    val funcs = SparkPushdown.pushableAggs(aggregation, table.primaryKeyField)
     if (funcs.nonEmpty && funcs.size == aggregation.aggregateExpressions().length) {
       pushedAggs = funcs.map(_._1)
       cols = sparktypes.StructType(funcs.map(_._2))

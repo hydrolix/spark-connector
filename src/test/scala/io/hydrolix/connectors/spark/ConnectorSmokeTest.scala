@@ -1,6 +1,6 @@
 package io.hydrolix.connectors.spark
 
-import org.apache.spark.sql.HdxExpressions
+import org.apache.spark.sql.SparkExpressions
 import org.apache.spark.sql.connector.catalog.Identifier
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.types.StructType
@@ -47,7 +47,7 @@ class ConnectorSmokeTest {
       )
     ))
 
-    val sparkPred = HdxExpressions.coreToSpark(pred).asInstanceOf[Predicate]
+    val sparkPred = SparkExpressions.coreToSpark(pred).asInstanceOf[Predicate]
 
     val sb = new SparkScanBuilder(info, table.coreTable)
     sb.pruneColumns(StructType(Nil))
