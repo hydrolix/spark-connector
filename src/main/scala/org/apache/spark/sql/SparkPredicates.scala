@@ -17,9 +17,16 @@ object SparkPredicates {
 
       case IsNull(expr) => new Predicate("IS_NULL", Array(SparkExpressions.coreToSpark(expr)))
       case Not(IsNull(expr)) => new Predicate("IS_NOT_NULL", Array(SparkExpressions.coreToSpark(expr)))
-      case And(kids) => new Predicate("AND", kids.map(coreToSpark).toArray)
-      case Or(kids) => new Predicate("OR", kids.map(coreToSpark).toArray)
-      case Not(expr) => new Predicate("NOT", Array(coreToSpark(expr)))
+      case And(kids) =>
+        require(kids.size == 2, "AND must have exactly two children")
+        val skids = kids.map(coreToSpark)
+        new sparkfilter.And(skids.head, skids(1))
+      case Or(kids) =>
+        require(kids.size == 2, "OR must have exactly two children")
+        val skids = kids.map(coreToSpark)
+        new sparkfilter.Or(skids.head, skids(1))
+      case Not(expr) =>
+        new sparkfilter.Not(coreToSpark(expr))
       case other => sys.error(s"Can't convert predicate from core to spark: $other")
     }
   }
