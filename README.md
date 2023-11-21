@@ -26,14 +26,14 @@ unifying DataFrame abstraction.
   databases, tables, partitions and columns that are accessible to the authenticated user.
 * Provides implementations of the Spark types necessary to run queries, including: 
 
-  | Spark Type                                                                                                                             | Connector Implementation                                                                               | 
-  |----------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
-  | [Table](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/catalog/Table.html)                                | [HdxTable](./src/main/scala/io/hydrolix/connectors/spark/SparkTable.scala)                                |
-  | [ScanBuilder](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/ScanBuilder.html)                       | [HdxScanBuilder](./src/main/scala/io/hydrolix/connectors/spark/SparkScanBuilder.scala)                    |
-  | [Scan](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Scan.html)                                     | [HdxScan](./src/main/scala/io/hydrolix/connectors/spark/SparkScan.scala)                                  | 
-  | [Batch](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Batch.html)                                   | [HdxBatch](./src/main/scala/io/hydrolix/connectors/spark/SparkBatch.scala)                                | 
+  | Spark Type                                                                                                                             | Connector Implementation                                                                                | 
+  |----------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
+  | [Table](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/catalog/Table.html)                                | [HdxTable](./src/main/scala/io/hydrolix/connectors/spark/SparkTable.scala)                              |
+  | [ScanBuilder](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/ScanBuilder.html)                       | [HdxScanBuilder](./src/main/scala/io/hydrolix/connectors/spark/SparkScanBuilder.scala)                  |
+  | [Scan](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Scan.html)                                     | [HdxScan](./src/main/scala/io/hydrolix/connectors/spark/SparkScan.scala)                                | 
+  | [Batch](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Batch.html)                                   | [HdxBatch](./src/main/scala/io/hydrolix/connectors/spark/SparkBatch.scala)                              | 
   | [PartitionReaderFactory](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReaderFactory.html) | [HdxPartitionReaderFactory](./src/main/scala/io/hydrolix/connectors/spark/HdxPartitionReader.scala#L37) |
-  | [InputPartition](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/InputPartition.html)                 | [HdxScanPartition](./src/main/scala/io/hydrolix/connectors/spark/SparkScanPartition.scala)                |
+  | [InputPartition](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/InputPartition.html)                 | [HdxScanPartition](./src/main/scala/io/hydrolix/connectors/spark/SparkScanPartition.scala)              |
   | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxPartitionReader](./src/main/scala/io/hydrolix/connectors/spark/HdxPartitionReader.scala#L118)       |
 
 ### hdx_reader
@@ -94,20 +94,16 @@ equivalents) will result in an error.
 ### Apache 2.0
 The following are released under the [Apache 2.0 license](./licenses/Apache_License_2.0.txt):
 * All files in [src/main/scala](./src/main/scala)
-* All files in [src/main/java](./src/main/java)
 * All files in [src/test/scala](./src/test/scala)
 * All files in [scripts](./scripts)
 * All files in [doc](./doc)
-* [src/main/resources/logback.xml](src/main/resources/logback.xml)
 * [build.sbt](./build.sbt)
 * [project/plugins.sbt](./project/plugins.sbt)
 * [project/build.properties](./project/build.properties)
 
 ### Proprietary
-* All files made available in this repository that are not identified above as being licensed under the Apache 2.0 
-  license, including without limitation [`turbine_cmd`](./src/main/resources/linux-x86-64/turbine_cmd), may be used only 
-  by users that have entered into a separate written agreement with us that contains licenses to use our software and 
-  such use is subject to the terms of that separate written agreement.
+* This connector depends on the [connectors-core](https://github.com/hydrolix/connectors-core) library, which contains 
+  some proprietary components
 
 ### Other
 Dependencies are used under a variety of open source licenses; see [NOTICE.md](./NOTICE.md)

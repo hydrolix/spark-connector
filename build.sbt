@@ -51,21 +51,7 @@ assemblyMergeStrategy := {
 libraryDependencies ++= List(
   "org.apache.spark" %% "spark-sql" % "3.3.2" % Provided,
 
-  "io.hydrolix" %% "hydrolix-connectors-core" % "0.2.1-SNAPSHOT",
-
-  "com.clickhouse" % "clickhouse-jdbc" % "0.4.6",
-  "com.zaxxer" % "HikariCP" % "5.0.1",
-  "com.google.guava" % "guava" % "32.0.0-jre",
-
-  "com.github.bigwheel" %% "util-backports" % "2.1",
-  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.14.2",
-  "com.fasterxml.jackson.module" % "jackson-module-parameter-names" % "2.14.2",
-  "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % "2.14.2",
-  "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8" % "2.14.2",
-  "com.github.ben-manes.caffeine" % "caffeine" % "3.1.5",
-  "org.apache.httpcomponents.client5" % "httpclient5" % "5.2.1",
-  "ch.qos.logback" % "logback-classic" % "1.4.7",
-  "net.java.dev.jna" % "jna" % "5.13.0", // for Wyhash
+  "io.hydrolix" %% "hydrolix-connectors-core" % "1.0.1-SNAPSHOT",
 
   // Testing...
   "com.github.sbt" % "junit-interface" % "0.13.3" % Test,
