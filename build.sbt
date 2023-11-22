@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 ThisBuild / organization := "io.hydrolix"
-ThisBuild / version := "1.5.0-SNAPSHOT"
 ThisBuild / organizationHomepage := Some(url("https://hydrolix.io/"))
 ThisBuild / homepage := Some(url("https://github.com/hydrolix/spark-connector/"))
 ThisBuild / licenses := List(
@@ -36,6 +35,7 @@ assembly / assemblyOption ~= {
   _.withIncludeScala(false)
 }
 
+//noinspection scala2InSource3
 assemblyMergeStrategy := {
   case PathList(pl@_*) if pl.last == "module-info.class" => MergeStrategy.discard
   case PathList(pl@_*) if pl.last == "public-suffix-list.txt" => MergeStrategy.discard
@@ -47,11 +47,13 @@ assemblyMergeStrategy := {
     oldStrategy(x)
 }
 
+resolvers ++= Resolver.sonatypeOssRepos("public")
+
 //noinspection SpellCheckingInspection
 libraryDependencies ++= List(
   "org.apache.spark" %% "spark-sql" % "3.3.2" % Provided,
 
-  "io.hydrolix" %% "hydrolix-connectors-core" % "1.0.1-SNAPSHOT",
+  "io.hydrolix" %% "hydrolix-connectors-core" % "1.0.3",
 
   // Testing...
   "com.github.sbt" % "junit-interface" % "0.13.3" % Test,
@@ -81,3 +83,7 @@ ThisBuild / publishTo := {
   else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 ThisBuild / publishMavenStyle := true
+
+ThisBuild / releasePublishArtifactsAction := PgpKeys.publishSigned.value
+ThisBuild / releaseCrossBuild := true
+ThisBuild / releaseIgnoreUntrackedFiles := true
