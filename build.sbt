@@ -84,6 +84,6 @@ ThisBuild / publishTo := {
 }
 ThisBuild / publishMavenStyle := true
 
-ThisBuild / releasePublishArtifactsAction := PgpKeys.publishSigned.value
+releasePublishArtifactsAction := PgpKeys.publishSigned.value
 releaseCrossBuild := true
 releaseIgnoreUntrackedFiles := true
