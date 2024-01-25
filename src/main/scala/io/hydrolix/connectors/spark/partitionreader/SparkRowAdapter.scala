@@ -1,5 +1,9 @@
 package io.hydrolix.connectors.spark.partitionreader
 
+import java.time.Instant
+import java.time.format.DateTimeFormatter
+import scala.collection.mutable
+
 import com.fasterxml.jackson.databind.node._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
@@ -7,19 +11,16 @@ import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
 import org.apache.spark.sql.types.Decimal
 import org.apache.spark.unsafe.types.UTF8String
 
-import java.time.Instant
-import java.time.format.DateTimeFormatter
-import scala.collection.mutable
-
+import io.hydrolix.connectors.data.RowAdapter
+import io.hydrolix.connectors.instantToMicros
 import io.hydrolix.connectors.types._
-import io.hydrolix.connectors.{instantToMicros, partitionreader}
 
-object SparkRowAdapter extends partitionreader.RowAdapter[InternalRow, GenericArrayData, ArrayBasedMapData] {
+object SparkRowAdapter extends RowAdapter[InternalRow, GenericArrayData, ArrayBasedMapData] {
   type RB = SparkRowBuilder
   type AB = SparkArrayBuilder
   type MB = SparkMapBuilder
 
-  override def newRowBuilder(`type`: StructType): SparkRowBuilder = new SparkRowBuilder(`type`)
+  override def newRowBuilder(`type`: StructType, rowId: Int): SparkRowBuilder = new SparkRowBuilder(`type`)
 
   override def newArrayBuilder(`type`: ArrayType): SparkArrayBuilder = new SparkArrayBuilder(`type`)
 
@@ -110,8 +111,8 @@ object SparkRowAdapter extends partitionreader.RowAdapter[InternalRow, GenericAr
     override def build: ArrayBasedMapData = new ArrayBasedMapData(new GenericArrayData(keys), new GenericArrayData(values))
   }
 
-  override def row(`type`: StructType, obj: ObjectNode): InternalRow = {
-    val rb = newRowBuilder(`type`)
+  override def row(rowId: Int, `type`: StructType, obj: ObjectNode): InternalRow = {
+    val rb = newRowBuilder(`type`, rowId)
 
     for (sf <- `type`.fields) {
       val node = obj.get(sf.name)

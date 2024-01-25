@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-SPARK_HOME="${SPARK_HOME:-$HOME/dev/spark-3.3.2-bin-hadoop3}"
+SPARK_HOME="${SPARK_HOME:-$HOME/dev/spark-3.4.2-bin-hadoop3}"
 HDX_API_URL="${HDX_API_URL:-https://hdx-cluster.example.com/config/v1/}"
-HDX_JDBC_URL="${HDX_JDBC_URL:-jdbc:clickhouse:tcp://hdx-cluster.example.com:9440/hydro?ssl=true}"
+HDX_JDBC_URL="${HDX_JDBC_URL:-jdbc:clickhouse:tcp://hdx-cluster.example.com:8088/_local?ssl=true}"
 
 if [ -z "$HDX_USER" ]; then
   echo "HDX_USER must be set to your hydrolix cluster username (e.g. alice@example.com)"
@@ -47,4 +47,5 @@ fi
         -c spark.sql.catalog.hydrolix.password="$HDX_PASSWORD" \
         -c spark.sql.catalog.hydrolix.api_url="$HDX_API_URL" \
         -c spark.sql.catalog.hydrolix.cloud_cred_1="$AWS_ACCESS_KEY_ID" \
-        -c spark.sql.catalog.hydrolix.cloud_cred_2="$AWS_SECRET_KEY"
+        -c spark.sql.catalog.hydrolix.cloud_cred_2="$AWS_SECRET_KEY" \
+        ${HDX_DOCKER_IMAGE:+"-c" "spark.sql.catalog.hydrolix.turbine_cmd_docker=$HDX_DOCKER_IMAGE"}

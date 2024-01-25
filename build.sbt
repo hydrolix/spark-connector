@@ -29,7 +29,8 @@ javacOptions := Seq("-source", "11", "-target", "11")
 
 assemblyShadeRules := Seq(
   ShadeRule.rename("com.github.benmanes.caffeine.**" -> "shadecaffeine.@1").inAll,
-  ShadeRule.rename("com.fasterxml.jackson.**" -> "shadejackson.@1").inAll
+  ShadeRule.rename("com.fasterxml.jackson.**" -> "shadejackson.@1").inAll,
+  ShadeRule.rename("com.google.common.**" -> "shadeguava.@1").inAll
 )
 assembly / assemblyJarName := s"${name.value}-assembly_${scalaBinaryVersion.value}-${version.value}.jar"
 assembly / assemblyOption ~= {
@@ -51,7 +52,7 @@ assemblyMergeStrategy := {
 libraryDependencies ++= List(
   "org.apache.spark" %% "spark-sql" % "3.3.2" % Provided,
 
-  "io.hydrolix" %% "hydrolix-connectors-core" % "1.0.1-SNAPSHOT",
+  "io.hydrolix" %% "hydrolix-connectors-core" % "1.4.0-SNAPSHOT",
 
   // Testing...
   "com.github.sbt" % "junit-interface" % "0.13.3" % Test,

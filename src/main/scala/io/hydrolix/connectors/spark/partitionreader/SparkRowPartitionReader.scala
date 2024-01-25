@@ -16,20 +16,21 @@
 
 package io.hydrolix.connectors.spark.partitionreader
 
+import java.util.UUID
+
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 
-import java.util.UUID
-
 import io.hydrolix.connectors
+import io.hydrolix.connectors.HdxConnectionInfo
+import io.hydrolix.connectors.api.HdxStorageSettings
 import io.hydrolix.connectors.partitionreader.RowPartitionReader
-import io.hydrolix.connectors.spark.SparkScanPartition
 import io.hydrolix.connectors.spark.partitionreader.SparkRowPartitionReader.doneSignal
+import io.hydrolix.connectors.spark.{SparkScanPartition, WeirdIterator}
 
 final class SparkRowPartitionReaderFactory(info: connectors.HdxConnectionInfo,
-                                           storages: Map[UUID, connectors.HdxStorageSettings],
-                                           pkName: String)
+                                       storages: Map[UUID, HdxStorageSettings])
   extends PartitionReaderFactory
 {
   override def supportColumnarReads(partition: InputPartition) = false
@@ -37,7 +38,7 @@ final class SparkRowPartitionReaderFactory(info: connectors.HdxConnectionInfo,
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
     val hdxPart = partition.asInstanceOf[SparkScanPartition]
     val storage = storages.getOrElse(hdxPart.coreScan.storageId, sys.error(s"Partition ${hdxPart.coreScan.partitionPath} refers to unknown storage #${hdxPart.coreScan.storageId}"))
-    new SparkRowPartitionReader(info, storage, pkName, partition.asInstanceOf[SparkScanPartition])
+    new SparkRowPartitionReader(info, storage, partition.asInstanceOf[SparkScanPartition])
   }
 }
 
@@ -45,17 +46,16 @@ object SparkRowPartitionReader {
   val doneSignal = new GenericInternalRow(0)
 }
 
-final class SparkRowPartitionReader(info: connectors.HdxConnectionInfo,
-                                 storage: connectors.HdxStorageSettings,
-                          primaryKeyName: String,
+final class SparkRowPartitionReader(info: HdxConnectionInfo,
+                                 storage: HdxStorageSettings,
                                     scan: SparkScanPartition)
   extends PartitionReader[InternalRow]
 {
-  private val corePartitionReader = new RowPartitionReader[InternalRow](info, storage, primaryKeyName, scan.coreScan, SparkRowAdapter, doneSignal)
+  private val corePartitionReader = new RowPartitionReader[InternalRow](info, storage, scan.coreScan, SparkRowAdapter, doneSignal)
 
-  override def next(): Boolean = corePartitionReader.next()
-
-  override def get(): InternalRow = corePartitionReader.get()
+  private val weirdIterator = new WeirdIterator[InternalRow](corePartitionReader.stream.iterator(), doneSignal)
+  override def next(): Boolean = weirdIterator.next()
+  override def get(): InternalRow = weirdIterator.get()
 
   override def close(): Unit = corePartitionReader.close()
 }

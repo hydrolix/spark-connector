@@ -94,9 +94,9 @@ final class SparkBatch(info: HdxConnectionInfo,
       }
 
       if (useRowOriented) {
-        new SparkRowPartitionReaderFactory(info, table.storages, table.primaryKeyField)
+        new SparkRowPartitionReaderFactory(info, table.storages)
       } else {
-        new ColumnarPartitionReaderFactory(info, table.storages, table.primaryKeyField)
+        new ColumnarPartitionReaderFactory(info, table.storages)
       }
     }
   }

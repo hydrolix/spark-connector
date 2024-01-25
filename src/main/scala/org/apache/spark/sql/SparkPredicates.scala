@@ -15,18 +15,11 @@ object SparkPredicates {
 
         new Predicate(op.getSymbol, Array(sl, sr)) // This assumes our symbols are the same as Spark's
 
-      case IsNull(expr) => new Predicate("IS_NULL", Array(SparkExpressions.coreToSpark(expr)))
+      case IsNull(expr)      => new Predicate("IS_NULL", Array(SparkExpressions.coreToSpark(expr)))
       case Not(IsNull(expr)) => new Predicate("IS_NOT_NULL", Array(SparkExpressions.coreToSpark(expr)))
-      case And(kids) =>
-        require(kids.size == 2, "AND must have exactly two children")
-        val skids = kids.map(coreToSpark)
-        new sparkfilter.And(skids.head, skids(1))
-      case Or(kids) =>
-        require(kids.size == 2, "OR must have exactly two children")
-        val skids = kids.map(coreToSpark)
-        new sparkfilter.Or(skids.head, skids(1))
-      case Not(expr) =>
-        new sparkfilter.Not(coreToSpark(expr))
+      case And(left, right)  => new sparkfilter.And(coreToSpark(left), coreToSpark(right))
+      case Or(left, right)   => new sparkfilter.Or(coreToSpark(left), coreToSpark(right))
+      case Not(expr)         => new sparkfilter.Not(coreToSpark(expr))
       case other => sys.error(s"Can't convert predicate from core to spark: $other")
     }
   }
@@ -39,12 +32,12 @@ object SparkPredicates {
           ComparisonOp.bySymbol.get(pred.name()),
           SparkExpressions.sparkToCore(pred.children()(1), schema)
         )
-      case pred: Predicate if pred.name() == "IS_NULL" => IsNull(SparkExpressions.sparkToCore(pred.children()(0), schema))
+      case pred: Predicate if pred.name() == "IS_NULL"     => IsNull(SparkExpressions.sparkToCore(pred.children()(0), schema))
       case pred: Predicate if pred.name() == "IS_NOT_NULL" => Not(IsNull(SparkExpressions.sparkToCore(pred.children()(0), schema)))
-      case and: sparkfilter.And => And(List(sparkToCore(and.left(), schema), sparkToCore(and.right(), schema)))
-      case or: sparkfilter.Or => Or(List(sparkToCore(or.left(), schema), sparkToCore(or.right(), schema)))
-      case not: sparkfilter.Not => Not(sparkToCore(not.child(), schema))
-      case other => sys.error(s"Can't convert predicate from spark to core: $other")
+      case and: sparkfilter.And                            => And(sparkToCore(and.left(), schema), sparkToCore(and.right(), schema))
+      case or: sparkfilter.Or                              => Or(sparkToCore(or.left(), schema), sparkToCore(or.right(), schema))
+      case not: sparkfilter.Not                            => Not(sparkToCore(not.child(), schema))
+      case other                                           => sys.error(s"Can't convert predicate from spark to core: $other")
     }
   }
 }

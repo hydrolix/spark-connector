@@ -26,7 +26,7 @@ object SparkTypes {
   /**
    * TODO this is lossy
    */
-  def sparkToCore(stype: DataType): connectors.types.ValueType = {
+  def sparkToCore(stype: DataType): connectors.types.ConcreteType = {
     stype match {
       case DataTypes.BooleanType   => coretypes.BooleanType
       case DataTypes.StringType    => coretypes.StringType
@@ -48,7 +48,7 @@ object SparkTypes {
       case sparktypes.StructType(fields) =>
         coretypes.StructType(fields.map { sf =>
           coretypes.StructField(sf.name, sparkToCore(sf.dataType), sf.nullable)
-        }: _*)
+        }.toList)
       case other => sys.error(s"Can't translate Spark type $other to connectors-core equivalent")
     }
   }
@@ -72,7 +72,7 @@ object SparkTypes {
         DataTypes.createArrayType(coreToSpark(elementType), nulls)
       case coretypes.MapType(keyType, valueType, nulls) =>
         DataTypes.createMapType(coreToSpark(keyType), coreToSpark(valueType), nulls)
-      case coretypes.StructType(fields @ _*) =>
+      case coretypes.StructType(fields) =>
         DataTypes.createStructType(fields.map { corefield =>
           DataTypes.createStructField(corefield.name, coreToSpark(corefield.`type`), corefield.nullable)
         }.toArray)
