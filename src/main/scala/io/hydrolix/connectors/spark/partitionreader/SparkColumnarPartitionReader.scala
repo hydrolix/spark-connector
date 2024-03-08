@@ -70,7 +70,7 @@ final class SparkColumnarPartitionReader(val           info: connectors.HdxConne
     )
   }
 
-  private val weirdIterator = new WeirdIterator[ColumnarBatch](stream.iterator(), SparkColumnarPartitionReader.doneSignal)
+  private val weirdIterator = new WeirdIterator[ColumnarBatch](iterator, SparkColumnarPartitionReader.doneSignal)
   override def next(): Boolean = weirdIterator.next()
   override def get(): ColumnarBatch = weirdIterator.get()
 }

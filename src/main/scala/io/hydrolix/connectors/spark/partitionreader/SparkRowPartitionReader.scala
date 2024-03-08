@@ -53,7 +53,7 @@ final class SparkRowPartitionReader(info: HdxConnectionInfo,
 {
   private val corePartitionReader = new RowPartitionReader[InternalRow](info, storage, scan.coreScan, SparkRowAdapter, doneSignal)
 
-  private val weirdIterator = new WeirdIterator[InternalRow](corePartitionReader.stream.iterator(), doneSignal)
+  private val weirdIterator = new WeirdIterator[InternalRow](corePartitionReader.iterator, doneSignal)
   override def next(): Boolean = weirdIterator.next()
   override def get(): InternalRow = weirdIterator.get()
 

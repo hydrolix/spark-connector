@@ -48,4 +48,5 @@ fi
         -c spark.sql.catalog.hydrolix.api_url="$HDX_API_URL" \
         -c spark.sql.catalog.hydrolix.cloud_cred_1="$AWS_ACCESS_KEY_ID" \
         -c spark.sql.catalog.hydrolix.cloud_cred_2="$AWS_SECRET_KEY" \
-        ${HDX_DOCKER_IMAGE:+"-c" "spark.sql.catalog.hydrolix.turbine_cmd_docker=$HDX_DOCKER_IMAGE"}
+        ${HDX_DOCKER_IMAGE:+"-c" "spark.sql.catalog.hydrolix.turbine_cmd_docker=$HDX_DOCKER_IMAGE"} \
+        ${HDX_STORAGE_ENDPOINT:+"-c" "spark.sql.catalog.hydrolix.storage_endpoint_uri=$HDX_STORAGE_ENDPOINT"}

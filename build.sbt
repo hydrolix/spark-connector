@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 ThisBuild / organization := "io.hydrolix"
-ThisBuild / version := "1.5.0-SNAPSHOT"
 ThisBuild / organizationHomepage := Some(url("https://hydrolix.io/"))
 ThisBuild / homepage := Some(url("https://github.com/hydrolix/spark-connector/"))
 ThisBuild / licenses := List(
   "Apache 2" -> new URL("http://www.apache.org/licenses/LICENSE-2.0.txt"),
   "Proprietary" -> new URL("https://github.com/hydrolix/spark-connector/#proprietary"),
 )
-ThisBuild / crossScalaVersions := List("2.12.18", "2.13.11")
+ThisBuild / crossScalaVersions := List("2.12.19", "2.13.12")
 
 name := "hydrolix-spark-connector"
 
@@ -48,15 +47,17 @@ assemblyMergeStrategy := {
     oldStrategy(x)
 }
 
+val sparkVersion = "3.4.2"
+
 //noinspection SpellCheckingInspection
 libraryDependencies ++= List(
-  "org.apache.spark" %% "spark-sql" % "3.3.2" % Provided,
+  "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,
 
-  "io.hydrolix" %% "hydrolix-connectors-core" % "1.4.0-SNAPSHOT",
+  "io.hydrolix" %% "hydrolix-connectors-core" % "1.5.0-SNAPSHOT",
 
   // Testing...
   "com.github.sbt" % "junit-interface" % "0.13.3" % Test,
-  "org.apache.spark" %% "spark-sql" % "3.3.2" % Test,
+  "org.apache.spark" %% "spark-sql" % sparkVersion % Test,
 )
 
 credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials")
