@@ -21,9 +21,8 @@ import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read._
 import org.apache.spark.sql.{SparkExpressions, SparkPushdown, types => sparktypes}
 
-import io.hydrolix.connectors
 import io.hydrolix.connectors.expr.Expr
-import io.hydrolix.connectors.{HdxConnectionInfo, HdxTable}
+import io.hydrolix.connectors.{HdxConnectionInfo, HdxPushdown, HdxTable}
 
 final class SparkScanBuilder(info: HdxConnectionInfo,
                             table: HdxTable)
@@ -40,7 +39,7 @@ final class SparkScanBuilder(info: HdxConnectionInfo,
 
   override def pushPredicates(predicates: Array[Predicate]): Array[Predicate] = {
     val pushable = predicates.toList.groupBy { pred =>
-      connectors.HdxPushdown.pushable(
+      HdxPushdown.pushable(
         table.primaryKeyField,
         table.shardKeyField,
         SparkExpressions.sparkToCore(pred, table.schema).asInstanceOf[Expr[Boolean]],
