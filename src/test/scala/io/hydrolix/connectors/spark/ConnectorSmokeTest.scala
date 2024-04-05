@@ -10,7 +10,7 @@ import org.apache.spark.sql.connector.catalog.Identifier
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-import org.junit.Test
+import org.junit.{Ignore, Test}
 
 import io.hydrolix.connectors
 import io.hydrolix.connectors.expr
@@ -18,7 +18,7 @@ import io.hydrolix.connectors.expr.{And, GreaterEqual, LessEqual, TimestampLiter
 import io.hydrolix.connectors.spark.partitionreader.SparkRowPartitionReader
 import io.hydrolix.connectors.types.TimestampType
 
-// TODO move this to connectors-core
+@Ignore("requires environment not available in CI etc.")
 class ConnectorSmokeTest {
   @Test
   def doStuff(): Unit = {

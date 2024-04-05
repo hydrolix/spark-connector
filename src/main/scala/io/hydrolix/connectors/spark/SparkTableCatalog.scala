@@ -27,7 +27,7 @@ import scala.collection.JavaConverters._
 
 import io.hydrolix.connectors.HdxTableCatalog
 
-//noinspection ScalaUnusedSymbol: This is referenced as a classname on the Spark command line (`-c spark.sql.catalog.hydrolix=io.hydrolix.spark.connector.SparkTableCatalog`)
+//noinspection ScalaUnusedSymbol: This is referenced as a classname on the Spark command line (`-c spark.sql.catalog.hydrolix=io.hydrolix.connectors.spark.SparkTableCatalog`)
 final class SparkTableCatalog
     extends TableCatalog
        with SupportsNamespaces

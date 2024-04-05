@@ -26,15 +26,15 @@ unifying DataFrame abstraction.
   databases, tables, partitions and columns that are accessible to the authenticated user.
 * Provides implementations of the Spark types necessary to run queries, including: 
 
-  | Spark Type                                                                                                                             | Connector Implementation                                                                                | 
-  |----------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
-  | [Table](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/catalog/Table.html)                                | [HdxTable](./src/main/scala/io/hydrolix/connectors/spark/SparkTable.scala)                              |
-  | [ScanBuilder](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/ScanBuilder.html)                       | [HdxScanBuilder](./src/main/scala/io/hydrolix/connectors/spark/SparkScanBuilder.scala)                  |
-  | [Scan](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Scan.html)                                     | [HdxScan](./src/main/scala/io/hydrolix/connectors/spark/SparkScan.scala)                                | 
-  | [Batch](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Batch.html)                                   | [HdxBatch](./src/main/scala/io/hydrolix/connectors/spark/SparkBatch.scala)                              | 
-  | [PartitionReaderFactory](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReaderFactory.html) | [HdxPartitionReaderFactory](./src/main/scala/io/hydrolix/connectors/spark/HdxPartitionReader.scala#L37) |
-  | [InputPartition](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/InputPartition.html)                 | [HdxScanPartition](./src/main/scala/io/hydrolix/connectors/spark/SparkScanPartition.scala)              |
-  | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxPartitionReader](./src/main/scala/io/hydrolix/connectors/spark/HdxPartitionReader.scala#L118)       |
+  | Spark Type                                                                                                                             | Connector Implementation                                                                                                             | 
+  |----------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+  | [Table](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/catalog/Table.html)                                | [SparkTable](./src/main/scala/io/hydrolix/connectors/spark/SparkTable.scala)                                                         |
+  | [ScanBuilder](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/ScanBuilder.html)                       | [SparkScanBuilder](./src/main/scala/io/hydrolix/connectors/spark/SparkScanBuilder.scala)                                             |
+  | [Scan](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Scan.html)                                     | [SparkScan](./src/main/scala/io/hydrolix/connectors/spark/SparkScan.scala)                                                           | 
+  | [Batch](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/Batch.html)                                   | [SparkBatch](./src/main/scala/io/hydrolix/connectors/spark/SparkBatch.scala)                                                         | 
+  | [PartitionReaderFactory](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReaderFactory.html) | [SparkRowPartitionReaderFactory](./src/main/scala/io/hydrolix/connectors/spark/partitionreader/SparkRowPartitionReader.scala#L30-42) |
+  | [InputPartition](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/InputPartition.html)                 | [SparkScanPartition](./src/main/scala/io/hydrolix/connectors/spark/SparkScanPartition.scala)                                         |
+  | [PartitionReader](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/read/PartitionReader.html)               | [HdxPartitionReader](./src/main/scala/io/hydrolix/connectors/spark/partitionreader/SparkRowPartitionReader.scala#L44-61)             |
 
 ### hdx_reader
 An operating mode of the `turbine_cmd` binary, launched by `HdxPartitionReader` as a child process to read Hydrolix 
@@ -182,7 +182,7 @@ inspiration.
 6. (Optional) apply configuration settings as space-separated name-value pairs in 
    `Advanced Options > Spark > Spark config`, e.g. for AWS:
    ```
-   spark.sql.catalog.hydrolix io.hydrolix.spark.connector.HdxTableCatalog
+   spark.sql.catalog.hydrolix io.hydrolix.connectors.spark.SparkTableCatalog
    spark.sql.catalog.hydrolix.api_url https://my-hdx-cluster.example.com/config/v1/
    spark.sql.catalog.hydrolix.jdbc_url jdbc:clickhouse://my-hdx-cluster.example.com:8088?ssl=true
    spark.sql.catalog.hydrolix.username <hydrolix username>
@@ -205,7 +205,7 @@ or a notebook using `spark.conf.set(<name>, <value>)`, they don't need to be pro
 
 | Option Name                               | Option Value                                          | Description                                                                                                                                                                           |
 |-------------------------------------------|-------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `spark.sql.catalog.hydrolix`              | `io.hydrolix.spark.connector.HdxTableCatalog`         | The fully qualified name of the class to instantiate when you ask for the `hydrolix` catalog.                                                                                         |
+| `spark.sql.catalog.hydrolix`              | `io.hydrolix.connectors.spark.SparkTableCatalog`      | The fully qualified name of the class to instantiate when you ask for the `hydrolix` catalog.                                                                                         |
 | `spark.sql.catalog.hydrolix.jdbc_url`     | `jdbc:clickhouse://<host>:<port>/<database>?ssl=true` | JDBC URL of the Hydrolix query head. Note that the Clickhouse JDBC driver requires a valid database name in the URL, but the connector will read any database the user has access to. |
 | `spark.sql.catalog.hydrolix.username`     | `<hdx user name>`                                     | Username to login to the Hydrolix cluster                                                                                                                                             |
 | `spark.sql.catalog.hydrolix.password`     | `<hdx password>`                                      | Password to login to the Hydrolix cluster                                                                                                                                             |
@@ -255,10 +255,6 @@ Map [Hydrolix dictionaries](https://docs.hydrolix.io/docs/dictionaries-user-defi
 can be queried more naturally using `JOIN`s
 
 ### Performance
-#### ColumnarBatch
-Spark’s PartitionReaderFactory interface supports both row-oriented and columnar operating modes. The Hydrolix Spark 
-connector currently uses the row-oriented mode, but we should be able to achieve higher query performance by switching 
-to the columnar mode, which unlocks some vectorization opportunities.
 
 #### Additional Aggregate Pushdown
 We already run queries that only contain `COUNT(*)`, `MIN(timestamp)` and/or `MAX(timestamp)` with no `GROUP BY` or 
@@ -278,3 +274,9 @@ cloud storage. We should add integrations to retrieve credentials from various s
 
 ### 1.0.0
 Initial public release!
+
+### 1.5.0
+Rebased on [connectors-core](https://github.com/hydrolix/connectors-core), with a few performance improvements:
+ * Catalog queries now include min/max time bounds where applicable
+ * For simple query schemas (where there are no nested maps), we now use [ColumnarBatch](https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/vectorized/ColumnarBatch.html) 
+   to return data from the PartitionReader, which should unlock vectorization opportunities.

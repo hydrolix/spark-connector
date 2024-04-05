@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 ThisBuild / organization := "io.hydrolix"
+ThisBuild / version := "1.5.0-SNAPSHOT"
 ThisBuild / organizationHomepage := Some(url("https://hydrolix.io/"))
 ThisBuild / homepage := Some(url("https://github.com/hydrolix/spark-connector/"))
 ThisBuild / licenses := List(
@@ -36,6 +37,7 @@ assembly / assemblyOption ~= {
   _.withIncludeScala(false)
 }
 
+//noinspection scala2InSource3
 assemblyMergeStrategy := {
   case PathList(pl@_*) if pl.last == "module-info.class" => MergeStrategy.discard
   case PathList(pl@_*) if pl.last == "public-suffix-list.txt" => MergeStrategy.discard
@@ -46,6 +48,8 @@ assemblyMergeStrategy := {
     val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
     oldStrategy(x)
 }
+
+resolvers ++= Resolver.sonatypeOssRepos("public")
 
 val sparkVersion = "3.4.2"
 
@@ -83,3 +87,7 @@ ThisBuild / publishTo := {
   else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 ThisBuild / publishMavenStyle := true
+
+releasePublishArtifactsAction := PgpKeys.publishSigned.value
+releaseCrossBuild := true
+releaseIgnoreUntrackedFiles := true
