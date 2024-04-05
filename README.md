@@ -134,27 +134,27 @@ You’ll need the connector jar, which can be resolved using the usual Maven mac
 
 #### SBT
 ```
-  libraryDependencies += "io.hydrolix" %% "hydrolix-spark-connector" % "1.5.0-SNAPSHOT"
+  libraryDependencies += "io.hydrolix" %% "hydrolix-spark-connector" % "1.6.0-SNAPSHOT"
 ```
 (note that we only build for Scala 2.12 at the moment)
 #### Gradle (Kotlin)
 ```
-  implementation("io.hydrolix:hydrolix-spark-connector_2.12:1.5.0-SNAPSHOT")
+  implementation("io.hydrolix:hydrolix-spark-connector_2.12:1.6.0-SNAPSHOT")
 ```
 #### Gradle (Groovy)
 ```
-  implementation 'io.hydrolix:hydrolix-spark-connector_2.12:1.5.0-SNAPSHOT'
+  implementation 'io.hydrolix:hydrolix-spark-connector_2.12:1.6.0-SNAPSHOT'
 ```
 #### Maven
 ```
   <dependency>
     <groupId>io.hydrolix</groupId>
     <artifactId>hydrolix-spark-connector_2.12</artifactId>
-    <version>1.5.0-SNAPSHOT</version>
+    <version>1.6.0-SNAPSHOT</version>
   </dependency>
 ```
 
-Otherwise, if you’re building locally, it will show up at [./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.5.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.5.0-SNAPSHOT.jar). 
+Otherwise, if you’re building locally, it will show up at [./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.6.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.6.0-SNAPSHOT.jar). 
 
 ## Building
 
@@ -163,7 +163,7 @@ Otherwise, if you’re building locally, it will show up at [./target/scala-2.12
    git clone git@github.com:hydrolix/spark-connector.git hydrolix-spark-connector && cd hydrolix-spark-connector
    ```
 3. Run `sbt assembly` to compile and build the connector jar file.
-4. If the build succeeds, the jar can be found at [./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.5.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.5.0-SNAPSHOT.jar).
+4. If the build succeeds, the jar can be found at [./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.6.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.6.0-SNAPSHOT.jar).
 
 ## Running
 
@@ -173,7 +173,7 @@ inspiration.
 
 ### Deploying on Databricks
 1. Databricks Runtime 13 or higher is required
-2. Upload the [connector jar](./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.5.0-SNAPSHOT.jar) in the Libraries 
+2. Upload the [connector jar](./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.6.0-SNAPSHOT.jar) in the Libraries 
    tab, or use its [Maven coordinates](#connector-jar). 
 3. Select JDK11 by [setting an environment variable](https://docs.databricks.com/release-notes/runtime/10.0.html#cluster-support-for-jdk-11-public-preview) 
    in `Advanced Options > Spark > Environment Variables`
@@ -272,11 +272,14 @@ cloud storage. We should add integrations to retrieve credentials from various s
 
 ## Changelog
 
-### 1.0.0
-Initial public release!
+### 1.6.0
+* Cope with connectors-core 1.5.0 changes
 
 ### 1.5.0
 Rebased on [connectors-core](https://github.com/hydrolix/connectors-core), with a few performance improvements:
- * Catalog queries now include min/max time bounds where applicable
- * For simple query schemas (where there are no nested maps), we now use [ColumnarBatch](https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/vectorized/ColumnarBatch.html) 
-   to return data from the PartitionReader, which should unlock vectorization opportunities.
+* Catalog queries now include min/max time bounds where applicable
+* For simple query schemas (where there are no nested maps), we now use [ColumnarBatch](https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/vectorized/ColumnarBatch.html)
+  to return data from the PartitionReader, which should unlock vectorization opportunities.
+
+### 1.0.0
+Initial public release!
