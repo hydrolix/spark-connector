@@ -17,7 +17,6 @@
 package io.hydrolix.connectors.spark.partitionreader
 
 import com.fasterxml.jackson.core.{JsonParser, JsonToken}
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.execution.vectorized.{OnHeapColumnVector, WritableColumnVector}
 import org.apache.spark.sql.types.{DataType, DataTypes}
@@ -31,7 +30,7 @@ import io.hydrolix.connectors
 import io.hydrolix.connectors.{types => coretypes}
 import io.hydrolix.connectors.spark.SparkTypes
 
-object HdxReaderColumnarJson extends Logging {
+object HdxReaderColumnarJson {
   private val scalarTypes = Set(
     DataTypes.StringType,
     DataTypes.BooleanType,

@@ -15,15 +15,14 @@
  */
 package io.hydrolix.connectors.spark
 
-import org.apache.spark.internal.Logging
+import java.util.Collections
+import java.{util => ju}
+import scala.collection.JavaConverters._
+
 import org.apache.spark.sql.connector.catalog._
 import org.apache.spark.sql.connector.expressions.Transform
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
-
-import java.util.Collections
-import java.{util => ju}
-import scala.collection.JavaConverters._
 
 import io.hydrolix.connectors.HdxTableCatalog
 
@@ -31,7 +30,6 @@ import io.hydrolix.connectors.HdxTableCatalog
 final class SparkTableCatalog
     extends TableCatalog
        with SupportsNamespaces
-       with Logging
 {
   private var coreCatalog: HdxTableCatalog = _
 

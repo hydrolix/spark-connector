@@ -15,7 +15,7 @@
  */
 package io.hydrolix.connectors.spark
 
-import org.apache.spark.internal.Logging
+import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.SparkPredicates
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
@@ -33,8 +33,9 @@ final class SparkBatch(info: HdxConnectionInfo,
                 pushedPreds: List[Predicate],
                  pushedAggs: List[AggregateFunc])
   extends Batch
-     with Logging
 {
+  private val logger = Logger(getClass)
+
   private var planned: Array[InputPartition] = _
   //noinspection RedundantCollectionConversion -- Scala 2.13
   private val colsCore = SparkTypes.sparkToCore(cols).asInstanceOf[types.StructType]
@@ -80,16 +81,16 @@ final class SparkBatch(info: HdxConnectionInfo,
       new PushedAggsPartitionReaderFactory()
     } else {
       val useRowOriented = if (table.queryMode == HdxQueryMode.FORCE_ROW) {
-        log.info("Forcing row-oriented query mode")
+        logger.info("Forcing row-oriented query mode")
         true
       } else if (table.queryMode == HdxQueryMode.AUTO && schemaContainsMap) {
-        log.info("Schema includes at least one Map type; using row-oriented reader")
+        logger.info("Schema includes at least one Map type; using row-oriented reader")
         true
       } else if (table.queryMode == HdxQueryMode.AUTO && !schemaContainsMap) {
-        log.info("Schema does not include a Map type; using columnar reader")
+        logger.info("Schema does not include a Map type; using columnar reader")
         false
       } else {
-        log.info("Forcing columnar query mode")
+        logger.info("Forcing columnar query mode")
         false
       }
 

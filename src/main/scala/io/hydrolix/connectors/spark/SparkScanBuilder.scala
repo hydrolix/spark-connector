@@ -15,7 +15,7 @@
  */
 package io.hydrolix.connectors.spark
 
-import org.apache.spark.internal.Logging
+import com.typesafe.scalalogging.Logger
 import org.apache.spark.sql.connector.expressions.aggregate.{AggregateFunc, Aggregation}
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read._
@@ -30,8 +30,8 @@ final class SparkScanBuilder(info: HdxConnectionInfo,
      with SupportsPushDownV2Filters
      with SupportsPushDownRequiredColumns
      with SupportsPushDownAggregates
-     with Logging
 {
+  private val logger = Logger(getClass)
   private var pushedPreds: List[Predicate] = Nil
   private var pushedAggs: List[AggregateFunc] = Nil
   private var cols: sparktypes.StructType = _
@@ -51,8 +51,8 @@ final class SparkScanBuilder(info: HdxConnectionInfo,
     val type2 = pushable.getOrElse(2, Nil)
     val type3 = pushable.getOrElse(3, Nil)
 
-    if (type1.nonEmpty || type2.nonEmpty) log.info(s"These predicates are pushable: 1:[$type1], 2:[$type2]")
-    if (type3.nonEmpty) log.info(s"These predicates are NOT pushable: 3:[$type3]")
+    if (type1.nonEmpty || type2.nonEmpty) logger.info(s"These predicates are pushable: 1:[$type1], 2:[$type2]")
+    if (type3.nonEmpty) logger.info(s"These predicates are NOT pushable: 3:[$type3]")
 
     // Types 1 & 2 will be pushed
     pushedPreds = type1 ++ type2

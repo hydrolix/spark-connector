@@ -16,7 +16,6 @@
 // NOTE: this is in the spark.sql package because we make use of a few private[sql] members in there 😐
 package org.apache.spark.sql
 
-import org.apache.spark.internal.Logging
 import org.apache.spark.sql.connector.expressions.aggregate._
 import org.apache.spark.sql.connector.expressions.{Expression, FieldReference}
 import org.apache.spark.sql.types.{DataTypes, StructField}
@@ -26,7 +25,7 @@ import org.apache.spark.sql.types.{DataTypes, StructField}
  *  - see if multi-part names will ever show up (e.g. in a join?); that would break GetField but hopefully only
  *    in a way that would allow fewer pushdown opportunities rather than incorrect results.
  */
-object SparkPushdown extends Logging {
+object SparkPushdown {
   // TODO port this to connectors-core
   def pushableAggs(aggregation: Aggregation, primaryKeyField: String): List[(AggregateFunc, StructField)] = {
     if (aggregation.groupByExpressions().nonEmpty) return Nil
