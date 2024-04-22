@@ -56,7 +56,7 @@ val sparkVersion = "3.4.2"
 libraryDependencies ++= List(
   "org.apache.spark" %% "spark-sql" % sparkVersion % Provided,
 
-  "io.hydrolix" %% "hydrolix-connectors-core" % "1.5.0-SNAPSHOT",
+  "io.hydrolix" %% "hydrolix-connectors-core" % "1.5.0",
 
   // Testing...
   "com.github.sbt" % "junit-interface" % "0.13.3" % Test,
