@@ -222,11 +222,11 @@ Create a Spark cluster in your Databricks workspace with the following configura
 
 The next image shows how the configuration should look. The image may be slightly different as Databricks makes changes to their UI.
 
-![Cluster configuration screenshot](doc/db-spark-connector-1.png | width=300)
+<img src="doc/db-spark-connector-1.png" width="375" alt="Spark cluster configuration">
 
 Set additional configuration parameters. In the **Advanced Options** section, open the Spark tab as shown in the following image.  
 
-![Advanced Options screenshot](doc/db-spark-connector-2-1200x937.png | width=300)
+<img src="doc/db-spark-connector-2-1200x937.png" width="600" alt="Advanced Options screenshot">
 
 Set the following Spark configuration [parameters](https://hydrolix.io/spark-connector-with-databricks/#Configuring_the_Hydrolix_Spark_Connector):
 
@@ -271,7 +271,7 @@ spark.sql.catalog.hydrolix.cloud_cred_2 <AWS_SECRET_KEY>
 
 Enable the use of JDK11 by setting the JNAME environment variable to `zulu11-ca-amd64`, as shown in the following image.
 
-![Example Spark configuration settings in the Databricks UI.](doc/spark-connector-parameters.png)
+<img src="doc/spark-connector-parameters.png" width="600" alt="Example Spark configuration settings in the Databricks UI">
 
 Click the "Create Compute" button to save your work.
 
@@ -279,17 +279,18 @@ Click the "Create Compute" button to save your work.
 
 In the **Libraries** tab for the Spark cluster, select **Install new** as shown in the next image.
 
-![Libraries tab shows Install new button.](doc/db-spark-connector-4.png)
+<img src="doc/db-spark-connector-4.png" width="600" alt="Libraries tab shows Install new button">
+
 
 Make sure the **DBFS** and **JAR** options are selected as shown in the following image.
 
-![UI Shot 1](doc/Cursor_and_Cluster_Details_-_Databricks.png)
+<img src="doc/Cursor_and_Cluster_Details_-_Databricks.png" width="500" alt="DBFS/JAR screenshot">
 
 In your local file manager, navigate to the `target/scala-2.12` subfolder of the `hydrolix-spark-connector` source tree, and move `hydrolix-spark-connector-assembly-1.1.1-SNAPSHOT.jar` (or similarly-named JAR file) into the **Drop JAR here** window that’s shown in the previous image. 
 
 Don’t select anything while it’s uploading or you’ll have to upload the file again. After the upload is finished, you’ll see a green checkmark next to the file as shown in the next image.
 
-![UI Shot 2](doc/Cluster_Details_-_Databricks-3.png)
+<img src="doc/Cluster_Details_-_Databricks-3.png" width="500" alt="JAR file upload">
 
 Once the upload is finished, select **Install** and wait a few minutes while the cluster restarts. You can now start analyzing your Hydrolix data in Spark!
 
