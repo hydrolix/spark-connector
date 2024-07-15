@@ -170,34 +170,6 @@ Otherwise, if you’re building locally, it will show up at [./target/scala-2.12
 ### Local Deployment
 For local testing, look at the [GCS](scripts/spark-2.12-gcs.sh) or [AWS](scripts/spark-2.12-aws.sh) scripts for inspiration.
 
-<!-- ### Deploying on Databricks
-1. Databricks Runtime 13 or higher is required
-2. Upload the [connector jar](./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.6.0-SNAPSHOT.jar) in the Libraries 
-   tab, or use its [Maven coordinates](#connector-jar). 
-3. Select JDK11 by [setting an environment variable](https://docs.databricks.com/release-notes/runtime/10.0.html#cluster-support-for-jdk-11-public-preview) 
-   in `Advanced Options > Spark > Environment Variables`
-4. Set `Policy` to `Unrestricted`
-5. Set `Access mode` to `No isolation shared`
-6. (Optional) apply configuration settings as space-separated name-value pairs in 
-   `Advanced Options > Spark > Spark config`, e.g. for AWS:
-   ```
-   spark.sql.catalog.hydrolix io.hydrolix.connectors.spark.SparkTableCatalog
-   spark.sql.catalog.hydrolix.api_url https://my-hdx-cluster.example.com/config/v1/
-   spark.sql.catalog.hydrolix.jdbc_url jdbc:clickhouse://my-hdx-cluster.example.com:8088?ssl=true
-   spark.sql.catalog.hydrolix.username <hydrolix username>
-   spark.sql.catalog.hydrolix.password <hydrolix password>
-   spark.sql.catalog.hydrolix.cloud_cred_1 <access key ID>
-   spark.sql.catalog.hydrolix.cloud_cred_2 <secret key>
-   ```
-   **Note:** these settings can also be applied in a notebook or from spark-shell, using 
-   `spark.conf.set(<key>, <value>)`, which also allows credentials to be loaded from the Databricks secrets API; see
-   [Note: Credentials](#note-credentials)  -->
-<!-- 
-### Deploying on AWS Elastic MapReduce (EMR)
-1. AWS EMR 6.10.0 or later is required
-2. Configure JDK 11, as in [this StackOverflow answer](https://stackoverflow.com/a/72054500)
-3. TODO! -->
-
 ## Prepare the Hydrolix Spark Connector Parameters
 
 The Hydrolix Spark Connector requires the following configuration parameters. These parameters can be specified in the Databricks UI when creating a cluster. The ‘...’ prefix in these option names should be replaced with `spark.sql.catalog.hydrolix`.
