@@ -162,60 +162,150 @@ Otherwise, if you’re building locally, it will show up at [./target/scala-2.12
 2. ```
    git clone git@github.com:hydrolix/spark-connector.git hydrolix-spark-connector && cd hydrolix-spark-connector
    ```
-3. Run `sbt assembly` to compile and build the connector jar file.
-4. If the build succeeds, the jar can be found at [./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.6.0-SNAPSHOT.jar](./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.6.0-SNAPSHOT.jar).
+3. Run `sbt  -J-Xmx4G assembly` to compile and build the connector jar file.
+4. If the build succeeds, it will produce a file named similarly to  `hydrolix-spark-connector-assembly_2.12-1.6.0-SNAPSHOT.jar` in the `target/scala` directory. This file is later specified as one of the inputs when starting the Spark shell.
 
 ## Running
 
 ### Local Deployment
-For local testing, look at the [GCS](scripts/spark-2.12-gcs.sh) or [AWS](scripts/spark-2.12-aws.sh) scripts for 
-inspiration.
+For local testing, look at the [GCS](scripts/spark-2.12-gcs.sh) or [AWS](scripts/spark-2.12-aws.sh) scripts for inspiration.
 
-### Deploying on Databricks
-1. Databricks Runtime 13 or higher is required
-2. Upload the [connector jar](./target/scala-2.12/hydrolix-spark-connector-assembly_2.12-1.6.0-SNAPSHOT.jar) in the Libraries 
-   tab, or use its [Maven coordinates](#connector-jar). 
-3. Select JDK11 by [setting an environment variable](https://docs.databricks.com/release-notes/runtime/10.0.html#cluster-support-for-jdk-11-public-preview) 
-   in `Advanced Options > Spark > Environment Variables`
-4. Set `Policy` to `Unrestricted`
-5. Set `Access mode` to `No isolation shared`
-6. (Optional) apply configuration settings as space-separated name-value pairs in 
-   `Advanced Options > Spark > Spark config`, e.g. for AWS:
-   ```
-   spark.sql.catalog.hydrolix io.hydrolix.connectors.spark.SparkTableCatalog
-   spark.sql.catalog.hydrolix.api_url https://my-hdx-cluster.example.com/config/v1/
-   spark.sql.catalog.hydrolix.jdbc_url jdbc:clickhouse://my-hdx-cluster.example.com:8088?ssl=true
-   spark.sql.catalog.hydrolix.username <hydrolix username>
-   spark.sql.catalog.hydrolix.password <hydrolix password>
-   spark.sql.catalog.hydrolix.cloud_cred_1 <access key ID>
-   spark.sql.catalog.hydrolix.cloud_cred_2 <secret key>
-   ```
-   **Note:** these settings can also be applied in a notebook or from spark-shell, using 
-   `spark.conf.set(<key>, <value>)`, which also allows credentials to be loaded from the Databricks secrets API; see
-   [Note: Credentials](#note-credentials) 
+## Prepare the Hydrolix Spark Connector Parameters
 
-### Deploying on AWS Elastic MapReduce (EMR)
-1. AWS EMR 6.10.0 or later is required
-2. Configure JDK 11, as in [this StackOverflow answer](https://stackoverflow.com/a/72054500)
-3. TODO!
+The Hydrolix Spark Connector requires the following configuration parameters. These parameters can be specified in the Databricks UI when creating a cluster. The ‘...’ prefix in these option names should be replaced with `spark.sql.catalog.hydrolix`.
 
-### Configuration Parameter Details
-The parameters are explained in this table. Note that the configuration parameters can always be set from `spark-shell` 
-or a notebook using `spark.conf.set(<name>, <value>)`, they don't need to be provided on startup.
+| **Option name** | **Value**                                               | **Description**                                                                                                                                                                                      |
+| --------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ...             | io.hydrolix.connectors.spark.SparkTableCatalog          | Fully-qualified name of the Scala class to instantiate when the hydrolix catalog is selected                                                                                                         |
+| ...api_url      | https\://\<hdx-cluster\>/config/v1/                     | API URL of your Hydrolix cluster, ends with "/config/v1/" including the trailing slash                                                                                                               |
+| ...jdbc_url     | jdbc:clickhouse://\<hdx-cluster\>:8088/\_local?ssl=true | JDBC URL of your Hydrolix cluster                                                                                                                                                                    |
+| ...username     | \<user name\>                                           | Hydrolix cluster username                                                                                                                                                                            |
+| ...password     | \<password\>                                            | Hydrolix cluster password                                                                                                                                                                            |
+| ...cloud_cred_1 | \<Google base64 key or AWS access key ID\>              | First cloud credential. For AWS, this is an AWS access key ID. For Google Cloud, this is the contents of the Google Cloud service account key file, compressed with gzip and then encoded as base64. |
+| ...cloud_cred_2 | \<AWS secret\>                                          | This is only needed for AWS, not Google Cloud.                                                       |
 
-| Option Name                               | Option Value                                          | Description                                                                                                                                                                           |
-|-------------------------------------------|-------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `spark.sql.catalog.hydrolix`              | `io.hydrolix.connectors.spark.SparkTableCatalog`      | The fully qualified name of the class to instantiate when you ask for the `hydrolix` catalog.                                                                                         |
-| `spark.sql.catalog.hydrolix.jdbc_url`     | `jdbc:clickhouse://<host>:<port>/<database>?ssl=true` | JDBC URL of the Hydrolix query head. Note that the Clickhouse JDBC driver requires a valid database name in the URL, but the connector will read any database the user has access to. |
-| `spark.sql.catalog.hydrolix.username`     | `<hdx user name>`                                     | Username to login to the Hydrolix cluster                                                                                                                                             |
-| `spark.sql.catalog.hydrolix.password`     | `<hdx password>`                                      | Password to login to the Hydrolix cluster                                                                                                                                             |
-| `spark.sql.catalog.hydrolix.api_url`      | `https://<hdx-cluster-host>/config/v1/`               | URL of the Hydrolix config API, usually must end with `/config/v1/` including the trailing slash                                                                                      |
-| `spark.sql.catalog.hydrolix.cloud_cred_1` | `<base64 or AWS access key ID>`                       | First cloud credential. Either a base64(GZIP(GCP service account key file)), or an AWS access key ID.                                                                                 |
-| `spark.sql.catalog.hydrolix.cloud_cred_2` | `<AWS secret>`                                        | Second cloud credential. Not used for GCP; the AWS secret key for AWS.                                                                                                                |
+### Configure the Spark Cluster
+
+Create a Spark cluster in your Databricks workspace with the following configuration:
+
+- **Policy:** Unrestricted
+- **Access Mode:** No Isolation Shared
+- **Databricks Runtime Version:** Version 13 or later
+
+The next image shows how the configuration should look. The image may be slightly different as Databricks makes changes to their UI.
+
+<img src="doc/db-spark-connector-1.png" width="375" alt="Spark cluster configuration">
+
+Set additional configuration parameters. In the **Advanced Options** section, open the Spark tab as shown in the following image.  
+
+<img src="doc/db-spark-connector-2-1200x937.png" width="600" alt="Advanced Options screenshot">
+
+Set the following Spark configuration [parameters](https://hydrolix.io/spark-connector-with-databricks/#Configuring_the_Hydrolix_Spark_Connector):
+
+- `spark.sql.catalog.hydrolix`
+- `spark.sql.catalog.hydrolix.api_url`
+- `spark.sql.catalog.hydrolix.jdbc_url`
+- `spark.sql.catalog.hydrolix.username `
+- `spark.sql.catalog.hydrolix.password `
+- `spark.sql.catalog.hydrolix.cloud_cred_1 `
+- `spark.sql.catalog.hydrolix.cloud_cred_2` (only for AWS)
+
+Set the Hydrolix Spark Connector’s [configuration parameters](https://github.com/hydrolix/spark-connector#configuration-parameter-details) in the **Advanced Options** section as name-value pairs delimited by whitespace, or configure them in a notebook using `spark.conf.set(<key>, <value>)`, allowing you to use Databricks Secrets.
+
+### Credentials With Google Cloud Platform
+
+If you’re using Google Cloud with Databricks, set the `hydrolix.cloud_cred_1` parameter to the base64-encoded gzipped key value. If you don't have this key, create one and download it from the Google Cloud Console, navigating to `IAM & Admin->Service Accounts`, clicking on your service account, then clicking on the `Keys` tab. 
+
+Store this file somewhere secure, then create the gzip'ed and base64-encoded version. For example, with a keyfile called <keyfilename>.json, use this command on a Linux or OS X machine: 
+
+```shell
+cat <keyfilename>.json | gzip | base64
+```
+
+Next, include the entire resulting string as one line in the `spark.sql.catalog.hydrolix.cloud_cred_1` parameter:
+
+```
+spark.sql.catalog.hydrolix.cloud_cred_1 <gcpKeyBase64>
+```
+
+You do not need to specify `spark.sql.catalog.hydrolix.cloud_cred_2` with Google Cloud Storage.
+
+### Credentials With AWS
+
+When using Databricks in AWS, set your cloud credentials to the following:
+
+```
+spark.sql.catalog.hydrolix.cloud_cred_1 <AWS_ACCESS_KEY_ID>
+spark.sql.catalog.hydrolix.cloud_cred_2 <AWS_SECRET_KEY>
+```
+
+### Set the JNAME Environment Variable
+
+Enable the use of JDK11 by setting the JNAME environment variable to `zulu11-ca-amd64`, as shown in the following image.
+
+<img src="doc/spark-connector-parameters.png" width="600" alt="Example Spark configuration settings in the Databricks UI">
+
+Click the "Create Compute" button to save your work.
+
+## Upload and Install the Hydrolix Spark Connector</span>
+
+In the **Libraries** tab for the Spark cluster, select **Install new** as shown in the next image.
+
+<img src="doc/db-spark-connector-4.png" width="600" alt="Libraries tab shows Install new button">
+
+
+Make sure the **DBFS** and **JAR** options are selected as shown in the following image.
+
+<img src="doc/Cursor_and_Cluster_Details_-_Databricks.png" width="500" alt="DBFS/JAR screenshot">
+
+In your local file manager, navigate to the `target/scala-2.12` subfolder of the `hydrolix-spark-connector` source tree, and move `hydrolix-spark-connector-assembly-1.1.1-SNAPSHOT.jar` (or similarly-named JAR file) into the **Drop JAR here** window that’s shown in the previous image. 
+
+Don’t select anything while it’s uploading or you’ll have to upload the file again. After the upload is finished, you’ll see a green checkmark next to the file as shown in the next image.
+
+<img src="doc/Cluster_Details_-_Databricks-3.png" width="500" alt="JAR file upload">
+
+Once the upload is finished, select **Install** and wait a few minutes while the cluster restarts. You can now start analyzing your Hydrolix data in Spark!
+
+## Use the Hydrolix Spark Connector With a Spark Notebook
+
+After you have configured your cluster, you can use the Hydrolix Spark Connector in a Spark notebook.
+
+To begin using the connector with a Spark notebook, you’ll use one of the two commands depending on your use case:
+
+- **SQL fragment:** `%sql`.
+- **Python or Scala fragment:** `sql("use hydrolix")`.
+
+Then use your Spark notebook to make a SQL query or use the Dataframe API:
+
+```sql
+%sql
+SELECT
+user_agent,
+count(*) AS count
+FROM hydrolix.hydrolix_project.hydrolix_table
+WHERE
+my_timestamp_column BETWEEN '2023-05-10T00:00:00.000Z' AND '2023-05-10T00:00:01.000Z'
+GROUP BY
+user_agent
+ORDER BY
+count DESC
+```
+```python
+from pyspark.sql.functions import col, desc, count
+
+my_table = table("hydrolix_project.hydrolix_table")
+ts = col("my_timestamp_column")
+
+sample_df = my_table.filter(ts.between('2023-05-10T00:00:00.000Z', '2023-05-10T00:00:01.000Z')) \
+    .groupBy(my_table.user_agent) \
+    .agg(count("*").alias("count")) \
+    .orderBy(desc("count")) \
+    .cache()
+```
 
 #### Note: Credentials
-All of the above configuration options can be set at runtime, so there's no need to hardcode credentials in cluster/job 
-launch scripts. For example, when running the connector in a Databricks workspace, you can retrieve credentials from the 
+If you don't want to put your credentials in your Databricks configuration, you can set all configuration options at runtime instead. All of the above configuration options can be set at runtime, so there's no need to hardcode credentials in cluster/job 
+launch scripts. For example, in Python, when running the connector in a Databricks workspace, you can retrieve and set credentials from the 
 Databricks secret manager like so:
 
 ```
@@ -247,6 +337,12 @@ val recent = logs.filter(col("timestamp") > "2023-06-01T00:00:00.000Z"))
 
 recent.count()
 ```
+## Troubleshooting
+
+### Timeout errors
+
+- If you see timeout errors from the Hydrolix database when you are making queries, make sure you have the IP address of your Spark cluster listed in your hydrolixcluster.yaml `ip_allowlist`.
+- If you see "access denied' errors from the Hydrolix database when you are making queries, ensure the username and password are correct, and make sure that user has query permissions.
 
 ## Roadmap
 
