@@ -1,5 +1,9 @@
 # Hydrolix Spark Connector
 
+$${\color{red}THIS \space PROJECT \space IS \space DEPRECATED  \space AS \space OF \space 4 \space FEBRUARY \space 2025}$$
+
+Documentation for the new Hydrolix Spark Connector can be found [here](https://docs.hydrolix.io/docs/apache-spark-connector). 
+
 ## Overview
 
 This is a Spark [TableCatalog](https://spark.apache.org/docs/3.3.2/api/java/org/apache/spark/sql/connector/catalog/TableCatalog.html)/"DataSourceV2" 
